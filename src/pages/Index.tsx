@@ -1,19 +1,13 @@
-import { useState, useEffect } from 'react';
-import { Lightbulb, SlidersHorizontal, Box, Zap, Palette, BarChart3, Languages, Camera, Film, ShoppingBag, Play, Menu } from 'lucide-react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Lightbulb, SlidersHorizontal, Box, Zap, Palette, BarChart3, Languages, Camera, Film, ShoppingBag, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import LightingCanvas from '@/components/LightingCanvas';
 
 const Index = () => {
-  const [scrolled, setScrolled] = useState(false);
   const [keyIntensity, setKeyIntensity] = useState(80);
   const [fillIntensity, setFillIntensity] = useState(40);
   const [colorTemp, setColorTemp] = useState(5600);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const ratio = (keyIntensity / Math.max(fillIntensity, 10)).toFixed(1);
   const lightingStyle = parseFloat(ratio) >= 4 ? 'Dramatic' : parseFloat(ratio) >= 2 ? 'Classical Portrait' : 'Soft Lighting';
@@ -35,28 +29,9 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className={`fixed top-0 w-full z-50 px-[5%] py-6 flex justify-between items-center transition-all duration-300 ${scrolled ? 'py-4 bg-background/95 backdrop-blur-xl shadow-lg' : 'bg-background/80 backdrop-blur-md'}`}>
-        <div className="flex items-center gap-3 font-bold text-xl">
-          <Lightbulb className="text-secondary" />
-          <span>ProLighting</span>
-        </div>
-        <nav className="hidden md:flex gap-8">
-          {['Features', 'Demo', 'Technology', 'Use Cases'].map((item) => (
-            <a key={item} href={`#${item.toLowerCase().replace(' ', '-')}`} className="font-medium hover:text-secondary transition-colors relative after:content-[''] after:absolute after:bottom-[-5px] after:left-0 after:w-0 after:h-0.5 after:bg-secondary after:transition-all hover:after:w-full">
-              {item}
-            </a>
-          ))}
-        </nav>
-        <Button className="hidden md:flex gradient-primary rounded-full shadow-lg shadow-primary/30 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all">
-          Try Demo
-        </Button>
-        <Menu className="md:hidden cursor-pointer" />
-      </header>
-
+    <div className="min-h-screen pt-20">
       {/* Hero */}
-      <section className="min-h-screen flex items-center px-[5%] pt-20 relative">
+      <section className="min-h-[calc(100vh-5rem)] flex items-center px-[5%] relative">
         <div className="max-w-xl z-10 animate-fade-in-up">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 gradient-text">
             Revolutionize Your Photography with AI-Powered Lighting Simulation
@@ -65,12 +40,16 @@ const Index = () => {
             Create perfect studio lighting setups in seconds using FIBO's JSON-native AI technology. No equipment, no guesswork, just professional results.
           </p>
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button size="lg" className="gradient-primary rounded-full animate-pulse-glow">
-              <Zap className="mr-2 h-5 w-5" /> Launch Simulator
-            </Button>
-            <Button size="lg" variant="outline" className="rounded-full border-muted-foreground/30 hover:border-primary hover:text-primary">
-              <Play className="mr-2 h-5 w-5" /> Watch Demo
-            </Button>
+            <Link to="/studio">
+              <Button size="lg" className="gradient-primary rounded-full animate-pulse-glow">
+                <Zap className="mr-2 h-5 w-5" /> Launch Simulator
+              </Button>
+            </Link>
+            <a href="#demo">
+              <Button size="lg" variant="outline" className="rounded-full border-muted-foreground/30 hover:border-primary hover:text-primary">
+                <Play className="mr-2 h-5 w-5" /> Watch Demo
+              </Button>
+            </a>
           </div>
         </div>
         <div className="absolute right-[5%] top-1/2 -translate-y-1/2 w-1/2 max-w-[600px] h-[500px] hidden lg:block">
