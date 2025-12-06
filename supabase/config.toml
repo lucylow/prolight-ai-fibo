@@ -1,0 +1,13 @@
+project_id = "cxzxybmpbmtarrhwavay"
+
+[functions.generate-lighting]
+verify_jwt = false
+
+[functions.natural-language-lighting]
+verify_jwt = false
+
+[functions.analyze-lighting]
+verify_jwt = false
+
+[functions.get-presets]
+verify_jwt = false
