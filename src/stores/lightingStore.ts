@@ -40,8 +40,11 @@ interface SceneSettings {
 
 interface GenerationResult {
   image_url: string;
+  image_id?: string;
+  fibo_json?: Record<string, unknown>;
   lightingAnalysis?: LightingAnalysis;
-  timestamp: string;
+  generation_metadata?: Record<string, unknown>;
+  timestamp?: string;
 }
 
 interface LightingAnalysis {
