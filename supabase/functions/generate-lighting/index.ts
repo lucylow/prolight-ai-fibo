@@ -27,7 +27,17 @@ interface SceneRequest {
   };
   stylePreset: string;
   enhanceHDR: boolean;
+  negativePrompt?: string;
 }
+
+// Professional lighting style definitions
+const LIGHTING_STYLES: Record<string, { ratioRange: [number, number]; description: string }> = {
+  high_contrast_dramatic: { ratioRange: [8.0, Infinity], description: "Dramatic high-contrast" },
+  dramatic: { ratioRange: [4.0, 8.0], description: "Strong dramatic shadows" },
+  classical_portrait: { ratioRange: [2.0, 4.0], description: "Classical balanced" },
+  soft_lighting: { ratioRange: [1.5, 2.0], description: "Soft and flattering" },
+  flat_lighting: { ratioRange: [1.0, 1.5], description: "Even flat lighting" },
+};
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -47,12 +57,12 @@ serve(async (req) => {
     const fiboJson = buildFiboJson(sceneRequest);
     console.log("Built FIBO JSON:", JSON.stringify(fiboJson));
 
-    // Calculate lighting analysis
-    const lightingAnalysis = analyzeLighting(sceneRequest.lightingSetup);
+    // Calculate comprehensive lighting analysis
+    const lightingAnalysis = analyzeLighting(sceneRequest.lightingSetup, sceneRequest.stylePreset);
     console.log("Lighting analysis:", JSON.stringify(lightingAnalysis));
 
-    // Generate image using Lovable AI with image generation model
-    const imagePrompt = buildImagePrompt(sceneRequest, fiboJson);
+    // Generate professional image prompt with detailed lighting specs
+    const imagePrompt = buildProfessionalImagePrompt(sceneRequest, fiboJson, lightingAnalysis);
     console.log("Image prompt:", imagePrompt);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -106,6 +116,9 @@ serve(async (req) => {
       generation_metadata: {
         model: "google/gemini-2.5-flash-image-preview",
         prompt_summary: textContent.substring(0, 200),
+        lighting_style: lightingAnalysis.lightingStyle,
+        key_fill_ratio: lightingAnalysis.keyFillRatio,
+        professional_rating: lightingAnalysis.professionalRating,
         timestamp: new Date().toISOString()
       }
     }), {
@@ -134,65 +147,138 @@ function buildFiboJson(request: SceneRequest) {
         intensity: settings.intensity,
         color_temperature: settings.colorTemperature,
         softness: settings.softness,
-        distance: settings.distance
+        distance: settings.distance,
+        color_kelvin: settings.colorTemperature,
+        falloff: "inverse_square"
       };
     }
   }
 
+  // Extract color temperatures for white balance
+  const keyTemp = lightingSetup.key?.colorTemperature || 5600;
+  
   return {
     subject: {
       main_entity: subjectDescription,
-      attributes: ["professionally lit", "high quality", "detailed"],
-      action: "posing for professional photograph"
+      attributes: ["professionally lit", "high quality", "detailed", "sharp focus"],
+      action: "posed for professional photograph",
+      mood: determineMoodFromLighting(lightingSetup)
     },
     environment: {
       setting: environment,
       time_of_day: "controlled lighting",
-      lighting_conditions: "professional studio"
+      lighting_conditions: "professional studio",
+      atmosphere: environment.includes("outdoor") ? "natural" : "controlled"
     },
     camera: {
       shot_type: cameraSettings.shotType,
       camera_angle: cameraSettings.cameraAngle,
       fov: cameraSettings.fov,
       lens_type: cameraSettings.lensType,
-      aperture: cameraSettings.aperture
+      aperture: cameraSettings.aperture,
+      focus: "sharp on subject",
+      depth_of_field: getDepthOfField(cameraSettings.aperture)
     },
     lighting: lightingJson,
     style_medium: "photograph",
     artistic_style: "professional studio photography",
+    color_palette: {
+      white_balance: `${keyTemp}K`,
+      mood: keyTemp < 4500 ? "warm" : keyTemp > 6000 ? "cool" : "neutral"
+    },
     enhancements: {
       hdr: request.enhanceHDR,
-      professional_grade: true
-    }
+      professional_grade: true,
+      color_fidelity: true,
+      detail_enhancement: true,
+      noise_reduction: true
+    },
+    composition: {
+      rule_of_thirds: true,
+      depth_layers: ["foreground", "subject", "background"]
+    },
+    negative_prompt: request.negativePrompt || "blurry, low quality, overexposed, underexposed, harsh shadows"
   };
 }
 
-function buildImagePrompt(request: SceneRequest, fiboJson: any): string {
-  const { lightingSetup } = request;
+function buildProfessionalImagePrompt(request: SceneRequest, fiboJson: any, analysis: any): string {
+  const { lightingSetup, cameraSettings } = request;
   
+  // Build detailed lighting description
   let lightingDesc = "";
+  
   if (lightingSetup.key?.enabled) {
-    lightingDesc += `Key light at ${lightingSetup.key.intensity * 100}% intensity from ${lightingSetup.key.direction}, ${lightingSetup.key.colorTemperature}K color temperature. `;
+    const key = lightingSetup.key;
+    const tempDesc = key.colorTemperature < 4500 ? "warm" : key.colorTemperature > 6000 ? "cool" : "neutral";
+    const softnessDesc = key.softness > 0.6 ? "soft diffused" : key.softness < 0.3 ? "hard crisp" : "medium";
+    lightingDesc += `Key light: ${Math.round(key.intensity * 100)}% intensity, ${softnessDesc} quality, ${tempDesc} ${key.colorTemperature}K, positioned ${key.direction}. `;
   }
+  
   if (lightingSetup.fill?.enabled) {
-    lightingDesc += `Fill light at ${lightingSetup.fill.intensity * 100}% intensity from ${lightingSetup.fill.direction}. `;
+    const fill = lightingSetup.fill;
+    lightingDesc += `Fill light: ${Math.round(fill.intensity * 100)}% intensity (${analysis.keyFillRatio}:1 ratio), ${fill.softness > 0.5 ? "soft" : "medium"} from ${fill.direction}. `;
   }
+  
   if (lightingSetup.rim?.enabled) {
-    lightingDesc += `Rim light at ${lightingSetup.rim.intensity * 100}% intensity from ${lightingSetup.rim.direction}, warm ${lightingSetup.rim.colorTemperature}K. `;
+    const rim = lightingSetup.rim;
+    const rimTemp = rim.colorTemperature < 4000 ? "warm tungsten" : "neutral";
+    lightingDesc += `Rim/hair light: ${Math.round(rim.intensity * 100)}% intensity, ${rimTemp} ${rim.colorTemperature}K, ${rim.direction} for edge separation. `;
+  }
+  
+  if (lightingSetup.ambient?.enabled) {
+    lightingDesc += `Ambient fill: ${Math.round(lightingSetup.ambient.intensity * 100)}% for shadow detail. `;
   }
 
-  return `Generate a professional studio photograph with the following specifications:
+  // Build camera description
+  const dofDesc = getDepthOfField(cameraSettings.aperture);
+  
+  // Construct the professional prompt
+  return `Generate a professional studio photograph with expert-level lighting control:
 
-Subject: ${request.subjectDescription}
-Environment: ${request.environment}
-Camera: ${request.cameraSettings.shotType}, ${request.cameraSettings.cameraAngle} angle, ${request.cameraSettings.aperture}
-Lighting Setup: ${lightingDesc}
-Style: Professional photography, ${request.stylePreset || 'clean and polished'}
+SUBJECT: ${request.subjectDescription}
+ENVIRONMENT: ${request.environment}
 
-Create a photorealistic, high-quality studio image with precise lighting control.`;
+CAMERA SETUP:
+- Shot type: ${cameraSettings.shotType}
+- Angle: ${cameraSettings.cameraAngle}
+- Lens: ${cameraSettings.lensType} lens at ${cameraSettings.aperture}
+- Depth of field: ${dofDesc}
+
+LIGHTING (${analysis.lightingStyle.replace(/_/g, ' ')} style, ${analysis.keyFillRatio}:1 key-to-fill ratio):
+${lightingDesc}
+
+QUALITY: Professional photography, ${request.stylePreset || 'clean editorial'} style, sharp focus on subject, natural skin tones, ${request.enhanceHDR ? 'HDR enhanced dynamic range' : 'balanced exposure'}.
+
+Create a photorealistic, magazine-quality studio image with precise lighting matching a professional ${analysis.lightingStyle.replace(/_/g, ' ')} setup.`;
 }
 
-function analyzeLighting(lightingSetup: Record<string, LightSettings>) {
+function determineMoodFromLighting(lightingSetup: Record<string, LightSettings>): string {
+  const key = lightingSetup.key;
+  const fill = lightingSetup.fill;
+  
+  if (!key?.enabled) return "ambient";
+  
+  const ratio = key.intensity / Math.max(fill?.enabled ? fill.intensity : 0.1, 0.1);
+  const avgTemp = key.colorTemperature;
+  
+  if (ratio > 5 && avgTemp < 4500) return "dramatic warm";
+  if (ratio > 5) return "dramatic";
+  if (ratio < 1.5 && avgTemp > 5500) return "clean and bright";
+  if (avgTemp < 4000) return "warm and intimate";
+  if (avgTemp > 6500) return "cool and modern";
+  return "professional and balanced";
+}
+
+function getDepthOfField(aperture: string): string {
+  const fNumber = parseFloat(aperture.replace('f/', ''));
+  if (fNumber <= 2) return "very shallow, strong bokeh";
+  if (fNumber <= 2.8) return "shallow, pleasing bokeh";
+  if (fNumber <= 4) return "moderate, subject isolation";
+  if (fNumber <= 5.6) return "medium depth";
+  return "deep, most in focus";
+}
+
+function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePreset?: string) {
   const key = lightingSetup.key;
   const fill = lightingSetup.fill;
   const rim = lightingSetup.rim;
@@ -203,6 +289,7 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>) {
   
   const keyFillRatio = keyIntensity / Math.max(fillIntensity, 0.1);
   
+  // Determine lighting style
   let lightingStyle = "classical_portrait";
   if (keyFillRatio >= 8) lightingStyle = "high_contrast_dramatic";
   else if (keyFillRatio >= 4) lightingStyle = "dramatic";
@@ -210,6 +297,7 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>) {
   else if (keyFillRatio >= 1.5) lightingStyle = "soft_lighting";
   else lightingStyle = "flat_lighting";
 
+  // Calculate contrast score
   const intensities = [
     key?.enabled ? key.intensity : 0,
     fill?.enabled ? fill.intensity : 0,
@@ -223,18 +311,50 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>) {
 
   const totalExposure = intensities.reduce((a, b) => a + b, 0);
 
-  // Calculate professional rating
-  const idealRatio = 3.0;
-  const ratioScore = 1 - Math.min(Math.abs(keyFillRatio - idealRatio) / 6, 1);
-  const professionalRating = Math.round((ratioScore * 0.6 + contrastScore * 0.4) * 10);
+  // Color temperature analysis
+  const temps = [
+    key?.enabled ? key.colorTemperature : null,
+    fill?.enabled ? fill.colorTemperature : null,
+    rim?.enabled ? rim.colorTemperature : null,
+  ].filter(t => t !== null) as number[];
+
+  const avgTemp = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : 5600;
+
+  // Calculate professional rating based on context
+  const styleContext = stylePreset?.includes("dramatic") ? "dramatic" : 
+                       stylePreset?.includes("fashion") ? "fashion" : 
+                       stylePreset?.includes("beauty") ? "beauty" : "portrait";
+  
+  const idealRatios: Record<string, [number, number]> = {
+    portrait: [2.0, 3.0],
+    fashion: [3.0, 6.0],
+    beauty: [1.2, 2.0],
+    dramatic: [4.0, 8.0]
+  };
+  
+  const [idealMin, idealMax] = idealRatios[styleContext] || idealRatios.portrait;
+  
+  let ratioScore: number;
+  if (keyFillRatio >= idealMin && keyFillRatio <= idealMax) {
+    ratioScore = 1.0;
+  } else {
+    const distance = Math.min(Math.abs(keyFillRatio - idealMin), Math.abs(keyFillRatio - idealMax));
+    ratioScore = Math.max(0, 1 - (distance / (idealMax * 2)));
+  }
+  
+  const professionalRating = Math.round((ratioScore * 0.6 + contrastScore * 0.4) * 100) / 10;
 
   return {
     keyFillRatio: Math.round(keyFillRatio * 100) / 100,
     lightingStyle,
     contrastScore: Math.round(contrastScore * 100) / 100,
     totalExposure: Math.min(totalExposure, 1.0),
+    colorTemperature: {
+      average: Math.round(avgTemp),
+      warmth: avgTemp < 4500 ? "warm" : avgTemp > 6000 ? "cool" : "neutral"
+    },
     professionalRating,
-    recommendations: generateRecommendations(keyFillRatio, key, fill, rim)
+    recommendations: generateRecommendations(keyFillRatio, key, fill, rim, styleContext)
   };
 }
 
@@ -242,26 +362,36 @@ function generateRecommendations(
   keyFillRatio: number, 
   key?: LightSettings, 
   fill?: LightSettings, 
-  rim?: LightSettings
+  rim?: LightSettings,
+  styleContext?: string
 ): string[] {
   const recommendations: string[] = [];
 
-  if (keyFillRatio > 4.0) {
-    recommendations.push("Consider increasing fill light intensity to reduce harsh shadows");
+  if (keyFillRatio > 6.0) {
+    recommendations.push("High contrast ratio - consider adding fill for softer shadows unless dramatic look intended");
   } else if (keyFillRatio < 1.5) {
-    recommendations.push("Increase key light intensity for more dimension and depth");
+    recommendations.push("Low contrast - increase key light intensity for more dimensional lighting");
   }
 
   if (key && key.softness < 0.3) {
-    recommendations.push("Soften key light for more flattering portraits");
+    recommendations.push("Hard key light - soften for more flattering portrait results");
   }
 
   if (!rim?.enabled) {
-    recommendations.push("Add a rim light to separate subject from background");
+    recommendations.push("Consider adding rim light for subject-background separation");
+  } else if (rim.intensity > 0.85) {
+    recommendations.push("Strong rim light may cause edge blowout - consider reducing intensity");
+  }
+
+  if (key && fill) {
+    const tempDiff = Math.abs(key.colorTemperature - fill.colorTemperature);
+    if (tempDiff > 1500) {
+      recommendations.push("Large color temperature difference between key and fill - ensure this is intentional");
+    }
   }
 
   if (recommendations.length === 0) {
-    recommendations.push("Great lighting setup! Well balanced for professional results.");
+    recommendations.push(`Excellent ${styleContext || 'portrait'} lighting setup! Well balanced for professional results.`);
   }
 
   return recommendations;
