@@ -33,7 +33,7 @@ const Index = () => {
       {/* Hero */}
       <section className="min-h-[calc(100vh-5rem)] flex items-center px-[5%] relative">
         <div className="max-w-xl z-10 animate-fade-in-up">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 gradient-text">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-6 text-foreground">
             Revolutionize Your Photography with AI-Powered Lighting Simulation
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-8">
