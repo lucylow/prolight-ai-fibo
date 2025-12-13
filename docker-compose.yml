@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: prolight-ai-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - APP_NAME=ProLight AI
+      - APP_VERSION=1.0.0
+      - DEBUG=False
+      - FIBO_API_URL=https://api.bria.ai/v1/models/fibo
+      - FIBO_API_KEY=${FIBO_API_KEY:-your_key_here}
+      - USE_MOCK_FIBO=True
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - DATABASE_URL=sqlite:///./prolight.db
+      - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","http://localhost:8000"]
+      - HOST=0.0.0.0
+      - PORT=8000
+      - RELOAD=True
+    volumes:
+      - ./backend:/app
+      - ./backend/data:/app/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - prolight-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: prolight-ai-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: npm run dev
+    networks:
+      - prolight-network
+    depends_on:
+      - backend
+
+networks:
+  prolight-network:
+    driver: bridge
+
+volumes:
+  prolight-data:
