@@ -1,0 +1,121 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, feat/*, fix/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        python-version: ["3.11"]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-cov respx black flake8
+    
+    - name: Run black (code formatting check)
+      run: |
+        cd backend
+        black --check .
+      continue-on-error: true
+    
+    - name: Run flake8 (linting)
+      run: |
+        cd backend
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      continue-on-error: true
+    
+    - name: Run unit tests
+      env:
+        ENV: development
+        USE_MOCK_FIBO: true
+        BRIA_API_TOKEN: test_token_for_ci
+      run: |
+        cd backend
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Check for secrets in code
+      run: |
+        # Simple grep-based secret detection
+        ! grep -r "BRIA_API_TOKEN.*=" --include="*.py" --include="*.js" --include="*.ts" . || exit 1
+        ! grep -r "api_token.*=.*['\"][a-zA-Z0-9]" --include="*.py" --include="*.js" --include="*.ts" . || exit 1
+      continue-on-error: true
+    
+    - name: Check .env is not committed
+      run: |
+        if [ -f ".env" ]; then
+          echo "Error: .env file should not be committed"
+          exit 1
+        fi
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test]
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Test backend startup
+      env:
+        ENV: development
+        USE_MOCK_FIBO: true
+      run: |
+        cd backend
+        timeout 10s python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 || code=$?
+        if [ $code -eq 124 ]; then
+          echo "Server started successfully"
+          exit 0
+        else
+          echo "Server failed to start"
+          exit 1
+        fi
