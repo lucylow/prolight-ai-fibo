@@ -14,9 +14,35 @@
 
 ## 🎯 Overview
 
-ProLight AI is a revolutionary studio lighting simulator that bridges the gap between photographic expertise and AI image generation. By leveraging **BRIA FIBO's JSON-native architecture**, we replace unpredictable text prompts with precise, professional lighting parameters—enabling perfect studio setups in seconds without expensive equipment.
+ProLight AI is a revolutionary studio lighting simulator that bridges the gap between photographic expertise and AI image generation. By leveraging **BRIA FIBO's JSON-native architecture**, we replace unpredictable text prompts with precise, professional lighting parameters—enabling perfect studio setups in seconds without expensive equipment. ProLight AI converts photographic expertise into reproducible, auditable image generation workflows by:
+
+* representing lighting/camera/shot parameters as **FIBO JSON** (structured prompts),
+* using Bria (FIBO-enabled) generation and editing endpoints for determinism,
+* orchestrating multi-step, agentic workflows that generate → evaluate → refine → export,
+* providing a realtime UI (React + R3F) with an SSE/WebSocket progress stream.
 
 > **Innovation**: Unlike traditional AI image generators that rely on ambiguous text prompts, ProLight AI provides deterministic control through structured JSON parameters, giving photographers and creators reproducible, professional-grade results.
+
+
+**Primary objectives**
+
+* *Determinism*: same structured prompt + seed → same output.
+* *Auditability*: store all prompts, seeds, tool calls and evaluator scores.
+* *Modularity*: tool-agents (text2image, edit, onboard, evaluate, storage) are thin wrappers and interchangeable.
+* *Safety & governance*: server-side secrets, content moderation flags, restricted LLM usage.
+
+---
+
+## Design goals & core concepts
+
+* **FIBO Structured Prompt** — canonical JSON schema that fully describes the photographic scene (objects, camera, lights, metadata, locked_fields).
+* **Tool Agent** — single-responsibility wrapper that communicates with an external API (Bria, S3/MinIO, evaluator).
+* **Planner** — converts high-level goals (user request) into an ordered plan of tasks (finite-state planner or LLM-based).
+* **Orchestrator** — persists the plan, enqueues tasks, exposes run status, issues SSE updates.
+* **Worker** — executes tasks, updates DB, calls evaluators, uploads artifacts.
+* **Evaluator** — automatic scoring (CLIP, SSIM, LPIPS, human-in-the-loop), used to select and iterate.
+
+---
 
 ## 🚀 Key Features
 
@@ -401,64 +427,6 @@ class FIBOClient:
 | Concurrent Users | 100+ | 50+ |
 
 
-# ProLight AI — Professional Lighting Simulator (Technical README)
-
-<div align="center">
-<img src="https://img.shields.io/badge/ProLight-AI-blue?style=for-the-badge&logo=ai&logoColor=white" alt="ProLight AI"/>
-<img src="https://img.shields.io/badge/FIBO-Hackathon-orange?style=for-the-badge&logo=hackathon&logoColor=white" alt="FIBO Hackathon"/>
-<img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge&logo=opensourceinitiative&logoColor=white" alt="MIT"/>
-</div>
-
-**Precision Lighting, Powered by FIBO** — technical reference, developer guide, and architecture spec for the ProLight AI system.
-This README is intended for engineers building or extending the ProLight stack (front-end, backend, infra, agentic orchestration, evaluators).
-
----
-
-## Contents
-
-* [Overview](#overview)
-* [Design goals & core concepts](#design-goals--core-concepts)
-* [High-level architecture (detailed diagrams)](#high-level-architecture-detailed-diagrams)
-* [Data models & FIBO schemas](#data-models--fibo-schemas)
-* [API specification (detailed)](#api-specification-detailed)
-* [Agentic workflow: planner → orchestrator → workers](#agentic-workflow-planner--orchestrator--workers)
-* [Evaluator design (CLIP / perceptual metric plugin)](#evaluator-design-clip--perceptual-metric-plugin)
-* [Database migrations & caching strategy](#database-migrations--caching-strategy)
-* [Security, secrets & governance](#security-secrets--governance)
-* [Deployment & DevOps (Docker, K8s, CI)](#deployment--devops-docker-k8s-ci)
-* [Testing, observability & cost controls](#testing-observability--cost-controls)
-* [Appendices: code snippets, SQL, mermaid diagrams](#appendices-code-snippets-sql-mermaid-diagrams)
-
----
-
-## Overview
-
-ProLight AI converts photographic expertise into reproducible, auditable image generation workflows by:
-
-* representing lighting/camera/shot parameters as **FIBO JSON** (structured prompts),
-* using Bria (FIBO-enabled) generation and editing endpoints for determinism,
-* orchestrating multi-step, agentic workflows that generate → evaluate → refine → export,
-* providing a realtime UI (React + R3F) with an SSE/WebSocket progress stream.
-
-**Primary objectives**
-
-* *Determinism*: same structured prompt + seed → same output.
-* *Auditability*: store all prompts, seeds, tool calls and evaluator scores.
-* *Modularity*: tool-agents (text2image, edit, onboard, evaluate, storage) are thin wrappers and interchangeable.
-* *Safety & governance*: server-side secrets, content moderation flags, restricted LLM usage.
-
----
-
-## Design goals & core concepts
-
-* **FIBO Structured Prompt** — canonical JSON schema that fully describes the photographic scene (objects, camera, lights, metadata, locked_fields).
-* **Tool Agent** — single-responsibility wrapper that communicates with an external API (Bria, S3/MinIO, evaluator).
-* **Planner** — converts high-level goals (user request) into an ordered plan of tasks (finite-state planner or LLM-based).
-* **Orchestrator** — persists the plan, enqueues tasks, exposes run status, issues SSE updates.
-* **Worker** — executes tasks, updates DB, calls evaluators, uploads artifacts.
-* **Evaluator** — automatic scoring (CLIP, SSIM, LPIPS, human-in-the-loop), used to select and iterate.
-
----
 
 ## High-level architecture (detailed diagrams)
 
