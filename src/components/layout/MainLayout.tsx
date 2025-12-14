@@ -486,7 +486,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 </Button>
               )}
             </div>
-          </nav>
+          </div>
         </SheetContent>
       </Sheet>
 
