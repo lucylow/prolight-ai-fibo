@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Lightbulb, FlaskConical, MessageSquare, Palette, History, Menu, X, Sun, Moon, 
@@ -22,33 +22,37 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
-// Navigation structure with grouped items
+// Navigation structure with grouped items - organized by user journey
 const navigationGroups = {
-  tools: [
+  // Primary actions - tools for creating and managing lighting
+  create: [
     { path: '/studio', label: 'Studio', icon: FlaskConical, auth: false, description: 'Create lighting setups' },
     { path: '/presets', label: 'Presets', icon: Palette, auth: false, description: 'Browse presets' },
     { path: '/natural-language', label: 'AI Chat', icon: MessageSquare, auth: false, description: 'Natural language control' },
     { path: '/history', label: 'History', icon: History, auth: false, description: 'View past projects' },
   ],
-  account: [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, auth: true, description: 'Overview & analytics' },
-    { path: '/teams', label: 'Teams', icon: Users, auth: true, description: 'Team management' },
-    { path: '/billing', label: 'Billing', icon: CreditCard, auth: true, description: 'Manage subscription' },
-    { path: '/invoices', label: 'Invoices', icon: FileText, auth: true, description: 'View invoices' },
-    { path: '/admin', label: 'Admin', icon: Shield, auth: true, role: 'admin' as const, description: 'Admin panel' },
-  ],
-  marketing: [
+  // Learning and product information
+  learn: [
     { path: '/product', label: 'Product', icon: Sparkles, auth: false, description: 'Product overview' },
     { path: '/features', label: 'Features', icon: Sparkles, auth: false, description: 'Key features' },
     { path: '/use-cases', label: 'Use Cases', icon: Briefcase, auth: false, description: 'Use cases' },
     { path: '/pricing', label: 'Pricing', icon: DollarSign, auth: false, description: 'Pricing plans' },
     { path: '/docs', label: 'Documentation', icon: BookOpen, auth: false, description: 'API & guides' },
   ],
+  // Company information
   company: [
     { path: '/company/about', label: 'About', icon: Info, auth: false, description: 'About us' },
     { path: '/company/blog', label: 'Blog', icon: BookOpen, auth: false, description: 'Latest posts' },
     { path: '/company/careers', label: 'Careers', icon: Briefcase, auth: false, description: 'Join our team' },
     { path: '/company/contact', label: 'Contact', icon: Mail, auth: false, description: 'Get in touch' },
+  ],
+  // User account and management (only when authenticated)
+  account: [
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, auth: true, description: 'Overview & analytics' },
+    { path: '/teams', label: 'Teams', icon: Users, auth: true, description: 'Team management' },
+    { path: '/billing', label: 'Billing', icon: CreditCard, auth: true, description: 'Manage subscription' },
+    { path: '/invoices', label: 'Invoices', icon: FileText, auth: true, description: 'View invoices' },
+    { path: '/admin', label: 'Admin', icon: Shield, auth: true, role: 'admin' as const, description: 'Admin panel' },
   ],
 };
 
@@ -97,7 +101,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       .slice(0, 2);
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await auth.logout();
       toast.success('Signed out successfully');
@@ -105,26 +109,26 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     } catch (error) {
       toast.error('Failed to sign out');
     }
-  };
+  }, [auth, navigate]);
 
-  // Filter navigation items based on auth and role
-  const getVisibleItems = (items: typeof navigationGroups.tools) => {
+  // Filter navigation items based on auth and role (memoized)
+  const getVisibleItems = useCallback(<T extends typeof navigationGroups.create[0]>(items: T[]): T[] => {
     return items.filter(item => {
       if (item.auth && !auth.user) return false;
       if (item.role && auth.user?.role !== item.role) return false;
       return true;
     });
-  };
+  }, [auth.user]);
 
-  // Search functionality
-  const allNavItems = [
-    ...navigationGroups.tools,
-    ...navigationGroups.account,
-    ...navigationGroups.marketing,
+  // Search functionality (memoized)
+  const allNavItems = useMemo(() => [
+    ...navigationGroups.create,
+    ...navigationGroups.learn,
     ...navigationGroups.company,
-  ];
+    ...navigationGroups.account,
+  ], []);
 
-  const filteredSearchResults = React.useMemo(() => {
+  const filteredSearchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
     return allNavItems.filter(item => {
@@ -136,15 +140,15 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         item.path.toLowerCase().includes(query)
       );
     });
-  }, [searchQuery, auth.user]);
+  }, [searchQuery, auth.user, allNavItems]);
 
-  const isActive = (path: string) => {
+  const isActive = useCallback((path: string) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
-  };
+  }, [location.pathname]);
 
   // Navigation item component for desktop
-  const NavItem = ({ item, group }: { item: typeof navigationGroups.tools[0], group?: string }) => {
+  const NavItem = ({ item, group }: { item: typeof navigationGroups.create[0], group?: string }) => {
     const Icon = item.icon;
     const active = isActive(item.path);
     
@@ -158,21 +162,22 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             : "text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:shadow-sm"
         )}
         aria-current={active ? 'page' : undefined}
+        aria-label={`Navigate to ${item.label}`}
       >
         <Icon className={cn(
           "w-4 h-4 shrink-0 transition-all duration-200",
           active ? "scale-110 text-primary-foreground" : "group-hover:scale-110 group-hover:text-foreground"
-        )} />
+        )} aria-hidden="true" />
         <span className="relative z-10">{item.label}</span>
         {active && (
-          <span className="absolute inset-0 bg-primary/10 rounded-lg -z-0" />
+          <span className="absolute inset-0 bg-primary/10 rounded-lg -z-0" aria-hidden="true" />
         )}
       </Link>
     );
   };
 
   // Mobile menu item component
-  const MobileNavItem = ({ item }: { item: typeof navigationGroups.tools[0] }) => {
+  const MobileNavItem = ({ item }: { item: typeof navigationGroups.create[0] }) => {
     const Icon = item.icon;
     const active = isActive(item.path);
     
@@ -244,17 +249,121 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
-              {/* Tools Group */}
+              {/* Create Group - Primary actions */}
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
                     <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
-                      Tools
+                      Create
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
                       <div className="w-[420px] p-2">
                         <div className="grid gap-1">
-                          {getVisibleItems(navigationGroups.tools).map((item) => {
+                          {getVisibleItems(navigationGroups.create).map((item) => {
+                            const Icon = item.icon;
+                            const active = isActive(item.path);
+                            return (
+                              <NavigationMenuLink key={item.path} asChild>
+                                <a
+                                  href={item.path}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(item.path);
+                                  }}
+                                  className={cn(
+                                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 cursor-pointer group/item",
+                                    active
+                                      ? "bg-primary/10 text-primary shadow-sm"
+                                      : "hover:bg-muted/70 hover:shadow-sm"
+                                  )}
+                                >
+                                  <div className={cn(
+                                    "p-2 rounded-md transition-all duration-200",
+                                    active ? "bg-primary/20" : "bg-muted/50 group-hover/item:bg-muted"
+                                  )}>
+                                    <Icon className="w-4 h-4 shrink-0" />
+                                  </div>
+                                  <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="font-medium text-sm">{item.label}</span>
+                                    <span className="text-xs text-muted-foreground truncate">{item.description}</span>
+                                  </div>
+                                  {active && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                  )}
+                                </a>
+                              </NavigationMenuLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+
+              {/* Learn Group - Product information and resources */}
+              <NavigationMenu>
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
+                      Learn
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="w-[420px] p-2">
+                        <div className="grid gap-1">
+                          {getVisibleItems(navigationGroups.learn).map((item) => {
+                            const Icon = item.icon;
+                            const active = isActive(item.path);
+                            return (
+                              <NavigationMenuLink key={item.path} asChild>
+                                <a
+                                  href={item.path}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    navigate(item.path);
+                                  }}
+                                  className={cn(
+                                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 cursor-pointer group/item",
+                                    active
+                                      ? "bg-primary/10 text-primary shadow-sm"
+                                      : "hover:bg-muted/70 hover:shadow-sm"
+                                  )}
+                                >
+                                  <div className={cn(
+                                    "p-2 rounded-md transition-all duration-200",
+                                    active ? "bg-primary/20" : "bg-muted/50 group-hover/item:bg-muted"
+                                  )}>
+                                    <Icon className="w-4 h-4 shrink-0" />
+                                  </div>
+                                  <div className="flex flex-col flex-1 min-w-0">
+                                    <span className="font-medium text-sm">{item.label}</span>
+                                    <span className="text-xs text-muted-foreground truncate">{item.description}</span>
+                                  </div>
+                                  {active && (
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                  )}
+                                </a>
+                              </NavigationMenuLink>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </NavigationMenuContent>
+                  </NavigationMenuItem>
+                </NavigationMenuList>
+              </NavigationMenu>
+
+              {/* Company Group */}
+              <NavigationMenu>
+                <NavigationMenuList>
+                  <NavigationMenuItem>
+                    <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
+                      Company
+                    </NavigationMenuTrigger>
+                    <NavigationMenuContent>
+                      <div className="w-[420px] p-2">
+                        <div className="grid gap-1">
+                          {getVisibleItems(navigationGroups.company).map((item) => {
                             const Icon = item.icon;
                             const active = isActive(item.path);
                             return (
@@ -335,64 +444,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                                       <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
                                     )}
                                   </Link>
-                                </NavigationMenuLink>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </NavigationMenuContent>
-                    </NavigationMenuItem>
-                  </NavigationMenuList>
-                </NavigationMenu>
-              )}
-
-              {/* Marketing Links */}
-              <div className="flex items-center gap-1 ml-2">
-                {getVisibleItems(navigationGroups.marketing).slice(0, 3).map((item) => (
-                  <NavItem key={item.path} item={item} />
-                ))}
-              </div>
-
-              {/* More dropdown for additional marketing items */}
-              {getVisibleItems(navigationGroups.marketing).length > 3 && (
-                <NavigationMenu>
-                  <NavigationMenuList>
-                    <NavigationMenuItem>
-                      <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
-                        More
-                      </NavigationMenuTrigger>
-                      <NavigationMenuContent>
-                        <div className="w-[320px] p-2">
-                          <div className="grid gap-1">
-                            {getVisibleItems(navigationGroups.marketing).slice(3).map((item) => {
-                              const Icon = item.icon;
-                              const active = isActive(item.path);
-                              return (
-                                <NavigationMenuLink key={item.path} asChild>
-                                  <a
-                                    href={item.path}
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      navigate(item.path);
-                                    }}
-                                    className={cn(
-                                      "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 cursor-pointer group/item",
-                                      active
-                                        ? "bg-primary/10 text-primary shadow-sm"
-                                        : "hover:bg-muted/70 hover:shadow-sm"
-                                    )}
-                                  >
-                                    <div className={cn(
-                                      "p-2 rounded-md transition-all duration-200",
-                                      active ? "bg-primary/20" : "bg-muted/50 group-hover/item:bg-muted"
-                                    )}>
-                                      <Icon className="w-4 h-4 shrink-0" />
-                                    </div>
-                                    <span className="font-medium text-sm">{item.label}</span>
-                                    {active && (
-                                      <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 ml-auto" />
-                                    )}
-                                  </a>
                                 </NavigationMenuLink>
                               );
                             })}
@@ -539,13 +590,39 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           {/* Regular Navigation (hidden when searching) */}
           {!searchQuery.trim() && (
             <div className="mt-6 space-y-6">
-            {/* Tools Section */}
+            {/* Create Section - Primary actions */}
             <div>
               <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Tools
+                Create
               </h3>
               <div className="space-y-1">
-                {getVisibleItems(navigationGroups.tools).map((item) => (
+                {getVisibleItems(navigationGroups.create).map((item) => (
+                  <MobileNavItem key={item.path} item={item} />
+                ))}
+              </div>
+            </div>
+
+            {/* Learn Section - Product information */}
+            <Separator />
+            <div>
+              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Learn
+              </h3>
+              <div className="space-y-1">
+                {getVisibleItems(navigationGroups.learn).map((item) => (
+                  <MobileNavItem key={item.path} item={item} />
+                ))}
+              </div>
+            </div>
+
+            {/* Company Section */}
+            <Separator />
+            <div>
+              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Company
+              </h3>
+              <div className="space-y-1">
+                {getVisibleItems(navigationGroups.company).map((item) => (
                   <MobileNavItem key={item.path} item={item} />
                 ))}
               </div>
@@ -567,32 +644,6 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 </div>
               </>
             )}
-
-            {/* Marketing Section */}
-            <Separator />
-            <div>
-              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Resources
-              </h3>
-              <div className="space-y-1">
-                {getVisibleItems(navigationGroups.marketing).map((item) => (
-                  <MobileNavItem key={item.path} item={item} />
-                ))}
-              </div>
-            </div>
-
-            {/* Company Section */}
-            <Separator />
-            <div>
-              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Company
-              </h3>
-              <div className="space-y-1">
-                {getVisibleItems(navigationGroups.company).map((item) => (
-                  <MobileNavItem key={item.path} item={item} />
-                ))}
-              </div>
-            </div>
 
             {/* Mobile Footer Actions */}
             <Separator />
@@ -634,7 +685,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       </Sheet>
 
       {/* Main Content */}
-      <main className="min-h-[calc(100vh-4rem)]" role="main">
+      <main 
+        className="min-h-[calc(100vh-4rem)]" 
+        role="main"
+        id="main-content"
+        aria-label="Main content"
+      >
         {children}
       </main>
     </div>

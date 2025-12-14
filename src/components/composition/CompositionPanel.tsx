@@ -199,7 +199,7 @@ export default function CompositionPanel() {
 
   return (
     <div className="space-y-4 p-4 bg-white dark:bg-slate-900 rounded shadow">
-      <h3 className="text-lg font-semibold">Composition & Framing</h3>
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Composition & Framing</h3>
 
       <div className="grid grid-cols-1 gap-2">
         <div className="flex gap-2">
@@ -266,13 +266,13 @@ export default function CompositionPanel() {
                 Accept & Save
               </button>
               <button
-                className="px-3 py-1 border rounded dark:border-slate-600"
+                className="px-3 py-1 border rounded dark:border-slate-600 text-gray-900 dark:text-white bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
                 onClick={clearPreview}
               >
                 Cancel Preview
               </button>
               <button
-                className="px-3 py-1 border rounded dark:border-slate-600"
+                className="px-3 py-1 border rounded dark:border-slate-600 text-gray-900 dark:text-white bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
                 onClick={() => {
                   setSelected(null);
                   setProposals([]);

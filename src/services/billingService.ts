@@ -120,13 +120,28 @@ export async function getPlans(): Promise<Plan[]> {
  * Redirect to Stripe Customer Portal for subscription management
  */
 export async function redirectToCustomerPortal(returnUrl: string): Promise<string> {
-  const subscription = await getSubscription();
+  const { data: { user } } = await supabase.auth.getUser();
   
-  if (!subscription?.stripe_subscription_id) {
-    throw new Error('No active subscription found');
+  if (!user) {
+    throw new Error('User must be logged in to access customer portal');
   }
 
-  // You would typically call a backend endpoint that creates a portal session
-  // For now, return a placeholder URL - implement this endpoint if needed
-  throw new Error('Customer portal not yet implemented. Please contact support.');
+  const response = await fetch(`${SUPABASE_FUNCTIONS_URL}/stripe-portal`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
+    },
+    body: JSON.stringify({
+      return_url: returnUrl,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create portal session');
+  }
+
+  const { url } = await response.json();
+  return url;
 }

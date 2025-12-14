@@ -1,7 +1,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, WifiOff, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { getUserErrorMessage, isErrorRetryable } from '@/services/errorService';
 
 interface Props {
   children: ReactNode;
@@ -12,17 +13,47 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  retryCount: number;
+  isOnline: boolean;
 }
 
+type RetryTimeoutId = ReturnType<typeof setTimeout>;
+
 class ErrorBoundary extends Component<Props, State> {
+  private retryTimeoutId: RetryTimeoutId | null = null;
+
   constructor(props: Props) {
     super(props);
     this.state = {
       hasError: false,
       error: null,
       errorInfo: null,
+      retryCount: 0,
+      isOnline: navigator.onLine,
     };
   }
+
+  componentDidMount() {
+    // Listen for online/offline events
+    window.addEventListener('online', this.handleOnline);
+    window.addEventListener('offline', this.handleOffline);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('online', this.handleOnline);
+    window.removeEventListener('offline', this.handleOffline);
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+    }
+  }
+
+  handleOnline = () => {
+    this.setState({ isOnline: true });
+  };
+
+  handleOffline = () => {
+    this.setState({ isOnline: false });
+  };
 
   static getDerivedStateFromError(error: Error): Partial<State> {
     return {
@@ -46,6 +77,10 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = () => {
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+      this.retryTimeoutId = null;
+    }
     this.setState({
       hasError: false,
       error: null,
@@ -67,6 +102,9 @@ class ErrorBoundary extends Component<Props, State> {
     this.handleReset();
     
     // Force a small delay to allow state to reset
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+    }
     this.retryTimeoutId = setTimeout(() => {
       // Trigger a re-render by updating a dummy state
       this.forceUpdate();

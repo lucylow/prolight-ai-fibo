@@ -1,91 +1,117 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { stripeClient } from "@/services/stripeClient";
+import { useNavigate } from "react-router-dom";
+import { createCheckoutSession, getPlans, type Plan as BillingPlan } from "@/services/billingService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Plan {
-  id: string;
-  name: string;
-  monthly: number;
-  yearly: number;
-  monthlyPriceId: string;
-  yearlyPriceId: string;
-  features: string[];
-  popular?: boolean;
-}
-
-const PLANS: Plan[] = [
-  {
-    id: "basic",
-    name: "Basic",
-    monthly: 15,
-    yearly: 150,
-    monthlyPriceId: "price_basic_month",
-    yearlyPriceId: "price_basic_year",
-    features: ["10 Credits/mo", "Standard Queue", "Email Support"],
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    monthly: 35,
-    yearly: 350,
-    monthlyPriceId: "price_pro_month",
-    yearlyPriceId: "price_pro_year",
-    features: [
-      "50 Credits/mo",
-      "Priority Queue",
-      "Batch Editing",
-      "Webhooks & API",
-    ],
-    popular: true,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    monthly: 99,
-    yearly: 990,
-    monthlyPriceId: "price_ent_month",
-    yearlyPriceId: "price_ent_year",
-    features: [
-      "Unlimited Credits",
-      "Dedicated Support",
-      "SLA Uptime",
-      "Custom Plugins",
-    ],
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
 
 export default function PricingPage() {
   const [isYearly, setIsYearly] = useState(false);
   const [loading, setLoading] = useState<string | null>(null);
+  const [plans, setPlans] = useState<BillingPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const navigate = useNavigate();
 
-  const handleSubscribe = async (plan: Plan) => {
-    const priceId = isYearly ? plan.yearlyPriceId : plan.monthlyPriceId;
+  useEffect(() => {
+    loadPlans();
+  }, []);
+
+  const loadPlans = async () => {
+    try {
+      setLoadingPlans(true);
+      const fetchedPlans = await getPlans();
+      setPlans(fetchedPlans);
+    } catch (error) {
+      console.error("Failed to load plans:", error);
+      toast.error("Failed to load pricing plans");
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
+
+  const handleSubscribe = async (plan: BillingPlan) => {
+    // Check if user is authenticated
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error("Please sign in to subscribe");
+      navigate("/sign-in?redirect=/pricing/checkout");
+      return;
+    }
+
     setLoading(plan.id);
 
     try {
-      const session = await stripeClient.createCheckoutSession({
-        priceId,
-        successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${window.location.origin}/pricing`,
-        mode: "subscription",
-      });
+      const { checkout_url } = await createCheckoutSession(
+        plan.name,
+        `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+        `${window.location.origin}/cancel`
+      );
 
       // Redirect to Stripe Checkout
-      window.location.href = session.url;
+      window.location.href = checkout_url;
     } catch (error: unknown) {
       console.error("Checkout error:", error);
-      const errorMessage = error && typeof error === 'object' && 'response' in error 
-        ? (error.response as { data?: { detail?: string } })?.data?.detail 
-        : undefined;
-      toast.error(errorMessage || "Failed to start checkout");
+      const errorMessage = error instanceof Error ? error.message : "Failed to start checkout";
+      toast.error(errorMessage);
       setLoading(null);
     }
   };
+
+  const formatPrice = (cents: number) => {
+    return (cents / 100).toFixed(2);
+  };
+
+  const getFeatures = (plan: BillingPlan): string[] => {
+    const features: string[] = [];
+    if (plan.monthly_credit_limit > 0) {
+      features.push(`${plan.monthly_credit_limit.toLocaleString()} Credits/mo`);
+    } else {
+      features.push("Unlimited Credits");
+    }
+    
+    if (plan.features && Array.isArray(plan.features)) {
+      plan.features.forEach((feature: string) => {
+        if (feature === "basic_generation") features.push("Basic Generation");
+        else if (feature === "hdr") features.push("HDR Support");
+        else if (feature === "batch_generation") features.push("Batch Generation");
+        else if (feature === "priority_support") features.push("Priority Support");
+        else if (feature === "api_access") features.push("API Access");
+        else if (feature === "team_collaboration") features.push("Team Collaboration");
+        else features.push(feature);
+      });
+    }
+    
+    return features;
+  };
+
+  if (loadingPlans) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-teal-400" />
+        </div>
+      </div>
+    );
+  }
+
+  if (plans.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-teal-400 mb-4">No Plans Available</h1>
+          <p className="text-slate-400">Please check back later or contact support.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Find the most popular plan (Pro or middle tier)
+  const popularPlanIndex = plans.length > 1 ? Math.floor(plans.length / 2) : 0;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12 space-y-12">
@@ -96,38 +122,12 @@ export default function PricingPage() {
         </p>
       </div>
 
-      {/* Toggle */}
-      <div className="flex justify-center">
-        <div className="flex items-center space-x-4 bg-slate-800 p-1 rounded-lg">
-          <button
-            onClick={() => setIsYearly(false)}
-            className={`px-4 py-2 rounded-md transition ${
-              !isYearly
-                ? "bg-teal-500 text-black font-semibold"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Monthly
-          </button>
-          <button
-            onClick={() => setIsYearly(true)}
-            className={`px-4 py-2 rounded-md transition ${
-              isYearly
-                ? "bg-teal-500 text-black font-semibold"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            Yearly
-            <Badge className="ml-2 bg-amber-400 text-black text-xs">Save 17%</Badge>
-          </button>
-        </div>
-      </div>
-
       {/* Plans */}
       <div className="grid md:grid-cols-3 gap-8">
-        {PLANS.map((plan, index) => {
-          const price = isYearly ? plan.yearly : plan.monthly;
-          const savings = isYearly ? Math.round((plan.monthly * 12 - plan.yearly) / (plan.monthly * 12) * 100) : 0;
+        {plans.map((plan, index) => {
+          const features = getFeatures(plan);
+          const isPopular = index === popularPlanIndex && plans.length > 1;
+          const price = plan.price_cents / 100;
 
           return (
             <motion.div
@@ -137,31 +137,35 @@ export default function PricingPage() {
               transition={{ delay: index * 0.15, duration: 0.5 }}
               className="relative"
             >
-              {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black">
+              {isPopular && (
+                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-amber-400 text-black z-10">
                   Most Popular
                 </Badge>
               )}
-              <Card className={`h-full flex flex-col ${plan.popular ? "border-teal-500 border-2" : ""}`}>
+              <Card className={`h-full flex flex-col ${isPopular ? "border-teal-500 border-2" : ""}`}>
                 <CardHeader>
                   <CardTitle className="text-2xl text-center">{plan.name}</CardTitle>
                   <div className="text-center mt-4">
-                    <span className="text-5xl font-extrabold text-teal-300">
-                      ${price}
-                    </span>
-                    <span className="text-lg text-slate-400 ml-2">
-                      {isYearly ? "/yr" : "/mo"}
-                    </span>
-                    {isYearly && savings > 0 && (
-                      <p className="text-sm text-slate-500 mt-1">
-                        Save ${plan.monthly * 12 - plan.yearly}/year
-                      </p>
+                    {plan.price_cents === 0 ? (
+                      <span className="text-5xl font-extrabold text-teal-300">Free</span>
+                    ) : (
+                      <>
+                        <span className="text-5xl font-extrabold text-teal-300">
+                          ${formatPrice(plan.price_cents)}
+                        </span>
+                        <span className="text-lg text-slate-400 ml-2">/mo</span>
+                      </>
                     )}
                   </div>
+                  {plan.description && (
+                    <CardDescription className="text-center mt-2">
+                      {plan.description}
+                    </CardDescription>
+                  )}
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <ul className="space-y-3">
-                    {plan.features.map((feature, idx) => (
+                    {features.map((feature, idx) => (
                       <motion.li
                         key={idx}
                         whileHover={{ scale: 1.02, x: 4 }}
@@ -176,14 +180,25 @@ export default function PricingPage() {
                 <CardFooter>
                   <Button
                     onClick={() => handleSubscribe(plan)}
-                    disabled={loading === plan.id}
+                    disabled={loading === plan.id || !plan.is_active}
                     className={`w-full ${
-                      plan.popular
+                      isPopular
                         ? "bg-teal-500 hover:bg-teal-600 text-black"
                         : "bg-slate-700 hover:bg-slate-600"
                     }`}
                   >
-                    {loading === plan.id ? "Loading..." : plan.name === "Enterprise" ? "Contact Sales" : "Subscribe"}
+                    {loading === plan.id ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : plan.price_cents === 0 ? (
+                      "Get Started"
+                    ) : plan.name.toLowerCase().includes("enterprise") ? (
+                      "Contact Sales"
+                    ) : (
+                      "Subscribe"
+                    )}
                   </Button>
                 </CardFooter>
               </Card>
@@ -193,7 +208,7 @@ export default function PricingPage() {
       </div>
 
       <p className="text-center text-sm text-slate-400">
-        All plans include a 14-day free trial. Cancel anytime.
+        All paid plans include a 14-day free trial. Cancel anytime.
       </p>
     </div>
   );

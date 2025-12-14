@@ -36,27 +36,57 @@ function sleep(ms = 200) {
 export const MOCK_USERS = [
   { id: 'user_1', name: 'Ava Photographer', role: 'photographer', email: 'ava@example.com' },
   { id: 'user_2', name: 'Sam Creative', role: 'creative_lead', email: 'sam@example.com' },
-  { id: 'user_admin', name: 'Ops Admin', role: 'admin', email: 'ops@example.com' }
+  { id: 'user_admin', name: 'Ops Admin', role: 'admin', email: 'ops@example.com' },
+  { id: 'user_3', name: 'Jordan Designer', role: 'designer', email: 'jordan@example.com' },
+  { id: 'user_4', name: 'Taylor Marketing', role: 'marketing', email: 'taylor@example.com' },
+  { id: 'user_5', name: 'Morgan Studio', role: 'photographer', email: 'morgan@example.com' },
+  { id: 'user_6', name: 'Casey Art Director', role: 'creative_lead', email: 'casey@example.com' },
+  { id: 'user_7', name: 'Riley Producer', role: 'producer', email: 'riley@example.com' }
 ];
 
 export const MOCK_BRANDS = [
   { id: 120, name: 'ProLight Test Brand', colors: { primary: '#0b79d0', accent: '#f59e0b' }, logos: ['https://mock.prolight.ai/logo/pl_120.svg'] },
-  { id: 121, name: 'FIBO Studio', colors: { primary: '#0fa3a3', accent: '#ffb86b' }, logos: ['https://mock.prolight.ai/logo/fibo_121.svg'] }
+  { id: 121, name: 'FIBO Studio', colors: { primary: '#0fa3a3', accent: '#ffb86b' }, logos: ['https://mock.prolight.ai/logo/fibo_121.svg'] },
+  { id: 122, name: 'Luxury Timepieces', colors: { primary: '#1a1a1a', accent: '#d4af37' }, logos: ['https://mock.prolight.ai/logo/watch_122.svg'] },
+  { id: 123, name: 'Beauty Essentials', colors: { primary: '#ff6b9d', accent: '#c44569' }, logos: ['https://mock.prolight.ai/logo/beauty_123.svg'] },
+  { id: 124, name: 'Tech Innovations', colors: { primary: '#2c3e50', accent: '#3498db' }, logos: ['https://mock.prolight.ai/logo/tech_124.svg'] },
+  { id: 125, name: 'Fashion House', colors: { primary: '#8b4513', accent: '#daa520' }, logos: ['https://mock.prolight.ai/logo/fashion_125.svg'] },
+  { id: 126, name: 'Jewelry Collection', colors: { primary: '#2c2c2c', accent: '#ffffff' }, logos: ['https://mock.prolight.ai/logo/jewelry_126.svg'] }
 ];
 
 export const MOCK_AD_TEMPLATES = [
   { id: 1061, name: 'Simple Product Square', scenes: 1, preview: 'https://mock.prolight.ai/templates/1061_preview.png', requires_brand: false },
-  { id: 1062, name: 'Hero Multi-Scene', scenes: 3, preview: 'https://mock.prolight.ai/templates/1062_preview.png', requires_brand: true }
+  { id: 1062, name: 'Hero Multi-Scene', scenes: 3, preview: 'https://mock.prolight.ai/templates/1062_preview.png', requires_brand: true },
+  { id: 1063, name: 'Luxury Showcase', scenes: 2, preview: 'https://mock.prolight.ai/templates/1063_preview.png', requires_brand: true },
+  { id: 1064, name: 'Minimalist Product', scenes: 1, preview: 'https://mock.prolight.ai/templates/1064_preview.png', requires_brand: false },
+  { id: 1065, name: 'Dynamic Lifestyle', scenes: 4, preview: 'https://mock.prolight.ai/templates/1065_preview.png', requires_brand: true },
+  { id: 1066, name: 'Clean E-commerce', scenes: 1, preview: 'https://mock.prolight.ai/templates/1066_preview.png', requires_brand: false },
+  { id: 1067, name: 'Editorial Style', scenes: 3, preview: 'https://mock.prolight.ai/templates/1067_preview.png', requires_brand: true },
+  { id: 1068, name: 'Social Media Grid', scenes: 6, preview: 'https://mock.prolight.ai/templates/1068_preview.png', requires_brand: false }
 ];
 
 export const MOCK_ASSETS = [
   { asset_id: 'asset_1001', url: 'https://mock.prolight.ai/assets/lamp_hero_01.png', width: 4000, height: 3000, tags: ['lamp','hero','studio'], visual_id: 'v_1001' },
-  { asset_id: 'asset_1002', url: 'https://mock.prolight.ai/assets/lamp_side_02.png', width: 3000, height: 3000, tags: ['lamp','side','studio'], visual_id: 'v_1002' }
+  { asset_id: 'asset_1002', url: 'https://mock.prolight.ai/assets/lamp_side_02.png', width: 3000, height: 3000, tags: ['lamp','side','studio'], visual_id: 'v_1002' },
+  { asset_id: 'asset_1003', url: 'https://mock.prolight.ai/assets/watch_luxury_01.png', width: 4000, height: 3000, tags: ['watch','luxury','product'], visual_id: 'v_1003' },
+  { asset_id: 'asset_1004', url: 'https://mock.prolight.ai/assets/jewelry_ring_01.png', width: 3000, height: 3000, tags: ['jewelry','ring','luxury'], visual_id: 'v_1004' },
+  { asset_id: 'asset_1005', url: 'https://mock.prolight.ai/assets/cosmetics_lipstick_01.png', width: 3000, height: 3000, tags: ['cosmetics','beauty','product'], visual_id: 'v_1005' },
+  { asset_id: 'asset_1006', url: 'https://mock.prolight.ai/assets/phone_hero_01.png', width: 4000, height: 3000, tags: ['electronics','phone','tech'], visual_id: 'v_1006' },
+  { asset_id: 'asset_1007', url: 'https://mock.prolight.ai/assets/handbag_luxury_01.png', width: 4000, height: 3000, tags: ['fashion','handbag','luxury'], visual_id: 'v_1007' },
+  { asset_id: 'asset_1008', url: 'https://mock.prolight.ai/assets/watch_detail_02.png', width: 3000, height: 3000, tags: ['watch','detail','macro'], visual_id: 'v_1008' },
+  { asset_id: 'asset_1009', url: 'https://mock.prolight.ai/assets/jewelry_necklace_01.png', width: 3000, height: 4000, tags: ['jewelry','necklace','portrait'], visual_id: 'v_1009' },
+  { asset_id: 'asset_1010', url: 'https://mock.prolight.ai/assets/cosmetics_palette_01.png', width: 3000, height: 3000, tags: ['cosmetics','makeup','beauty'], visual_id: 'v_1010' }
 ];
 
 export const MOCK_TAILORED_MODELS = [
   { model_id: 'prolight-product-v1', created_at: new Date().toISOString(), status: 'ready', training_info: { type: 'fully_automated', examples: 120 } },
-  { model_id: 'studio-lighting-v2', created_at: new Date().toISOString(), status: 'training', training_info: { type: 'expert', checkpoint: 1200, progress: 0.42 } }
+  { model_id: 'studio-lighting-v2', created_at: new Date().toISOString(), status: 'training', training_info: { type: 'expert', checkpoint: 1200, progress: 0.42 } },
+  { model_id: 'luxury-watch-v1', created_at: new Date(Date.now() - 5 * 24 * 3600000).toISOString(), status: 'ready', training_info: { type: 'fully_automated', examples: 200 } },
+  { model_id: 'jewelry-premium-v1', created_at: new Date(Date.now() - 10 * 24 * 3600000).toISOString(), status: 'ready', training_info: { type: 'expert', examples: 150 } },
+  { model_id: 'beauty-cosmetics-v1', created_at: new Date(Date.now() - 7 * 24 * 3600000).toISOString(), status: 'ready', training_info: { type: 'fully_automated', examples: 180 } },
+  { model_id: 'tech-products-v1', created_at: new Date(Date.now() - 3 * 24 * 3600000).toISOString(), status: 'ready', training_info: { type: 'fully_automated', examples: 140 } },
+  { model_id: 'fashion-accessories-v1', created_at: new Date(Date.now() - 14 * 24 * 3600000).toISOString(), status: 'ready', training_info: { type: 'expert', examples: 220 } },
+  { model_id: 'portrait-studio-v2', created_at: new Date(Date.now() - 1 * 24 * 3600000).toISOString(), status: 'training', training_info: { type: 'expert', checkpoint: 800, progress: 0.35 } }
 ];
 
 /* ---------- Additional Ads Generation mocks ---------- */

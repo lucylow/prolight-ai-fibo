@@ -62,6 +62,221 @@ export const FIBO_MOCK_DATA = {
         style_medium: "professional product photography",
         context: "e-commerce catalog hero shot"
       }
+    },
+    watch: {
+      structured_prompt: {
+        short_description: "Luxury wristwatch on marble surface with dramatic studio lighting",
+        objects: [
+          {
+            description: "Premium stainless steel wristwatch with leather strap",
+            location: "center foreground on marble pedestal",
+            relationship: "isolated luxury product on elegant surface",
+            relative_size: "medium-sized object with fine details",
+            shape_and_color: "circular watch face with silver case and brown leather band",
+            texture: "polished metal with brushed finish, genuine leather texture",
+            appearance_details: "luxury timepiece with visible dial details and craftsmanship",
+            number_of_objects: 1,
+            pose: "laying flat on surface, face visible",
+            lighting: {
+              key_light: { type: "directional", intensity: 1.4, direction: "top-left 60°" },
+              fill_light: { type: "softbox", intensity: 0.5, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 0.9, direction: "rear-left 45°" }
+            }
+          }
+        ],
+        background_setting: "professional product studio with dark gray seamless backdrop",
+        lighting: {
+          conditions: "dramatic 3-point lighting with emphasis on product highlights",
+          direction: "key light top-left, fill right, rim rear-left",
+          shadows: "defined shadows with good separation"
+        },
+        aesthetics: {
+          composition: "centered product with elegant negative space",
+          color_scheme: "neutral gray background with warm product tones",
+          mood_atmosphere: "luxury premium product photography"
+        },
+        photographic_characteristics: {
+          lens: "100mm f/2.8 macro",
+          aperture: "f/5.6",
+          shutter_speed: "1/160s",
+          iso: "100",
+          white_balance: "5500K daylight"
+        },
+        style_medium: "high-end product photography",
+        context: "luxury brand catalog and e-commerce"
+      }
+    },
+    jewelry: {
+      structured_prompt: {
+        short_description: "Elegant diamond ring on velvet surface with soft beauty lighting",
+        objects: [
+          {
+            description: "Platinum diamond engagement ring with center stone",
+            location: "center foreground on dark velvet fabric",
+            relationship: "isolated jewelry piece on luxurious surface",
+            relative_size: "small detailed object requiring macro photography",
+            shape_and_color: "circular platinum band with brilliant cut diamond",
+            texture: "highly polished metal with faceted gemstone surface",
+            appearance_details: "premium jewelry with visible diamond facets and metalwork",
+            number_of_objects: 1,
+            pose: "laying on side showing ring profile and stone",
+            lighting: {
+              key_light: { type: "softbox", intensity: 1.0, direction: "front-top 45°" },
+              fill_light: { type: "reflector", intensity: 0.4, direction: "front" },
+              rim_light: { type: "point", intensity: 0.7, direction: "rear-top" }
+            }
+          }
+        ],
+        background_setting: "luxury jewelry photography studio with dark velvet backdrop",
+        lighting: {
+          conditions: "soft beauty lighting optimized for gemstone sparkle",
+          direction: "key light front-top, fill front, rim rear-top",
+          shadows: "very soft shadows to maintain elegance"
+        },
+        aesthetics: {
+          composition: "centered ring with dramatic negative space",
+          color_scheme: "dark rich background with bright product highlights",
+          mood_atmosphere: "luxury jewelry photography with emphasis on sparkle"
+        },
+        photographic_characteristics: {
+          lens: "105mm f/2.8 macro",
+          aperture: "f/8.0",
+          shutter_speed: "1/200s",
+          iso: "50",
+          white_balance: "5600K daylight"
+        },
+        style_medium: "luxury jewelry photography",
+        context: "high-end jewelry catalog and marketing"
+      }
+    },
+    cosmetics: {
+      structured_prompt: {
+        short_description: "Premium cosmetics product on white background with soft lighting",
+        objects: [
+          {
+            description: "Luxury lipstick tube with gold case",
+            location: "center foreground on white acrylic surface",
+            relationship: "isolated beauty product on clean background",
+            relative_size: "small to medium product requiring detail focus",
+            shape_and_color: "cylindrical gold case with visible product name",
+            texture: "metallic finish with subtle texture, smooth plastic components",
+            appearance_details: "premium cosmetics packaging with brand details visible",
+            number_of_objects: 1,
+            pose: "upright position showing full product",
+            lighting: {
+              key_light: { type: "softbox", intensity: 1.1, direction: "front-left 30°" },
+              fill_light: { type: "softbox", intensity: 0.7, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 0.5, direction: "rear" }
+            }
+          }
+        ],
+        background_setting: "clean beauty photography studio with white seamless backdrop",
+        lighting: {
+          conditions: "soft even lighting for beauty products",
+          direction: "key light front-left, fill right, rim rear",
+          shadows: "minimal soft shadows for clean look"
+        },
+        aesthetics: {
+          composition: "centered product with ample white space",
+          color_scheme: "bright white background with product as focal point",
+          mood_atmosphere: "clean modern beauty product photography"
+        },
+        photographic_characteristics: {
+          lens: "85mm f/2.8",
+          aperture: "f/5.6",
+          shutter_speed: "1/125s",
+          iso: "100",
+          white_balance: "5600K daylight"
+        },
+        style_medium: "beauty product photography",
+        context: "cosmetics brand catalog and social media"
+      }
+    },
+    electronics: {
+      structured_prompt: {
+        short_description: "Modern smartphone on reflective surface with studio lighting",
+        objects: [
+          {
+            description: "Latest generation smartphone with glass back",
+            location: "center foreground on reflective acrylic surface",
+            relationship: "isolated tech product on modern surface",
+            relative_size: "medium-sized rectangular device",
+            shape_and_color: "rectangular phone with black glass back and metal frame",
+            texture: "smooth glass surface with subtle reflections, polished metal edges",
+            appearance_details: "premium smartphone with visible screen and camera array",
+            number_of_objects: 1,
+            pose: "laying flat showing front screen and back design",
+            lighting: {
+              key_light: { type: "directional", intensity: 1.3, direction: "top-left 45°" },
+              fill_light: { type: "softbox", intensity: 0.6, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 0.8, direction: "rear-right" }
+            }
+          }
+        ],
+        background_setting: "modern tech photography studio with neutral gray backdrop",
+        lighting: {
+          conditions: "clean studio lighting with controlled reflections",
+          direction: "key light top-left, fill right, rim rear-right",
+          shadows: "defined but clean shadows"
+        },
+        aesthetics: {
+          composition: "centered device with modern negative space",
+          color_scheme: "neutral background with product as focus",
+          mood_atmosphere: "sleek modern tech product photography"
+        },
+        photographic_characteristics: {
+          lens: "90mm f/2.8",
+          aperture: "f/6.3",
+          shutter_speed: "1/160s",
+          iso: "100",
+          white_balance: "5600K daylight"
+        },
+        style_medium: "tech product photography",
+        context: "electronics e-commerce and marketing"
+      }
+    },
+    fashion: {
+      structured_prompt: {
+        short_description: "Designer handbag on marble surface with elegant lighting",
+        objects: [
+          {
+            description: "Luxury leather handbag with gold hardware",
+            location: "center foreground on white marble surface",
+            relationship: "isolated fashion accessory on premium surface",
+            relative_size: "large fashion item with visible details",
+            shape_and_color: "structured handbag in tan leather with gold accents",
+            texture: "premium leather with visible grain, polished metal hardware",
+            appearance_details: "designer handbag with visible stitching and brand details",
+            number_of_objects: 1,
+            pose: "positioned to show front design and handle",
+            lighting: {
+              key_light: { type: "directional", intensity: 1.2, direction: "front-left 50°" },
+              fill_light: { type: "softbox", intensity: 0.6, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 0.7, direction: "rear-left" }
+            }
+          }
+        ],
+        background_setting: "luxury fashion photography studio with white marble backdrop",
+        lighting: {
+          conditions: "elegant lighting setup for fashion accessories",
+          direction: "key light front-left, fill right, rim rear-left",
+          shadows: "soft elegant shadows"
+        },
+        aesthetics: {
+          composition: "centered accessory with premium negative space",
+          color_scheme: "bright white marble with warm product tones",
+          mood_atmosphere: "luxury fashion accessory photography"
+        },
+        photographic_characteristics: {
+          lens: "85mm f/2.8",
+          aperture: "f/5.6",
+          shutter_speed: "1/125s",
+          iso: "100",
+          white_balance: "5600K daylight"
+        },
+        style_medium: "luxury fashion photography",
+        context: "high-end fashion brand catalog"
+      }
     }
   }
 };

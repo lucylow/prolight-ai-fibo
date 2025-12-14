@@ -1,71 +1,86 @@
-import React from "react";
-import { Toaster } from "@/components/ui/toaster";
+import React, { Suspense, lazy } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { DeploymentBanner } from "@/components/DeploymentBanner";
+import { CookieConsent } from "./components/CookieConsent";
+import { ScrollToTop } from "./components/ScrollToTop";
+import { initializeMockData } from "./services/enhancedMockData";
+
+// Core pages - loaded immediately
 import Index from "./pages/Index";
+import SignIn from "./pages/SignIn";
+import SignOut from "./pages/SignOut";
+import NotFound from "./pages/NotFound";
 import Studio from "./pages/Studio";
 import Presets from "./pages/Presets";
 import NaturalLanguage from "./pages/NaturalLanguage";
 import History from "./pages/History";
-import Pricing from "./pages/Pricing";
-import Billing from "./pages/Billing";
-import CustomerPortal from "./pages/CustomerPortal";
-import AdminRefunds from "./pages/AdminRefunds";
-import Success from "./pages/Success";
-import Cancel from "./pages/Cancel";
-import NotFound from "./pages/NotFound";
-import AboutPage from "./pages/company/About";
-import BlogPage from "./pages/company/Blog";
-import PostView from "./pages/company/PostView";
-import CareersPage from "./pages/company/Careers";
-import ContactPage from "./pages/company/Contact";
-import LegalIndex from "./pages/LegalIndex";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import TermsOfService from "./pages/TermsOfService";
-import CookiePolicy from "./pages/CookiePolicy";
-import ProductPage from "./pages/marketing/Product";
-import FeaturesPage from "./pages/marketing/Features";
-import UseCasesPage from "./pages/marketing/UseCases";
-import MarketingPricingPage from "./pages/marketing/Pricing";
-import DocsPage from "./pages/marketing/Docs";
-import SignIn from "./pages/SignIn";
-import SignOut from "./pages/SignOut";
-import TextToImage from "./pages/generate/TextToImage";
-import TailoredGen from "./pages/generate/TailoredGen";
-import AdsGenerator from "./pages/generate/AdsGenerator";
-import ProductEditor from "./pages/generate/ProductEditor";
-import ImageEditor from "./pages/generate/ImageEditor";
-import VideoEditor from "./pages/generate/VideoEditor";
-import BriaImageGeneration from "./pages/bria/ImageGeneration";
-import BriaImageGenerationV2 from "./pages/bria/ImageGenerationV2";
-import BriaTailoredModels from "./pages/bria/TailoredModels";
-import BriaAdsGeneration from "./pages/bria/AdsGeneration";
-import BriaAdsGenerationV1 from "./pages/bria/AdsGenerationV1";
-import BriaProductImagery from "./pages/bria/ProductImagery";
-import BriaImageEditing from "./pages/bria/ImageEditing";
-import BriaVideoEditing from "./pages/bria/VideoEditing";
-import BriaImageOnboarding from "./pages/bria/ImageOnboarding";
-import BriaVehicleShotEditor from "./pages/bria/VehicleShotEditor";
-import BriaV1Generator from "./pages/bria/V1Generator";
-import PaymentPage from "./pages/PaymentPage";
 import Dashboard from "./pages/Dashboard";
 import AccountSettings from "./pages/AccountSettings";
-import Teams from "./pages/Teams";
-import Invoices from "./pages/Invoices";
-import Admin from "./pages/Admin";
-import BusinessModelCanvas from "./pages/BusinessModelCanvas";
-import { CookieConsent } from "./components/CookieConsent";
-import { initializeMockData } from "./services/enhancedMockData";
+
+// Lazy-loaded pages for better performance
+const Pricing = lazy(() => import("./pages/Pricing"));
+const Billing = lazy(() => import("./pages/Billing"));
+const CustomerPortal = lazy(() => import("./pages/CustomerPortal"));
+const AdminRefunds = lazy(() => import("./pages/AdminRefunds"));
+const Success = lazy(() => import("./pages/Success"));
+const Cancel = lazy(() => import("./pages/Cancel"));
+const AboutPage = lazy(() => import("./pages/company/About"));
+const BlogPage = lazy(() => import("./pages/company/Blog"));
+const PostView = lazy(() => import("./pages/company/PostView"));
+const CareersPage = lazy(() => import("./pages/company/Careers"));
+const ContactPage = lazy(() => import("./pages/company/Contact"));
+const LegalIndex = lazy(() => import("./pages/LegalIndex"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const CookiePolicy = lazy(() => import("./pages/CookiePolicy"));
+const ProductPage = lazy(() => import("./pages/marketing/Product"));
+const FeaturesPage = lazy(() => import("./pages/marketing/Features"));
+const UseCasesPage = lazy(() => import("./pages/marketing/UseCases"));
+const MarketingPricingPage = lazy(() => import("./pages/marketing/Pricing"));
+const DocsPage = lazy(() => import("./pages/marketing/Docs"));
+const TextToImage = lazy(() => import("./pages/generate/TextToImage"));
+const TailoredGen = lazy(() => import("./pages/generate/TailoredGen"));
+const AdsGenerator = lazy(() => import("./pages/generate/AdsGenerator"));
+const ProductEditor = lazy(() => import("./pages/generate/ProductEditor"));
+const ImageEditor = lazy(() => import("./pages/generate/ImageEditor"));
+const VideoEditor = lazy(() => import("./pages/generate/VideoEditor"));
+const BriaImageGeneration = lazy(() => import("./pages/bria/ImageGeneration"));
+const BriaImageGenerationV2 = lazy(() => import("./pages/bria/ImageGenerationV2"));
+const BriaTailoredModels = lazy(() => import("./pages/bria/TailoredModels"));
+const BriaAdsGeneration = lazy(() => import("./pages/bria/AdsGeneration"));
+const BriaAdsGenerationV1 = lazy(() => import("./pages/bria/AdsGenerationV1"));
+const BriaProductImagery = lazy(() => import("./pages/bria/ProductImagery"));
+const BriaImageEditing = lazy(() => import("./pages/bria/ImageEditing"));
+const BriaVideoEditing = lazy(() => import("./pages/bria/VideoEditing"));
+const BriaImageOnboarding = lazy(() => import("./pages/bria/ImageOnboarding"));
+const BriaVehicleShotEditor = lazy(() => import("./pages/bria/VehicleShotEditor"));
+const BriaV1Generator = lazy(() => import("./pages/bria/V1Generator"));
+const PaymentPage = lazy(() => import("./pages/PaymentPage"));
+const Teams = lazy(() => import("./pages/Teams"));
+const Invoices = lazy(() => import("./pages/Invoices"));
+const Admin = lazy(() => import("./pages/Admin"));
+const BusinessModelCanvas = lazy(() => import("./pages/BusinessModelCanvas"));
+const FreeApisDemo = lazy(() => import("./components/FreeApisDemo"));
+
+// Enhanced loading fallback component with better UX
+const PageLoader: React.FC = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+    <div className="relative">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/20"></div>
+      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary absolute top-0 left-0"></div>
+    </div>
+    <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+  </div>
+);
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,21 +92,28 @@ const queryClient = new QueryClient({
   },
 });
 
-function PageWrapper({ children }: { children: React.ReactNode }) {
+// Memoized PageWrapper for better performance
+const PageWrapper = React.memo(({ children }: { children: React.ReactNode }) => {
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 12 }} 
-      animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0, y: -12 }} 
-      transition={{ 
-        duration: 0.3,
-        ease: [0.4, 0, 0.2, 1] // Custom easing for smoother feel
-      }}
-    >
-      {children}
-    </motion.div>
+    <Suspense fallback={<PageLoader />}>
+      <motion.div 
+        initial={{ opacity: 0, y: 12 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        exit={{ opacity: 0, y: -12 }} 
+        transition={{ 
+          duration: 0.3,
+          ease: [0.4, 0, 0.2, 1] // Custom easing for smoother feel
+        }}
+        role="main"
+        aria-live="polite"
+      >
+        {children}
+      </motion.div>
+    </Suspense>
   );
-}
+});
+
+PageWrapper.displayName = 'PageWrapper';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -206,72 +228,13 @@ function AnimatedRoutes() {
         <Route path="/bria/image-editing" element={<PageWrapper><BriaImageEditing /></PageWrapper>} />
         <Route path="/bria/video-editing" element={<PageWrapper><BriaVideoEditing /></PageWrapper>} />
         <Route path="/bria/v1-generator" element={<PageWrapper><BriaV1Generator /></PageWrapper>} />
+        <Route path="/demo/free-apis" element={<PageWrapper><FreeApisDemo /></PageWrapper>} />
         <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
   );
 }
 
-// Deployment verification banner - only visible in development or when explicitly enabled
-function DeploymentBanner() {
-  const [isVisible, setIsVisible] = React.useState(false);
-  const [isDismissed, setIsDismissed] = React.useState(() => {
-    // Check if user has dismissed it before
-    return localStorage.getItem('deployment-banner-dismissed') === 'true';
-  });
-
-  React.useEffect(() => {
-    // Only show in development or if explicitly enabled via env var
-    const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
-    const showBanner = import.meta.env.VITE_SHOW_DEPLOY_BANNER === 'true';
-    setIsVisible((isDev || showBanner) && !isDismissed);
-  }, [isDismissed]);
-
-  if (!isVisible) return null;
-
-  const buildTime = typeof __BUILD_TIME__ !== 'undefined' && __BUILD_TIME__ 
-    ? new Date(__BUILD_TIME__).toLocaleString() 
-    : 'dev mode';
-  const commitHash = typeof __COMMIT_HASH__ !== 'undefined' && __COMMIT_HASH__ 
-    ? __COMMIT_HASH__.slice(0, 7)
-    : 'local';
-
-  const handleDismiss = () => {
-    setIsDismissed(true);
-    localStorage.setItem('deployment-banner-dismissed', 'true');
-    setIsVisible(false);
-  };
-  
-  return (
-    <div 
-      className="fixed bottom-0 right-0 z-50 max-w-sm p-3 m-4 rounded-lg shadow-lg border border-border/50 bg-muted/95 backdrop-blur-sm text-xs font-mono transition-all duration-300"
-      role="status"
-      aria-label="Build information"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="font-semibold text-foreground">Build Info</span>
-          </div>
-          <div className="space-y-0.5 text-muted-foreground">
-            <div>Time: <span className="text-foreground">{buildTime}</span></div>
-            <div>Commit: <span className="text-foreground font-mono">{commitHash}</span></div>
-          </div>
-        </div>
-        <button
-          onClick={handleDismiss}
-          className="flex-shrink-0 p-1 rounded hover:bg-muted-foreground/20 transition-colors"
-          aria-label="Dismiss build information"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 const App = () => {
   // Initialize mock data on app startup if enabled
@@ -285,10 +248,9 @@ const App = () => {
         <ThemeProvider>
           <AuthProvider>
             <TooltipProvider>
-              <Toaster />
               <Sonner />
-              <ToastContainer position="top-right" autoClose={3000} />
               <BrowserRouter>
+                <ScrollToTop />
                 <CookieConsent />
                 <DeploymentBanner />
                 <MainLayout>
