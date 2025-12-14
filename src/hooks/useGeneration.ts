@@ -24,22 +24,24 @@ const getErrorMessage = (error: unknown): GenerationError => {
   }
   
   if (error && typeof error === 'object' && 'message' in error) {
-    const message = error.message;
+    const errorMessage = error.message;
+    const message = typeof errorMessage === 'string' ? errorMessage : String(errorMessage);
     let code = 'UNKNOWN_ERROR';
     let retryable = false;
 
-    if (message.includes('rate limit') || message.includes('Rate limit')) {
+    const messageLower = message.toLowerCase();
+    if (messageLower.includes('rate limit')) {
       code = 'RATE_LIMIT';
       retryable = true;
-    } else if (message.includes('timeout') || message.includes('Timeout')) {
+    } else if (messageLower.includes('timeout')) {
       code = 'TIMEOUT';
       retryable = true;
-    } else if (message.includes('network') || message.includes('Network')) {
+    } else if (messageLower.includes('network')) {
       code = 'NETWORK_ERROR';
       retryable = true;
-    } else if (message.includes('payment') || message.includes('Payment')) {
+    } else if (messageLower.includes('payment')) {
       code = 'PAYMENT_REQUIRED';
-    } else if (message.includes('authentication') || message.includes('auth')) {
+    } else if (messageLower.includes('authentication') || messageLower.includes('auth')) {
       code = 'AUTH_ERROR';
     }
 
@@ -70,6 +72,8 @@ const getUserFriendlyMessage = (error: GenerationError): string => {
     case 'AI_AUTH_ERROR':
     case 'AUTH_ERROR':
       return 'Authentication failed. Please check your configuration.';
+    case 'CONFIG_ERROR':
+      return 'Configuration error. Please check that LOVABLE_API_KEY is set in your project secrets.';
     case 'AI_NO_IMAGE':
       return 'The AI service did not generate an image. Please try again with a different prompt.';
     case 'AI_INVALID_RESPONSE':

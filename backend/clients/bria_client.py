@@ -788,6 +788,130 @@ class BriaClient:
         result = await self._make_request("POST", "/image/onboard", payload)
         return result
     
+    # ============================================================================
+    # Image Onboarding API (v1) - Register images and get visual_id
+    # ============================================================================
+    
+    async def register_image(
+        self,
+        image_url: Optional[str] = None,
+        org_image_key: Optional[str] = None,
+        is_private: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Register an image with Bria Image Onboarding API (v1).
+        
+        This is the recommended method to onboard images to Bria without database storage.
+        Returns a visual_id needed for AI Search and Image Editing Create endpoints.
+        
+        Args:
+            image_url: Public URL of the image (must be publicly accessible)
+            org_image_key: Internal image ID in your system (alternative to image_url)
+            is_private: Whether image is private to your org (default: True)
+            
+        Returns:
+            Dict[str, Any]: Result with visual_id
+            
+        Raises:
+            ValueError: If neither image_url nor org_image_key provided
+            BriaAPIError: If registration fails
+        """
+        if not image_url and not org_image_key:
+            raise ValueError("Either image_url or org_image_key must be provided")
+        
+        # Image Onboarding API uses v1 endpoint, not v2
+        onboarding_base_url = "https://engine.prod.bria-api.com/v1"
+        url = f"{onboarding_base_url}/register"
+        
+        payload = {
+            "is_private": is_private
+        }
+        if image_url:
+            payload["image_url"] = image_url
+        if org_image_key:
+            payload["org_image_key"] = org_image_key
+        
+        # Use the same client but different base URL for this request
+        if not self.client:
+            raise RuntimeError("Client not initialized. Use async context manager.")
+        
+        headers = self._get_headers()
+        self._log_request("POST", url, payload)
+        
+        try:
+            response = await self.client.post(url, json=payload, headers=headers)
+            self._log_response(response.status_code, response.text)
+            
+            if response.status_code >= 400:
+                if response.status_code == 401:
+                    raise BriaAuthError("Bria authentication failed for Image Onboarding API")
+                elif response.status_code == 413:
+                    raise BriaAPIError("File exceeds maximum size (12MB)", status_code=413)
+                elif response.status_code == 415:
+                    raise BriaAPIError("Unsupported file type or color mode (JPEG/PNG RGB/RGBA/CMYK only)", status_code=415)
+                else:
+                    error_detail = response.text[:500]
+                    raise BriaAPIError(
+                        f"Image Onboarding API error {response.status_code}: {error_detail}",
+                        status_code=response.status_code
+                    )
+            
+            return response.json()
+        except httpx.HTTPStatusError as e:
+            error_detail = e.response.text[:500] if e.response.text else str(e)
+            raise BriaAPIError(
+                f"Image Onboarding API error {e.response.status_code}: {error_detail}",
+                status_code=e.response.status_code
+            )
+    
+    async def remove_image(self, visual_id: str) -> Dict[str, Any]:
+        """
+        Remove an image from your organization's Bria gallery.
+        
+        This removes the image from your organization gallery but does not delete
+        it from Bria entirely.
+        
+        Args:
+            visual_id: Visual ID from register_image response
+            
+        Returns:
+            Dict[str, Any]: Removal result
+            
+        Raises:
+            BriaAPIError: If removal fails
+        """
+        if not visual_id:
+            raise ValueError("visual_id is required")
+        
+        # Image Onboarding API uses v1 endpoint
+        onboarding_base_url = "https://engine.prod.bria-api.com/v1"
+        url = f"{onboarding_base_url}/{visual_id}/remove_image"
+        
+        if not self.client:
+            raise RuntimeError("Client not initialized. Use async context manager.")
+        
+        headers = self._get_headers()
+        self._log_request("POST", url, {})
+        
+        try:
+            response = await self.client.post(url, headers=headers)
+            self._log_response(response.status_code, response.text)
+            
+            if response.status_code >= 400:
+                error_detail = response.text[:500]
+                raise BriaAPIError(
+                    f"Remove image API error {response.status_code}: {error_detail}",
+                    status_code=response.status_code
+                )
+            
+            return response.json() if response.text else {"ok": True}
+        except httpx.HTTPStatusError as e:
+            error_detail = e.response.text[:500] if e.response.text else str(e)
+            raise BriaAPIError(
+                f"Remove image API error {e.response.status_code}: {error_detail}",
+                status_code=e.response.status_code
+            )
+    
     async def edit_video(
         self,
         asset_id: str,

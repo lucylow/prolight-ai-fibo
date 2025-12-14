@@ -5,13 +5,57 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+// Validate environment variables with helpful error messages
+if (!SUPABASE_URL) {
+  const errorMsg = 'Missing VITE_SUPABASE_URL environment variable.\n' +
+    'Please configure it in your Lovable project settings:\n' +
+    '1. Go to Project Settings → Environment Variables\n' +
+    '2. Add VITE_SUPABASE_URL with your Supabase project URL\n' +
+    '3. Get your URL from Supabase Dashboard → Settings → API';
+  console.error(errorMsg);
+  
+  // In development, show alert for better visibility
+  if (import.meta.env.DEV) {
+    console.warn('⚠️ Supabase client will not work without VITE_SUPABASE_URL');
+  }
+}
+
+if (!SUPABASE_PUBLISHABLE_KEY) {
+  const errorMsg = 'Missing VITE_SUPABASE_PUBLISHABLE_KEY environment variable.\n' +
+    'Please configure it in your Lovable project settings:\n' +
+    '1. Go to Project Settings → Environment Variables\n' +
+    '2. Add VITE_SUPABASE_PUBLISHABLE_KEY with your Supabase anon key\n' +
+    '3. Get your key from Supabase Dashboard → Settings → API';
+  console.error(errorMsg);
+  
+  // In development, show alert for better visibility
+  if (import.meta.env.DEV) {
+    console.warn('⚠️ Supabase client will not work without VITE_SUPABASE_PUBLISHABLE_KEY');
+  }
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+// Only create client if we have valid credentials
+// This prevents silent failures and makes errors more obvious
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  console.error('❌ Cannot initialize Supabase client: Missing required environment variables');
+}
+
+export const supabase = createClient<Database>(
+  SUPABASE_URL || 'https://placeholder.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY || 'placeholder-key',
+  {
+    auth: {
+      storage: typeof window !== 'undefined' ? localStorage : undefined,
+      persistSession: true,
+      autoRefreshToken: true,
+    },
+    global: {
+      headers: {
+        'x-client-info': 'prolight-ai-fibo',
+      },
+    },
   }
-});
+);

@@ -76,12 +76,112 @@ serve(async (req) => {
   }
 
   try {
-    const nlRequest: NaturalLanguageRequest = await req.json();
+    // Validate request method
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({ 
+        error: 'Method not allowed. Only POST requests are supported.',
+        errorCode: 'METHOD_NOT_ALLOWED'
+      }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Parse and validate request body
+    let nlRequest: NaturalLanguageRequest;
+    try {
+      const text = await req.text();
+      if (!text || text.trim().length === 0) {
+        return new Response(JSON.stringify({ 
+          error: 'Request body is required and cannot be empty.',
+          errorCode: 'MISSING_BODY'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const parsed = JSON.parse(text);
+      nlRequest = parsed as NaturalLanguageRequest;
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JSON in request body. Please check your request format.',
+        errorCode: 'INVALID_JSON',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate required fields
+    if (!nlRequest.sceneDescription || typeof nlRequest.sceneDescription !== 'string' || nlRequest.sceneDescription.trim().length === 0) {
+      return new Response(JSON.stringify({ 
+        error: 'sceneDescription is required and must be a non-empty string.',
+        errorCode: 'MISSING_SCENE_DESCRIPTION'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!nlRequest.lightingDescription || typeof nlRequest.lightingDescription !== 'string' || nlRequest.lightingDescription.trim().length === 0) {
+      return new Response(JSON.stringify({ 
+        error: 'lightingDescription is required and must be a non-empty string.',
+        errorCode: 'MISSING_LIGHTING_DESCRIPTION'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!nlRequest.subject || typeof nlRequest.subject !== 'string' || nlRequest.subject.trim().length === 0) {
+      return new Response(JSON.stringify({ 
+        error: 'subject is required and must be a non-empty string.',
+        errorCode: 'MISSING_SUBJECT'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate string lengths to prevent abuse
+    const MAX_LENGTH = 5000;
+    if (nlRequest.sceneDescription.length > MAX_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: `sceneDescription exceeds maximum length of ${MAX_LENGTH} characters.`,
+        errorCode: 'FIELD_TOO_LONG'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (nlRequest.lightingDescription.length > MAX_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: `lightingDescription exceeds maximum length of ${MAX_LENGTH} characters.`,
+        errorCode: 'FIELD_TOO_LONG'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log("Received NL request:", JSON.stringify(nlRequest));
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      return new Response(JSON.stringify({ 
+        error: 'LOVABLE_API_KEY is not configured. Please add it to your Lovable project secrets.',
+        errorCode: 'CONFIG_ERROR',
+        details: {
+          message: 'The LOVABLE_API_KEY environment variable is required for AI image generation. Please configure it in your Lovable project settings under Secrets.',
+          helpUrl: 'https://docs.lovable.dev/guides/secrets'
+        }
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Helper function to make AI request with retry logic
@@ -274,8 +374,14 @@ Output ONLY the JSON object, nothing else.`
     try {
       const jsonMatch = translatedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        lightingJson = JSON.parse(jsonMatch[0]);
-        lightingJson = validateAndNormalizeLighting(lightingJson);
+        try {
+          lightingJson = JSON.parse(jsonMatch[0]);
+          lightingJson = validateAndNormalizeLighting(lightingJson);
+        } catch (jsonParseError) {
+          console.error("Failed to parse extracted JSON:", jsonParseError);
+          console.warn("Using fallback lighting due to JSON parse error");
+          lightingJson = getDefaultLighting(nlRequest.lightingDescription);
+        }
       } else {
         console.warn("No JSON found in translation response, using fallback");
         lightingJson = getDefaultLighting(nlRequest.lightingDescription);
@@ -434,40 +540,78 @@ interface LightConfig {
 }
 
 function validateAndNormalizeLighting(lightingJson: Record<string, unknown>): NormalizedLighting {
+  if (!lightingJson || typeof lightingJson !== 'object') {
+    throw new Error('Invalid lighting JSON: must be an object');
+  }
+
   const setup = lightingJson.lighting_setup || {};
   
-  const validated = {
-    lighting_setup: {
-      key: normalizeLight(setup.key, { direction: "45 degrees camera-right", intensity: 0.8, colorTemperature: 5600, softness: 0.5, distance: 1.5, enabled: true }),
-      fill: normalizeLight(setup.fill, { direction: "30 degrees camera-left", intensity: 0.4, colorTemperature: 5600, softness: 0.7, distance: 2.0, enabled: true }),
-      rim: normalizeLight(setup.rim, { direction: "behind subject left", intensity: 0.5, colorTemperature: 3200, softness: 0.3, distance: 1.0, enabled: true }),
-      ambient: normalizeLight(setup.ambient, { intensity: 0.1, colorTemperature: 5000, enabled: true, direction: "omnidirectional" })
-    },
-    lighting_style: lightingJson.lighting_style || "classical_portrait",
-    mood_description: lightingJson.mood_description || "professional studio",
-    shadow_intensity: lightingJson.shadow_intensity || 0.5
-  };
-  
-  return validated;
+  if (typeof setup !== 'object' || setup === null) {
+    throw new Error('Invalid lighting_setup: must be an object');
+  }
+
+  try {
+    const validated = {
+      lighting_setup: {
+        key: normalizeLight(setup.key, { direction: "45 degrees camera-right", intensity: 0.8, colorTemperature: 5600, softness: 0.5, distance: 1.5, enabled: true }),
+        fill: normalizeLight(setup.fill, { direction: "30 degrees camera-left", intensity: 0.4, colorTemperature: 5600, softness: 0.7, distance: 2.0, enabled: true }),
+        rim: normalizeLight(setup.rim, { direction: "behind subject left", intensity: 0.5, colorTemperature: 3200, softness: 0.3, distance: 1.0, enabled: true }),
+        ambient: normalizeLight(setup.ambient, { intensity: 0.1, colorTemperature: 5000, enabled: true, direction: "omnidirectional" })
+      },
+      lighting_style: typeof lightingJson.lighting_style === 'string' ? lightingJson.lighting_style : "classical_portrait",
+      mood_description: typeof lightingJson.mood_description === 'string' ? lightingJson.mood_description : "professional studio",
+      shadow_intensity: typeof lightingJson.shadow_intensity === 'number' 
+        ? Math.max(0, Math.min(1, lightingJson.shadow_intensity))
+        : 0.5
+    };
+    
+    return validated;
+  } catch (error) {
+    console.error("Error validating lighting:", error);
+    throw new Error(`Failed to validate lighting configuration: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 function normalizeLight(light: unknown, defaults: LightConfig): LightConfig {
-  if (!light || typeof light !== 'object') return { ...defaults, enabled: false };
+  if (!light || typeof light !== 'object' || light === null) {
+    return { ...defaults, enabled: false };
+  }
   
   const lightObj = light as Record<string, unknown>;
   
-  return {
-    direction: (typeof lightObj.direction === 'string' ? lightObj.direction : defaults.direction),
-    intensity: Math.max(0, Math.min(1, typeof lightObj.intensity === 'number' ? lightObj.intensity : defaults.intensity)),
-    colorTemperature: Math.max(1000, Math.min(10000, 
-      typeof lightObj.colorTemperature === 'number' ? lightObj.colorTemperature :
-      typeof lightObj.color_temperature === 'number' ? lightObj.color_temperature :
-      defaults.colorTemperature
-    )),
-    softness: Math.max(0, Math.min(1, typeof lightObj.softness === 'number' ? lightObj.softness : defaults.softness)),
-    distance: Math.max(0.1, Math.min(5, typeof lightObj.distance === 'number' ? lightObj.distance : defaults.distance)),
-    enabled: lightObj.enabled !== false
-  };
+  try {
+    return {
+      direction: (typeof lightObj.direction === 'string' && lightObj.direction.trim().length > 0 
+        ? lightObj.direction.trim() 
+        : defaults.direction),
+      intensity: Math.max(0, Math.min(1, 
+        typeof lightObj.intensity === 'number' && !isNaN(lightObj.intensity)
+          ? lightObj.intensity 
+          : defaults.intensity
+      )),
+      colorTemperature: Math.max(1000, Math.min(10000, 
+        typeof lightObj.colorTemperature === 'number' && !isNaN(lightObj.colorTemperature)
+          ? lightObj.colorTemperature :
+        typeof lightObj.color_temperature === 'number' && !isNaN(lightObj.color_temperature)
+          ? lightObj.color_temperature :
+          defaults.colorTemperature
+      )),
+      softness: Math.max(0, Math.min(1, 
+        typeof lightObj.softness === 'number' && !isNaN(lightObj.softness)
+          ? lightObj.softness 
+          : defaults.softness
+      )),
+      distance: Math.max(0.1, Math.min(5, 
+        typeof lightObj.distance === 'number' && !isNaN(lightObj.distance)
+          ? lightObj.distance 
+          : defaults.distance
+      )),
+      enabled: lightObj.enabled !== false && lightObj.enabled !== null
+    };
+  } catch (error) {
+    console.error("Error normalizing light:", error);
+    return { ...defaults, enabled: false };
+  }
 }
 
 function getDefaultLighting(description: string): NormalizedLighting {
@@ -575,15 +719,33 @@ Create a photorealistic, magazine-quality image with precise professional lighti
 }
 
 function analyzeLightingFromJson(lightingJson: NormalizedLighting): LightingAnalysisResult {
-  const setup = lightingJson.lighting_setup || {};
-  const key = setup.key || { intensity: 0.8 };
-  const fill = setup.fill || { intensity: 0.4 };
-  const rim = setup.rim || { intensity: 0.5 };
+  if (!lightingJson || !lightingJson.lighting_setup) {
+    throw new Error('Invalid lighting JSON: missing lighting_setup');
+  }
 
-  const keyIntensity = key.enabled !== false ? key.intensity : 0;
-  const fillIntensity = fill.enabled !== false ? fill.intensity : 0.1;
+  const setup = lightingJson.lighting_setup || {};
+  const key = setup.key || { intensity: 0.8, enabled: true };
+  const fill = setup.fill || { intensity: 0.4, enabled: true };
+  const rim = setup.rim || { intensity: 0.5, enabled: true };
+
+  // Validate intensities are numbers
+  const keyIntensity = (key.enabled !== false && typeof key.intensity === 'number' && !isNaN(key.intensity))
+    ? Math.max(0, Math.min(1, key.intensity))
+    : 0;
+  const fillIntensity = (fill.enabled !== false && typeof fill.intensity === 'number' && !isNaN(fill.intensity))
+    ? Math.max(0, Math.min(1, fill.intensity))
+    : 0.1;
   
   const keyFillRatio = keyIntensity / Math.max(fillIntensity, 0.1);
+  
+  if (!isFinite(keyFillRatio) || isNaN(keyFillRatio)) {
+    console.warn("Invalid keyFillRatio calculated, using default");
+    return {
+      keyFillRatio: 2.0,
+      lightingStyle: "classical_portrait",
+      professionalRating: 7.0
+    };
+  }
 
   // Determine lighting style
   let lightingStyle = lightingJson.lighting_style || "classical_portrait";

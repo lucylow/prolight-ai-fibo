@@ -30,6 +30,46 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const auth = useAuth();
   const { theme, toggleTheme } = useThemeContext();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const mobileMenuRef = React.useRef<HTMLDivElement>(null);
+
+  // Close mobile menu when clicking outside
+  React.useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      // Prevent body scroll when menu is open
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  // Close mobile menu on route change
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Handle escape key to close mobile menu
+  React.useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [mobileMenuOpen]);
 
   const getInitials = (name: string) => {
     return name
@@ -58,84 +98,74 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="fixed top-0 w-full z-50 px-[5%] py-4 bg-background/80 backdrop-blur-xl border-b border-border">
+      <header className="fixed top-0 w-full z-50 px-4 sm:px-[5%] py-3 sm:py-4 bg-background/80 backdrop-blur-xl border-b border-border/50 shadow-sm">
         <div className="flex justify-between items-center">
-          <Link to="/" className="flex items-center gap-3 font-bold text-xl">
-            <Lightbulb className="text-secondary" />
-            <span>ProLighting</span>
+          <Link 
+            to="/" 
+            className="flex items-center gap-2 sm:gap-3 font-bold text-lg sm:text-xl hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded-lg px-2 -ml-2"
+            aria-label="ProLighting Home"
+          >
+            <Lightbulb className="text-secondary w-5 h-5 sm:w-6 sm:h-6" />
+            <span className="hidden sm:inline">ProLighting</span>
+            <span className="sm:hidden">ProLight</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Main navigation">
             {visibleNavItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
-                <Link key={item.path} to={item.path}>
+                <Link 
+                  key={item.path} 
+                  to={item.path}
+                  aria-current={isActive ? 'page' : undefined}
+                >
                   <Button
                     variant={isActive ? 'default' : 'ghost'}
-                    className={isActive ? 'gradient-primary' : ''}
+                    className={`${isActive ? 'gradient-primary shadow-md' : 'hover:bg-muted/50'} transition-all duration-200`}
                     size="sm"
                   >
-                    <Icon className="w-4 h-4 mr-2" />
+                    <Icon className="w-4 h-4 mr-2" aria-hidden="true" />
                     {item.label}
                   </Button>
                 </Link>
               );
             })}
-            <div className="ml-6 flex gap-4 text-sm text-muted-foreground">
+            <div className="ml-6 hidden lg:flex gap-3 xl:gap-4 text-sm text-muted-foreground">
               <Link 
                 to="/product" 
-                className={`hover:text-foreground transition ${location.pathname === '/product' ? 'text-foreground font-medium' : ''}`}
+                className={`hover:text-foreground transition-colors px-2 py-1 rounded-md ${location.pathname === '/product' ? 'text-foreground font-medium bg-muted/30' : 'hover:bg-muted/20'}`}
+                aria-current={location.pathname === '/product' ? 'page' : undefined}
               >
                 Product
               </Link>
               <Link 
                 to="/features" 
-                className={`hover:text-foreground transition ${location.pathname === '/features' ? 'text-foreground font-medium' : ''}`}
+                className={`hover:text-foreground transition-colors px-2 py-1 rounded-md ${location.pathname === '/features' ? 'text-foreground font-medium bg-muted/30' : 'hover:bg-muted/20'}`}
+                aria-current={location.pathname === '/features' ? 'page' : undefined}
               >
                 Features
               </Link>
               <Link 
                 to="/use-cases" 
-                className={`hover:text-foreground transition ${location.pathname === '/use-cases' ? 'text-foreground font-medium' : ''}`}
+                className={`hover:text-foreground transition-colors px-2 py-1 rounded-md ${location.pathname === '/use-cases' ? 'text-foreground font-medium bg-muted/30' : 'hover:bg-muted/20'}`}
+                aria-current={location.pathname === '/use-cases' ? 'page' : undefined}
               >
                 Use Cases
               </Link>
               <Link 
                 to="/pricing" 
-                className={`hover:text-foreground transition ${location.pathname === '/pricing' ? 'text-foreground font-medium' : ''}`}
+                className={`hover:text-foreground transition-colors px-2 py-1 rounded-md ${location.pathname === '/pricing' ? 'text-foreground font-medium bg-muted/30' : 'hover:bg-muted/20'}`}
+                aria-current={location.pathname === '/pricing' ? 'page' : undefined}
               >
                 Pricing
               </Link>
               <Link 
                 to="/docs" 
-                className={`hover:text-foreground transition ${location.pathname === '/docs' ? 'text-foreground font-medium' : ''}`}
+                className={`hover:text-foreground transition-colors px-2 py-1 rounded-md ${location.pathname === '/docs' ? 'text-foreground font-medium bg-muted/30' : 'hover:bg-muted/20'}`}
+                aria-current={location.pathname === '/docs' ? 'page' : undefined}
               >
                 Docs
-              </Link>
-              <Link 
-                to="/company/about" 
-                className={`hover:text-foreground transition ${location.pathname === '/company/about' ? 'text-foreground font-medium' : ''}`}
-              >
-                About
-              </Link>
-              <Link 
-                to="/company/blog" 
-                className={`hover:text-foreground transition ${location.pathname === '/company/blog' ? 'text-foreground font-medium' : ''}`}
-              >
-                Blog
-              </Link>
-              <Link 
-                to="/company/careers" 
-                className={`hover:text-foreground transition ${location.pathname === '/company/careers' ? 'text-foreground font-medium' : ''}`}
-              >
-                Careers
-              </Link>
-              <Link 
-                to="/company/contact" 
-                className={`hover:text-foreground transition ${location.pathname === '/company/contact' ? 'text-foreground font-medium' : ''}`}
-              >
-                Contact
               </Link>
             </div>
           </nav>
@@ -201,8 +231,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden"
+              className="md:hidden hover:bg-muted/50 transition-colors"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileMenuOpen}
             >
               <Menu className="w-5 h-5" />
             </Button>
@@ -220,10 +252,15 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                   key={item.path}
                   to={item.path}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`flex items-center gap-2 p-2 rounded-lg ${isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                  className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                    isActive 
+                      ? 'bg-primary text-primary-foreground shadow-md' 
+                      : 'hover:bg-muted/50 active:bg-muted'
+                  }`}
+                  aria-current={isActive ? 'page' : undefined}
                 >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
+                  <Icon className="w-5 h-5" aria-hidden="true" />
+                  <span className="font-medium">{item.label}</span>
                 </Link>
               );
             })}
@@ -232,6 +269,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 variant="ghost"
                 size="icon"
                 onClick={toggleTheme}
+                className="hover:bg-muted/50 transition-colors"
+                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
               >
                 {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </Button>
@@ -250,67 +289,112 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <Link
                 to="/product"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/product' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/product' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/product' ? 'page' : undefined}
               >
-                Product
+                <span className="font-medium">Product</span>
               </Link>
               <Link
                 to="/features"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/features' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/features' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/features' ? 'page' : undefined}
               >
-                Features
+                <span className="font-medium">Features</span>
               </Link>
               <Link
                 to="/use-cases"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/use-cases' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/use-cases' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/use-cases' ? 'page' : undefined}
               >
-                Use Cases
+                <span className="font-medium">Use Cases</span>
               </Link>
               <Link
                 to="/pricing"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/pricing' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/pricing' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/pricing' ? 'page' : undefined}
               >
-                Pricing
+                <span className="font-medium">Pricing</span>
               </Link>
               <Link
                 to="/docs"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/docs' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/docs' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/docs' ? 'page' : undefined}
               >
-                Documentation
+                <span className="font-medium">Documentation</span>
               </Link>
             </div>
             <div className="pt-4 border-t border-border mt-4 space-y-2">
               <Link
                 to="/company/about"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/about' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/company/about' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/company/about' ? 'page' : undefined}
               >
-                About
+                <span className="font-medium">About</span>
               </Link>
               <Link
                 to="/company/blog"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/blog' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/company/blog' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/company/blog' ? 'page' : undefined}
               >
-                Blog
+                <span className="font-medium">Blog</span>
               </Link>
               <Link
                 to="/company/careers"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/careers' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/company/careers' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/company/careers' ? 'page' : undefined}
               >
-                Careers
+                <span className="font-medium">Careers</span>
               </Link>
               <Link
                 to="/company/contact"
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/contact' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                className={`flex items-center gap-3 p-3 rounded-lg transition-all duration-200 ${
+                  location.pathname === '/company/contact' 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'hover:bg-muted/50 active:bg-muted'
+                }`}
+                aria-current={location.pathname === '/company/contact' ? 'page' : undefined}
               >
-                Contact
+                <span className="font-medium">Contact</span>
               </Link>
             </div>
           </nav>
@@ -318,7 +402,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       </header>
 
       {/* Main Content */}
-      <main className="pt-20">{children}</main>
+      <main className="pt-16 sm:pt-20 min-h-screen" role="main">
+        {children}
+      </main>
     </div>
   );
 };

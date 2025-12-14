@@ -34,6 +34,19 @@
     "/product",
     "/features",
     "/use-cases",
-    "/docs"
+    "/docs",
+    "/generate/text-to-image",
+    "/generate/tailored",
+    "/generate/ads",
+    "/generate/product",
+    "/generate/image-edit",
+    "/generate/video-edit",
+    "/bria/image-generation",
+    "/bria/tailored-models",
+    "/bria/ads-generation",
+    "/bria/ads-generation-v1",
+    "/bria/product-imagery",
+    "/bria/image-editing",
+    "/bria/video-editing"
   ]
 }

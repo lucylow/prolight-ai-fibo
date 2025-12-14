@@ -70,20 +70,20 @@ const Studio = () => {
   }, [activeTab]);
 
   return (
-    <div className="min-h-screen pt-24 pb-12 px-[5%]">
+    <div className="min-h-screen pt-20 sm:pt-24 pb-8 sm:pb-12 px-4 sm:px-6 md:px-[5%]">
       <FiboBadge />
       
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
+        className="text-center mb-6 sm:mb-8"
       >
-        <div className="fibo-badge inline-flex items-center gap-2 mb-4">
+        <div className="fibo-badge inline-flex items-center gap-2 mb-3 sm:mb-4">
           <Sparkles className="w-3 h-3 text-secondary" />
           <span>FIBO-Powered Studio</span>
         </div>
-        <h1 className="text-4xl font-bold gradient-text mb-2">Pro Lighting Studio</h1>
-        <p className="text-lg text-muted-foreground">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text mb-2">Pro Lighting Studio</h1>
+        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
           Professional studio lighting control with AI-powered FIBO generation
         </p>
       </motion.div>
@@ -120,8 +120,11 @@ const Studio = () => {
               <div className="text-xs text-muted-foreground">Interactive • Drag to rotate</div>
             </div>
             <Suspense fallback={
-              <div className="h-96 flex items-center justify-center">
-                <Skeleton className="w-full h-full" />
+              <div className="h-64 sm:h-96 flex items-center justify-center bg-muted/20">
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                  <p className="text-sm text-muted-foreground">Loading 3D visualizer...</p>
+                </div>
               </div>
             }>
               <LightVisualizer />

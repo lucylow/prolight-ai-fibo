@@ -40,11 +40,11 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen pt-20 overflow-hidden">
+    <div className="min-h-screen pt-16 sm:pt-20 overflow-hidden">
       <FiboBadge />
       
       {/* Hero */}
-      <section className="min-h-[calc(100vh-5rem)] flex items-center px-4 sm:px-6 md:px-8 lg:px-[5%] py-12 md:py-16 lg:py-20 relative">
+      <section className="min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)] flex items-center px-4 sm:px-6 md:px-8 lg:px-[5%] py-8 sm:py-12 md:py-16 lg:py-20 relative">
         <AnimatedBackground />
         
         <motion.div 
@@ -69,7 +69,7 @@ const Index = () => {
             <span className="text-white">Powered by FIBO</span>
           </h1>
           
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
             Create perfect studio lighting setups in seconds using FIBO's JSON-native AI technology. 
             <span className="text-foreground font-medium"> No equipment, no guesswork, just professional results.</span>
           </p>
@@ -96,9 +96,9 @@ const Index = () => {
           initial={{ opacity: 0, scale: 0.9, x: 50 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="absolute right-[5%] top-1/2 -translate-y-1/2 w-1/2 max-w-[600px] h-[400px] md:h-[500px] hidden lg:block"
+          className="absolute right-[5%] top-1/2 -translate-y-1/2 w-1/2 max-w-[600px] h-[300px] md:h-[400px] lg:h-[500px] hidden md:block"
         >
-          <div className="w-full h-full rounded-3xl shadow-2xl overflow-hidden glass-card-premium">
+          <div className="w-full h-full rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden glass-card-premium">
             <LightingCanvas keyIntensity={keyIntensity / 100} fillIntensity={fillIntensity / 100} colorTemp={colorTemp} />
           </div>
         </motion.div>

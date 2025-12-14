@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -51,6 +52,7 @@ import BriaAdsGeneration from "./pages/bria/AdsGeneration";
 import BriaProductImagery from "./pages/bria/ProductImagery";
 import BriaImageEditing from "./pages/bria/ImageEditing";
 import BriaVideoEditing from "./pages/bria/VideoEditing";
+import BriaImageOnboarding from "./pages/bria/ImageOnboarding";
 import PaymentPage from "./pages/PaymentPage";
 import Dashboard from "./pages/Dashboard";
 import AccountSettings from "./pages/AccountSettings";
@@ -72,10 +74,13 @@ const queryClient = new QueryClient({
 function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 8 }} 
+      initial={{ opacity: 0, y: 12 }} 
       animate={{ opacity: 1, y: 0 }} 
-      exit={{ opacity: 0, y: -8 }} 
-      transition={{ duration: 0.22 }}
+      exit={{ opacity: 0, y: -12 }} 
+      transition={{ 
+        duration: 0.3,
+        ease: [0.4, 0, 0.2, 1] // Custom easing for smoother feel
+      }}
     >
       {children}
     </motion.div>
@@ -177,8 +182,10 @@ function AnimatedRoutes() {
         <Route path="/generate/video-edit" element={<PageWrapper><VideoEditor /></PageWrapper>} />
         {/* Bria AI Routes */}
         <Route path="/bria/image-generation" element={<PageWrapper><BriaImageGeneration /></PageWrapper>} />
+        <Route path="/bria/image-onboarding" element={<PageWrapper><BriaImageOnboarding /></PageWrapper>} />
         <Route path="/bria/tailored-models" element={<PageWrapper><BriaTailoredModels /></PageWrapper>} />
         <Route path="/bria/ads-generation" element={<PageWrapper><BriaAdsGeneration /></PageWrapper>} />
+        <Route path="/bria/ads-generation-v1" element={<PageWrapper><BriaAdsGenerationV1 /></PageWrapper>} />
         <Route path="/bria/product-imagery" element={<PageWrapper><BriaProductImagery /></PageWrapper>} />
         <Route path="/bria/image-editing" element={<PageWrapper><BriaImageEditing /></PageWrapper>} />
         <Route path="/bria/video-editing" element={<PageWrapper><BriaVideoEditing /></PageWrapper>} />
@@ -188,38 +195,63 @@ function AnimatedRoutes() {
   );
 }
 
-// Deployment verification banner - visible on all pages
+// Deployment verification banner - only visible in development or when explicitly enabled
 function DeploymentBanner() {
+  const [isVisible, setIsVisible] = React.useState(false);
+  const [isDismissed, setIsDismissed] = React.useState(() => {
+    // Check if user has dismissed it before
+    return localStorage.getItem('deployment-banner-dismissed') === 'true';
+  });
+
+  React.useEffect(() => {
+    // Only show in development or if explicitly enabled via env var
+    const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
+    const showBanner = import.meta.env.VITE_SHOW_DEPLOY_BANNER === 'true';
+    setIsVisible((isDev || showBanner) && !isDismissed);
+  }, [isDismissed]);
+
+  if (!isVisible) return null;
+
   const buildTime = typeof __BUILD_TIME__ !== 'undefined' && __BUILD_TIME__ 
-    ? new Date(__BUILD_TIME__).toISOString() 
+    ? new Date(__BUILD_TIME__).toLocaleString() 
     : 'dev mode';
   const commitHash = typeof __COMMIT_HASH__ !== 'undefined' && __COMMIT_HASH__ 
-    ? __COMMIT_HASH__ 
+    ? __COMMIT_HASH__.slice(0, 7)
     : 'local';
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    localStorage.setItem('deployment-banner-dismissed', 'true');
+    setIsVisible(false);
+  };
   
   return (
     <div 
-      style={{ 
-        position: "fixed",
-        bottom: 0,
-        right: 0,
-        background: "red",
-        color: "white",
-        zIndex: 9999,
-        padding: "8px 12px",
-        fontSize: "12px",
-        fontFamily: "monospace",
-        borderRadius: "4px 0 0 0",
-        boxShadow: "0 -2px 8px rgba(0,0,0,0.3)",
-        maxWidth: "400px",
-        lineHeight: "1.4"
-      }}
+      className="fixed bottom-0 right-0 z-50 max-w-sm p-3 m-4 rounded-lg shadow-lg border border-border/50 bg-muted/95 backdrop-blur-sm text-xs font-mono transition-all duration-300"
+      role="status"
+      aria-label="Build information"
     >
-      <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
-        🔴 DEPLOY CHECK
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="font-semibold text-foreground">Build Info</span>
+          </div>
+          <div className="space-y-0.5 text-muted-foreground">
+            <div>Time: <span className="text-foreground">{buildTime}</span></div>
+            <div>Commit: <span className="text-foreground font-mono">{commitHash}</span></div>
+          </div>
+        </div>
+        <button
+          onClick={handleDismiss}
+          className="flex-shrink-0 p-1 rounded hover:bg-muted-foreground/20 transition-colors"
+          aria-label="Dismiss build information"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
-      <div>Time: {buildTime}</div>
-      <div>Commit: {commitHash}</div>
     </div>
   );
 }

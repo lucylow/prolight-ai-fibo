@@ -96,3 +96,60 @@ export async function getStatus(requestId: string) {
   const { data } = await bria.get(`/status?request_id=${requestId}`);
   return data;
 }
+
+/* ---------- ADS GENERATION v1 ---------- */
+export interface AdsGenerateV1Request {
+  template_id: string;
+  brand_id?: string;
+  smart_image?: {
+    input_image_url: string;
+    scene: {
+      operation: 'expand_image' | 'lifestyle_shot_by_text';
+      input: string;
+    };
+  };
+  elements?: Array<{
+    layer_type: 'text' | 'image';
+    content_type?: string;
+    content: string;
+    id?: string;
+  }>;
+  content_moderation?: boolean;
+}
+
+export interface AdsSceneResult {
+  id: string;
+  name: string;
+  url: string;
+  resolution?: {
+    width: number;
+    height: number;
+  };
+}
+
+export interface AdsGenerateV1Response {
+  result: AdsSceneResult[];
+}
+
+export async function generateAdsV1(payload: AdsGenerateV1Request): Promise<AdsGenerateV1Response> {
+  const { data } = await bria.post("/ads-generate-v1", payload);
+  return data;
+}
+
+export interface AdsStatusResponse {
+  status: 'pending' | 'ready' | 'failed';
+  contentLength: number | null;
+  statusCode: number | null;
+}
+
+export async function checkAdsStatus(sceneUrl: string): Promise<AdsStatusResponse> {
+  const { data } = await bria.get(`/ads-status?url=${encodeURIComponent(sceneUrl)}`);
+  return data;
+}
+
+export async function downloadAdsImage(sceneUrl: string): Promise<Blob> {
+  const { data } = await bria.get(`/ads-download?url=${encodeURIComponent(sceneUrl)}`, {
+    responseType: 'blob',
+  });
+  return data;
+}

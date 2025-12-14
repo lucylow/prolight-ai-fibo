@@ -45,12 +45,149 @@ serve(async (req) => {
   }
 
   try {
-    const sceneRequest: SceneRequest = await req.json();
+    // Validate request method
+    if (req.method !== 'POST') {
+      return new Response(JSON.stringify({ 
+        error: 'Method not allowed. Only POST requests are supported.',
+        errorCode: 'METHOD_NOT_ALLOWED'
+      }), {
+        status: 405,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Parse and validate request body
+    let sceneRequest: SceneRequest;
+    try {
+      const text = await req.text();
+      if (!text || text.trim().length === 0) {
+        return new Response(JSON.stringify({ 
+          error: 'Request body is required and cannot be empty.',
+          errorCode: 'MISSING_BODY'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      const parsed = JSON.parse(text);
+      sceneRequest = parsed as SceneRequest;
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      return new Response(JSON.stringify({ 
+        error: 'Invalid JSON in request body. Please check your request format.',
+        errorCode: 'INVALID_JSON',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate required fields
+    if (!sceneRequest.subjectDescription || typeof sceneRequest.subjectDescription !== 'string' || sceneRequest.subjectDescription.trim().length === 0) {
+      return new Response(JSON.stringify({ 
+        error: 'subjectDescription is required and must be a non-empty string.',
+        errorCode: 'MISSING_SUBJECT_DESCRIPTION'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!sceneRequest.environment || typeof sceneRequest.environment !== 'string' || sceneRequest.environment.trim().length === 0) {
+      return new Response(JSON.stringify({ 
+        error: 'environment is required and must be a non-empty string.',
+        errorCode: 'MISSING_ENVIRONMENT'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (!sceneRequest.lightingSetup || typeof sceneRequest.lightingSetup !== 'object') {
+      return new Response(JSON.stringify({ 
+        error: 'lightingSetup is required and must be an object.',
+        errorCode: 'MISSING_LIGHTING_SETUP'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate lightingSetup has at least one light
+    const lightingKeys = Object.keys(sceneRequest.lightingSetup);
+    if (lightingKeys.length === 0) {
+      return new Response(JSON.stringify({ 
+        error: 'lightingSetup must contain at least one light configuration.',
+        errorCode: 'EMPTY_LIGHTING_SETUP'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate cameraSettings
+    if (!sceneRequest.cameraSettings || typeof sceneRequest.cameraSettings !== 'object') {
+      return new Response(JSON.stringify({ 
+        error: 'cameraSettings is required and must be an object.',
+        errorCode: 'MISSING_CAMERA_SETTINGS'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const requiredCameraFields = ['shotType', 'cameraAngle', 'fov', 'lensType', 'aperture'];
+    for (const field of requiredCameraFields) {
+      if (!sceneRequest.cameraSettings[field]) {
+        return new Response(JSON.stringify({ 
+          error: `cameraSettings.${field} is required.`,
+          errorCode: 'MISSING_CAMERA_FIELD'
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    // Validate numeric fields
+    if (typeof sceneRequest.cameraSettings.fov !== 'number' || sceneRequest.cameraSettings.fov <= 0) {
+      return new Response(JSON.stringify({ 
+        error: 'cameraSettings.fov must be a positive number.',
+        errorCode: 'INVALID_FOV'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Validate string lengths
+    const MAX_LENGTH = 5000;
+    if (sceneRequest.subjectDescription.length > MAX_LENGTH) {
+      return new Response(JSON.stringify({ 
+        error: `subjectDescription exceeds maximum length of ${MAX_LENGTH} characters.`,
+        errorCode: 'FIELD_TOO_LONG'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     console.log("Received scene request:", JSON.stringify(sceneRequest));
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+      return new Response(JSON.stringify({ 
+        error: 'LOVABLE_API_KEY is not configured. Please add it to your Lovable project secrets.',
+        errorCode: 'CONFIG_ERROR',
+        details: {
+          message: 'The LOVABLE_API_KEY environment variable is required for AI image generation. Please configure it in your Lovable project settings under Secrets.',
+          helpUrl: 'https://docs.lovable.dev/guides/secrets'
+        }
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Build FIBO-style JSON from lighting setup
@@ -477,15 +614,37 @@ function getDepthOfField(aperture: string): string {
 }
 
 function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePreset?: string) {
+  if (!lightingSetup || typeof lightingSetup !== 'object') {
+    throw new Error('Invalid lightingSetup: must be an object');
+  }
+
   const key = lightingSetup.key;
   const fill = lightingSetup.fill;
   const rim = lightingSetup.rim;
   const ambient = lightingSetup.ambient;
 
-  const keyIntensity = key?.enabled ? key.intensity : 0;
-  const fillIntensity = fill?.enabled ? fill.intensity : 0.1;
+  // Validate and normalize intensities
+  const keyIntensity = (key?.enabled && typeof key.intensity === 'number' && !isNaN(key.intensity))
+    ? Math.max(0, Math.min(1, key.intensity))
+    : 0;
+  const fillIntensity = (fill?.enabled && typeof fill.intensity === 'number' && !isNaN(fill.intensity))
+    ? Math.max(0, Math.min(1, fill.intensity))
+    : 0.1;
   
   const keyFillRatio = keyIntensity / Math.max(fillIntensity, 0.1);
+  
+  if (!isFinite(keyFillRatio) || isNaN(keyFillRatio)) {
+    console.warn("Invalid keyFillRatio calculated, using default");
+    return {
+      keyFillRatio: 2.0,
+      lightingStyle: "classical_portrait",
+      contrastScore: 0.5,
+      totalExposure: 0.8,
+      colorTemperature: { average: 5600, warmth: "neutral" },
+      professionalRating: 7.0,
+      recommendations: ["Please check your lighting configuration"]
+    };
+  }
   
   // Determine lighting style
   let lightingStyle = "classical_portrait";
@@ -495,13 +654,13 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePres
   else if (keyFillRatio >= 1.5) lightingStyle = "soft_lighting";
   else lightingStyle = "flat_lighting";
 
-  // Calculate contrast score
+  // Calculate contrast score with validation
   const intensities = [
-    key?.enabled ? key.intensity : 0,
-    fill?.enabled ? fill.intensity : 0,
-    rim?.enabled ? rim.intensity : 0,
-    ambient?.enabled ? ambient.intensity : 0
-  ].filter(i => i > 0);
+    (key?.enabled && typeof key.intensity === 'number' && !isNaN(key.intensity)) ? Math.max(0, Math.min(1, key.intensity)) : 0,
+    (fill?.enabled && typeof fill.intensity === 'number' && !isNaN(fill.intensity)) ? Math.max(0, Math.min(1, fill.intensity)) : 0,
+    (rim?.enabled && typeof rim.intensity === 'number' && !isNaN(rim.intensity)) ? Math.max(0, Math.min(1, rim.intensity)) : 0,
+    (ambient?.enabled && typeof ambient.intensity === 'number' && !isNaN(ambient.intensity)) ? Math.max(0, Math.min(1, ambient.intensity)) : 0
+  ].filter(i => i > 0 && isFinite(i));
 
   const maxIntensity = Math.max(...intensities, 0.1);
   const minIntensity = Math.min(...intensities, 0);
@@ -509,12 +668,15 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePres
 
   const totalExposure = intensities.reduce((a, b) => a + b, 0);
 
-  // Color temperature analysis
+  // Color temperature analysis with validation
   const temps = [
-    key?.enabled ? key.colorTemperature : null,
-    fill?.enabled ? fill.colorTemperature : null,
-    rim?.enabled ? rim.colorTemperature : null,
-  ].filter(t => t !== null) as number[];
+    (key?.enabled && typeof key.colorTemperature === 'number' && !isNaN(key.colorTemperature)) 
+      ? Math.max(1000, Math.min(10000, key.colorTemperature)) : null,
+    (fill?.enabled && typeof fill.colorTemperature === 'number' && !isNaN(fill.colorTemperature)) 
+      ? Math.max(1000, Math.min(10000, fill.colorTemperature)) : null,
+    (rim?.enabled && typeof rim.colorTemperature === 'number' && !isNaN(rim.colorTemperature)) 
+      ? Math.max(1000, Math.min(10000, rim.colorTemperature)) : null,
+  ].filter(t => t !== null && isFinite(t)) as number[];
 
   const avgTemp = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : 5600;
 
