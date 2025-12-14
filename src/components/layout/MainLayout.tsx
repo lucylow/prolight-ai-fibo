@@ -45,6 +45,62 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 </Link>
               );
             })}
+            <div className="ml-6 flex gap-4 text-sm text-gray-500">
+              <Link 
+                to="/product" 
+                className={`hover:text-foreground transition ${location.pathname === '/product' ? 'text-foreground font-medium' : ''}`}
+              >
+                Product
+              </Link>
+              <Link 
+                to="/features" 
+                className={`hover:text-foreground transition ${location.pathname === '/features' ? 'text-foreground font-medium' : ''}`}
+              >
+                Features
+              </Link>
+              <Link 
+                to="/use-cases" 
+                className={`hover:text-foreground transition ${location.pathname === '/use-cases' ? 'text-foreground font-medium' : ''}`}
+              >
+                Use Cases
+              </Link>
+              <Link 
+                to="/pricing" 
+                className={`hover:text-foreground transition ${location.pathname === '/pricing' ? 'text-foreground font-medium' : ''}`}
+              >
+                Pricing
+              </Link>
+              <Link 
+                to="/docs" 
+                className={`hover:text-foreground transition ${location.pathname === '/docs' ? 'text-foreground font-medium' : ''}`}
+              >
+                Docs
+              </Link>
+              <Link 
+                to="/company/about" 
+                className={`hover:text-foreground transition ${location.pathname === '/company/about' ? 'text-foreground font-medium' : ''}`}
+              >
+                About
+              </Link>
+              <Link 
+                to="/company/blog" 
+                className={`hover:text-foreground transition ${location.pathname === '/company/blog' ? 'text-foreground font-medium' : ''}`}
+              >
+                Blog
+              </Link>
+              <Link 
+                to="/company/careers" 
+                className={`hover:text-foreground transition ${location.pathname === '/company/careers' ? 'text-foreground font-medium' : ''}`}
+              >
+                Careers
+              </Link>
+              <Link 
+                to="/company/contact" 
+                className={`hover:text-foreground transition ${location.pathname === '/company/contact' ? 'text-foreground font-medium' : ''}`}
+              >
+                Contact
+              </Link>
+            </div>
           </nav>
 
           <Button
@@ -75,6 +131,73 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 </Link>
               );
             })}
+            <div className="pt-4 border-t border-border mt-4 space-y-2">
+              <Link
+                to="/product"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/product' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Product
+              </Link>
+              <Link
+                to="/features"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/features' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Features
+              </Link>
+              <Link
+                to="/use-cases"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/use-cases' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Use Cases
+              </Link>
+              <Link
+                to="/pricing"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/pricing' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Pricing
+              </Link>
+              <Link
+                to="/docs"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/docs' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Documentation
+              </Link>
+            </div>
+            <div className="pt-4 border-t border-border mt-4 space-y-2">
+              <Link
+                to="/company/about"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/about' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                About
+              </Link>
+              <Link
+                to="/company/blog"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/blog' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Blog
+              </Link>
+              <Link
+                to="/company/careers"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/careers' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Careers
+              </Link>
+              <Link
+                to="/company/contact"
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-2 p-2 rounded-lg ${location.pathname === '/company/contact' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+              >
+                Contact
+              </Link>
+            </div>
           </nav>
         )}
       </header>

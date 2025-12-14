@@ -55,7 +55,7 @@ async def batch_generate(
             items_total=request.total_count,
             items_completed=0,
             total_cost=0,
-            created_at="2024-01-01T00:00:00Z"
+            created_at="2025-01-01T00:00:00Z"
         )
     
     except Exception as e:
@@ -117,7 +117,7 @@ async def get_batch_status(batch_id: str):
             items_total=job["items_total"],
             items_completed=job["items_completed"],
             total_cost=job.get("total_cost", 0),
-            created_at="2024-01-01T00:00:00Z",
+            created_at="2025-01-01T00:00:00Z",
             results=job.get("results")
         )
     

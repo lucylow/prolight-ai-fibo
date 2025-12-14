@@ -482,7 +482,7 @@ MOCK_USER_PROFILE = {
     "plan": "professional",
     "monthly_credits": 1000,
     "credits_remaining": 856,
-    "created_at": "2024-01-15T10:00:00Z",
+    "created_at": "2025-01-15T10:00:00Z",
     "preferences": {
         "default_preset": "butterfly_classic",
         "default_resolution": [2048, 2048],
@@ -502,7 +502,7 @@ MOCK_SAVED_WORKSPACES = [
             "fill_intensity": 0.5,
             "rim_enabled": False
         },
-        "created_at": "2024-01-20T14:30:00Z"
+        "created_at": "2025-01-20T14:30:00Z"
     },
     {
         "workspace_id": "ws_002",
@@ -514,7 +514,7 @@ MOCK_SAVED_WORKSPACES = [
             "fill_intensity": 0.25,
             "rim_enabled": True
         },
-        "created_at": "2024-01-22T09:15:00Z"
+        "created_at": "2025-01-22T09:15:00Z"
     }
 ]
 

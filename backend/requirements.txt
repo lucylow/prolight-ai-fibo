@@ -28,3 +28,7 @@ sqlalchemy==2.0.23
 
 # Utilities
 python-dotenv==1.0.0
+
+# Payment processing
+stripe==7.8.0
+python-jose[cryptography]==3.3.0

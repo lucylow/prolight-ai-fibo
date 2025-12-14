@@ -242,7 +242,7 @@ tests/test_bria_client.py::TestBriaClient::test_successful_image_generation PASS
 
 **ProLight AI** - *Precision Lighting, Powered by FIBO*
 
-Built for the Bria AI Hackathon 2024  
+Built for the Bria AI Hackathon 2025  
 Total Implementation: Production-ready, Lovable-compatible, Error-free
 
 **Package:** `prolight-ai-fibo-final.zip` (346 KB)  

@@ -277,6 +277,6 @@ Lighting Override → FIBO Generation → Professional Image
 
 ---
 
-**Built with ❤️ for the Bria AI Hackathon 2024**
+**Built with ❤️ for the Bria AI Hackathon 2025**
 
 *Precision Lighting, Powered by FIBO*

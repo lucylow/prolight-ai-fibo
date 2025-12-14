@@ -246,3 +246,67 @@ class HealthResponse(BaseModel):
     status: str = "healthy"
     version: str
     timestamp: str
+
+
+# ============================================================================
+# Payment & Billing Models
+# ============================================================================
+
+class CreateCheckoutSessionRequest(BaseModel):
+    """Request to create a Stripe checkout session."""
+    priceId: str = Field(..., description="Stripe price ID")
+    successUrl: str = Field(..., description="URL to redirect on success")
+    cancelUrl: str = Field(..., description="URL to redirect on cancel")
+    coupon: Optional[str] = Field(None, description="Optional coupon code")
+    mode: str = Field("subscription", description="Payment mode: subscription or payment")
+
+
+class CheckoutSessionResponse(BaseModel):
+    """Response from checkout session creation."""
+    id: str
+    url: str
+
+
+class CreatePortalSessionRequest(BaseModel):
+    """Request to create a billing portal session."""
+    customerId: str = Field(..., description="Stripe customer ID")
+    returnUrl: str = Field(..., description="URL to return to after portal")
+
+
+class PortalSessionResponse(BaseModel):
+    """Response from portal session creation."""
+    url: str
+
+
+class InvoiceResponse(BaseModel):
+    """Invoice information."""
+    id: str
+    amount_paid: int
+    currency: str
+    status: str
+    hosted_invoice_url: str
+    period_start: int
+    period_end: int
+    created: int
+
+
+class InvoiceListResponse(BaseModel):
+    """List of invoices."""
+    invoices: List[InvoiceResponse]
+    total: int
+
+
+class RefundRequest(BaseModel):
+    """Request to create a refund."""
+    charge_id: str = Field(..., description="Stripe charge ID")
+    amount_cents: Optional[int] = Field(None, description="Amount in cents (None for full refund)")
+    reason: Optional[str] = Field(None, description="Refund reason")
+
+
+class RefundResponse(BaseModel):
+    """Refund response."""
+    id: str
+    amount: int
+    currency: str
+    status: str
+    charge: str

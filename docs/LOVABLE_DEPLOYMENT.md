@@ -200,4 +200,4 @@ If you encounter issues:
 
 **ProLight AI** - *Precision Lighting, Powered by FIBO*
 
-Built for the Bria AI Hackathon 2024
+Built for the Bria AI Hackathon 2025

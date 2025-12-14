@@ -454,5 +454,5 @@ MIT License - see LICENSE file
 
 ---
 
-**Built for the Bria AI Hackathon 2024**
+**Built for the Bria AI Hackathon 2025**
 *Precision Lighting, Powered by FIBO*

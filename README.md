@@ -440,7 +440,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🏆 Hackathon Submission
 
-This project was created for the **FIBO Hackathon 2024** and demonstrates:
+This project was created for the **FIBO Hackathon 2025** and demonstrates:
 
 - ✅ **Innovative Use of FIBO**: JSON-native parameter control for deterministic results
 - ✅ **Professional Application**: Solves real photography workflow problems

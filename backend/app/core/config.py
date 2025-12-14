@@ -48,6 +48,17 @@ class Settings(BaseSettings):
     PORT: int = 8000
     RELOAD: bool = True
     
+    # Stripe Configuration
+    STRIPE_SECRET_KEY: Optional[str] = None
+    STRIPE_PUBLISHABLE_KEY: Optional[str] = None
+    STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    FRONTEND_URL: str = "http://localhost:5173"
+    USE_MOCK_STRIPE: bool = True  # Use mock data when Stripe keys not configured
+    
+    # JWT Configuration
+    JWT_SECRET: str = "dev-secret-change-me-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
