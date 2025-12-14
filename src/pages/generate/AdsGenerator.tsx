@@ -40,8 +40,15 @@ export default function AdsGenerator() {
       } else {
         toast.error("Failed to start generation");
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.message || "Failed to generate ads");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' 
+        ? ('response' in error 
+          ? (error.response as { data?: { error?: string } })?.data?.error 
+          : 'message' in error 
+            ? String(error.message) 
+            : undefined)
+        : undefined;
+      toast.error(errorMessage || "Failed to generate ads");
       console.error("Ads generation error:", error);
     } finally {
       setIsGenerating(false);

@@ -36,8 +36,15 @@ export default function VideoEditor() {
         setAssetId(res.asset_id);
         toast.success("Video onboarded successfully!");
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.message || "Failed to onboard video");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' 
+        ? ('response' in error 
+          ? (error.response as { data?: { error?: string } })?.data?.error 
+          : 'message' in error 
+            ? String(error.message) 
+            : undefined)
+        : undefined;
+      toast.error(errorMessage || "Failed to onboard video");
     } finally {
       setIsLoading(false);
     }
@@ -65,8 +72,15 @@ export default function VideoEditor() {
       } else {
         toast.error("Failed to start video editing");
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.message || "Failed to edit video");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' 
+        ? ('response' in error 
+          ? (error.response as { data?: { error?: string } })?.data?.error 
+          : 'message' in error 
+            ? String(error.message) 
+            : undefined)
+        : undefined;
+      toast.error(errorMessage || "Failed to edit video");
       console.error("Video editing error:", error);
     } finally {
       setIsLoading(false);
