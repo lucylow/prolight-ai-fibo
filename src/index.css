@@ -89,16 +89,56 @@
 
 @layer components {
   .glass-card {
-    @apply bg-card/50 backdrop-blur-xl border border-border/20 rounded-2xl;
+    @apply bg-card/40 backdrop-blur-xl border border-border/30 rounded-2xl shadow-xl;
+  }
+
+  .glass-card-premium {
+    @apply bg-card/30 backdrop-blur-2xl border border-primary/20 rounded-2xl shadow-2xl;
+    box-shadow: 0 8px 32px hsl(var(--primary) / 0.1), inset 0 1px 0 hsl(var(--foreground) / 0.05);
   }
 
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(239 84% 55%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(265 84% 55%) 50%, hsl(var(--primary)) 100%);
+  }
+
+  .gradient-fibo {
+    background: linear-gradient(135deg, hsl(265 84% 60%) 0%, hsl(239 84% 67%) 50%, hsl(200 84% 60%) 100%);
   }
 
   .gradient-text {
     @apply bg-clip-text text-transparent;
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(265 84% 65%) 50%, hsl(var(--secondary)) 100%);
+  }
+
+  .fibo-badge {
+    @apply px-3 py-1.5 rounded-full text-xs font-semibold;
+    background: linear-gradient(135deg, hsl(265 84% 50% / 0.2) 0%, hsl(200 84% 50% / 0.2) 100%);
+    border: 1px solid hsl(265 84% 60% / 0.3);
+  }
+
+  .intensity-high {
+    @apply text-destructive;
+  }
+
+  .intensity-medium {
+    @apply text-secondary;
+  }
+
+  .intensity-low {
+    @apply text-primary;
+  }
+
+  .stat-card {
+    @apply glass-card-premium p-4 text-center;
+  }
+
+  .preset-button {
+    @apply px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300;
+    @apply bg-muted/50 hover:bg-primary/20 border border-border/30 hover:border-primary/50;
+  }
+
+  .preset-button-active {
+    @apply gradient-fibo text-foreground border-transparent;
   }
 }
 
@@ -109,6 +149,19 @@
 
   .animate-pulse-glow {
     animation: pulseGlow 2s infinite;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradientShift 8s ease infinite;
+  }
+
+  .animate-particle {
+    animation: particleFloat 20s linear infinite;
   }
 
   @keyframes fadeInUp {
@@ -127,7 +180,45 @@
       box-shadow: 0 0 0 0 hsl(239 84% 67% / 0.4);
     }
     50% {
-      box-shadow: 0 0 0 15px hsl(239 84% 67% / 0);
+      box-shadow: 0 0 0 20px hsl(239 84% 67% / 0);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  @keyframes particleFloat {
+    0% {
+      transform: translateY(100vh) rotate(0deg);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh) rotate(720deg);
+      opacity: 0;
     }
   }
 }
