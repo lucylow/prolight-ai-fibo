@@ -74,7 +74,7 @@ export async function onboardImagesWithMock(
  */
 export async function editVideoWithMock(
   videoUrl: string,
-  edits: Array<{ type: string; params: any }>
+  edits: Array<{ type: string; params: Record<string, unknown> }>
 ): Promise<ProLightAPIResponse> {
   if (shouldUseMockData()) {
     return ProLightMocks.videoEditing({
@@ -93,7 +93,7 @@ export async function editVideoWithMock(
  */
 export async function generateTailoredWithMock(
   modelId: string,
-  structuredPrompt: any,
+  structuredPrompt: Record<string, unknown>,
   numVariations = 4
 ): Promise<ProLightAPIResponse> {
   if (shouldUseMockData()) {
@@ -136,7 +136,7 @@ export async function editProductShotWithMock(
 export async function editImageWithMock(
   imageUrl: string,
   operation: 'remove_bg' | 'gen_fill' | 'expand' | 'enhance',
-  params?: any
+  params?: Record<string, unknown>
 ): Promise<ProLightAPIResponse> {
   if (shouldUseMockData()) {
     return ProLightMocks.imageEditing({

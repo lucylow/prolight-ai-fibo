@@ -355,7 +355,7 @@ export interface VideoEditingRequest {
   video_url: string;
   edits: Array<{
     type: 'trim' | 'enhance' | 'add_logo' | 'speed_change' | 'crop';
-    params: any;
+    params: Record<string, unknown>;
   }>;
   output_format: 'mp4' | 'mov' | 'webm';
 }
@@ -383,7 +383,7 @@ export const mockVideoEditing = async (request: VideoEditingRequest): Promise<Pr
 
 export interface TailoredGenerationRequest {
   model_id: string; // "prolight-product-v1", "studio-lighting-v2"
-  structured_prompt: any;
+  structured_prompt: Record<string, unknown>;
   num_variations?: number;
 }
 
@@ -444,7 +444,7 @@ export const mockProductShotEditing = async (request: ProductShotEditingRequest)
 
 export interface ImageGenerationRequest {
   prompt: string;
-  structured_prompt?: any;
+  structured_prompt?: Record<string, unknown>;
   aspect_ratio?: string;
   seed?: number;
 }
@@ -478,7 +478,7 @@ export const mockImageGeneration = async (request: ImageGenerationRequest): Prom
 export interface ImageEditingRequest {
   image_url: string;
   operation: 'remove_bg' | 'gen_fill' | 'expand' | 'enhance';
-  params?: any;
+  params?: Record<string, unknown>;
 }
 
 export const mockImageEditing = async (request: ImageEditingRequest): Promise<ProLightAPIResponse> => {
@@ -538,8 +538,8 @@ export class ProLightAgenticWorkflow {
       }),
       
       // 2. Onboard to asset library
-      (heroResults: any) => mockImageOnboarding({
-        images: heroResults.data.images.map((i: any) => i.url),
+      (heroResults: ProLightAPIResponse) => mockImageOnboarding({
+        images: (heroResults.data as { images: Array<{ url: string }> }).images.map((i) => i.url),
         metadata: { product_id: `prod_${Date.now()}`, category: "lighting", tags: ["hero", "studio"] }
       }),
       
@@ -553,14 +553,14 @@ export class ProLightAgenticWorkflow {
       }),
       
       // 4. Edit product shots
-      (heroResults: any) => mockProductShotEditing({
-        image_url: heroResults.data.images[0].url,
+      (heroResults: ProLightAPIResponse) => mockProductShotEditing({
+        image_url: (heroResults.data as { images: Array<{ url: string }> }).images[0].url,
         lighting_setup: "3-point studio",
         background: "white seamless"
       })
     ];
 
-    const results: any[] = [];
+    const results: ProLightAPIResponse[] = [];
     
     for (const step of workflowSteps) {
       const result = await step(results[results.length - 1]);

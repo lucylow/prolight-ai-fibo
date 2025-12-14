@@ -22,6 +22,55 @@ export type SpeechRecognitionEvent =
   | { type: 'end' }
   | { type: 'nomatch' };
 
+// SpeechRecognition API types (not fully typed in TypeScript)
+interface SpeechRecognitionResultItem {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionResultList {
+  [index: number]: SpeechRecognitionResultItem[];
+  length: number;
+  item(index: number): SpeechRecognitionResultItem[];
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+  message?: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  onstart: (() => void) | null;
+  onend: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onnomatch: (() => void) | null;
+  start(): void;
+  stop(): void;
+  abort(): void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognition;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
+
 export interface SpeechSynthesisOptions {
   rate?: number; // 0.1 to 10, default 1
   pitch?: number; // 0 to 2, default 1
@@ -84,7 +133,7 @@ export function getDefaultVoice(lang: string = 'en-US'): SpeechSynthesisVoice | 
  * Speech Recognition Service (STT)
  */
 export class SpeechRecognitionService {
-  private recognition: any;
+  private recognition: SpeechRecognition;
   private isListening: boolean = false;
   private listeners: Map<string, (event: SpeechRecognitionEvent) => void> = new Map();
 
@@ -94,7 +143,10 @@ export class SpeechRecognitionService {
     }
 
     const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      throw new Error('SpeechRecognition constructor not available');
+    }
     this.recognition = new SpeechRecognition();
 
     // Configure recognition
@@ -118,13 +170,13 @@ export class SpeechRecognitionService {
       this.emit({ type: 'end' });
     };
 
-    this.recognition.onresult = (event: any) => {
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
       const results: SpeechRecognitionResult[] = [];
       
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
-        const transcript = result[0].transcript;
-        const confidence = result[0].confidence || 0;
+        const transcript = result[0]?.transcript || '';
+        const confidence = result[0]?.confidence || 0;
         const isFinal = result.isFinal;
 
         results.push({
@@ -140,7 +192,7 @@ export class SpeechRecognitionService {
       }
     };
 
-    this.recognition.onerror = (event: any) => {
+    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       this.isListening = false;
       const error: SpeechRecognitionError = {
         error: event.error,

@@ -17,7 +17,7 @@ export interface ChatStreamChunk {
   type: 'delta' | 'intent' | 'done' | 'error';
   delta?: string;
   intent?: string;
-  entities?: Record<string, any>;
+  entities?: Record<string, unknown>;
   full_response?: string;
   error?: string;
 }
@@ -25,7 +25,7 @@ export interface ChatStreamChunk {
 export interface UseChatWSOptions {
   conversationId: string;
   onError?: (error: Error) => void;
-  onIntent?: (intent: string, entities: Record<string, any>) => void;
+  onIntent?: (intent: string, entities: Record<string, unknown>) => void;
   autoConnect?: boolean;
 }
 

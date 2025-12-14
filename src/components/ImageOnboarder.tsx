@@ -66,7 +66,7 @@ export default function ImageOnboarder() {
     try {
       const res = await api.get('/image/list', { params: { removed: false } });
       setMappings(res.data || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('Could not fetch mappings', err);
       toast.error('Failed to load registered images');
     }
@@ -81,7 +81,11 @@ export default function ImageOnboarder() {
     try {
       if (mode === 'url') {
         if (!imageUrl) throw new Error('Please provide an image URL');
-        const payload: any = {
+        const payload: {
+          image_url: string;
+          is_private: boolean;
+          expire_hours?: number;
+        } = {
           image_url: imageUrl,
           is_private: isPrivate,
         };
@@ -93,7 +97,11 @@ export default function ImageOnboarder() {
         toast.success(`Image registered! Visual ID: ${resp.data.visual_id}`);
       } else if (mode === 'org') {
         if (!orgKey) throw new Error('Please provide org_image_key');
-        const payload: any = {
+        const payload: {
+          org_image_key: string;
+          is_private: boolean;
+          expire_hours?: number;
+        } = {
           org_image_key: orgKey,
           is_private: isPrivate,
         };
@@ -123,7 +131,11 @@ export default function ImageOnboarder() {
         });
 
         // Step 3: Register S3 URL with Bria
-        const payload: any = {
+        const payload: {
+          image_url: string;
+          is_private: boolean;
+          expire_hours?: number;
+        } = {
           image_url: presignResp.data.public_url,
           is_private: isPrivate,
         };
@@ -142,9 +154,11 @@ export default function ImageOnboarder() {
       setOrgKey('');
       setFile(null);
       setExpireHours('');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Register error', err);
-      const errorMsg = err?.response?.data?.detail || err?.message || 'Registration failed';
+      const errorMsg = (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail || 
+                      (err as { message?: string })?.message || 
+                      'Registration failed';
       setError(errorMsg);
       toast.error(errorMsg);
     } finally {
@@ -160,9 +174,11 @@ export default function ImageOnboarder() {
       await fetchMappings();
       if (visualId === visual_id) setVisualId(null);
       toast.success('Image removed from gallery');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Remove error', err);
-      const errorMsg = err?.response?.data?.detail || err?.message || 'Remove failed';
+      const errorMsg = (err as { response?: { data?: { detail?: string } }; message?: string })?.response?.data?.detail || 
+                      (err as { message?: string })?.message || 
+                      'Remove failed';
       toast.error(errorMsg);
     }
   }

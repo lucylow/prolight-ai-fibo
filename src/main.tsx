@@ -175,6 +175,10 @@ const setupGlobalErrorHandlers = (): void => {
       action: 'unhandledRejection',
       metadata: {
         timestamp: new Date().toISOString(),
+        promiseRejection: true,
+        // Try to extract more context from the rejection
+        reasonType: typeof event.reason,
+        reasonString: event.reason instanceof Error ? event.reason.message : String(event.reason),
       },
     };
 

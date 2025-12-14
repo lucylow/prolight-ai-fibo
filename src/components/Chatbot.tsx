@@ -49,10 +49,23 @@ const Chatbot = () => {
     }, 1000);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    try {
+      // Validate event
+      if (!e || !e.key) return;
+
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        
+        // Call handleSendMessage with error handling
+        try {
+          handleSendMessage();
+        } catch (error) {
+          console.error('Error sending message:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling keydown event:', error);
     }
   };
 

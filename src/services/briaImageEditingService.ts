@@ -182,7 +182,7 @@ export class BriaImageEditingService {
    */
   private async request(
     endpoint: string,
-    payload: Record<string, any>
+    payload: Record<string, unknown>
   ): Promise<BriaImageEditingResponse> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
@@ -260,7 +260,7 @@ export class BriaImageEditingService {
    * Erase specific regions from an image using a mask
    */
   async erase(params: EraseParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       mask: params.mask,
       mask_type: params.maskType || 'manual',
@@ -284,7 +284,7 @@ export class BriaImageEditingService {
    * Generate objects in a masked region using a text prompt
    */
   async generativeFill(params: GenFillParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       mask: params.mask,
       prompt: params.prompt,
@@ -315,7 +315,7 @@ export class BriaImageEditingService {
    * Remove background from an image
    */
   async removeBackground(params: RemoveBackgroundParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       preserve_alpha: params.preserveAlpha !== false,
       sync: params.sync === true,
@@ -336,7 +336,7 @@ export class BriaImageEditingService {
    * Replace the background with AI-generated content
    */
   async replaceBackground(params: ReplaceBackgroundParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       mode: params.mode || 'high_control',
       enhance_ref_images: params.enhanceRefImages !== false,
@@ -366,7 +366,7 @@ export class BriaImageEditingService {
    * Expand image canvas in specified directions
    */
   async expand(params: ExpandParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       prompt_content_moderation: params.promptContentModeration !== false,
       preserve_alpha: params.preserveAlpha !== false,
@@ -402,7 +402,7 @@ export class BriaImageEditingService {
    * Enhance image quality and resolution
    */
   async enhance(params: EnhanceParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       sync: params.sync === true,
       visual_input_content_moderation: params.visualInputContentModeration || false,
@@ -427,7 +427,7 @@ export class BriaImageEditingService {
    * Blur background while keeping foreground sharp
    */
   async blurBackground(params: BlurBackgroundParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       scale: params.scale || 5,
       preserve_alpha: params.preserveAlpha !== false,
@@ -449,7 +449,7 @@ export class BriaImageEditingService {
    * Erase foreground and inpaint background
    */
   async eraseForeground(params: EraseForegroundParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       preserve_alpha: params.preserveAlpha !== false,
       sync: params.sync === true,
@@ -470,7 +470,7 @@ export class BriaImageEditingService {
    * Automatically crop image to content
    */
   async cropForeground(params: CropForegroundParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       padding: params.padding || 0,
       force_background_detection: params.forceBackgroundDetection || false,
@@ -493,7 +493,7 @@ export class BriaImageEditingService {
    * Increase image resolution
    */
   async increaseResolution(params: IncreaseResolutionParams): Promise<BriaImageEditingResponse> {
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       preserve_alpha: params.preserveAlpha !== false,
       desired_increase: params.desiredIncrease || 2,
@@ -517,7 +517,7 @@ export class BriaImageEditingService {
   async generateMasks(params: MaskGeneratorParams): Promise<BriaImageEditingResponse> {
     const v1BaseUrl = 'https://engine.prod.bria-api.com/v1';
     
-    const payload: Record<string, any> = {
+    const payload: Record<string, unknown> = {
       image: params.image,
       sync: params.sync === true,
       visual_input_content_moderation: params.visualInputContentModeration || false,

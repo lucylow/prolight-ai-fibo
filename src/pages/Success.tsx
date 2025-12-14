@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2, Sparkles } from "lucide-react";
 import { getSubscription, getCreditStatus } from "@/services/billingService";
 import { toast } from "sonner";
+import type { Subscription, CreditStatus } from "@/lib/billing";
 
 export default function SuccessPage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [subscription, setSubscription] = useState<any>(null);
-  const [creditStatus, setCreditStatus] = useState<any>(null);
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [creditStatus, setCreditStatus] = useState<CreditStatus | null>(null);
   const navigate = useNavigate();
   const sessionId = searchParams.get("session_id");
 

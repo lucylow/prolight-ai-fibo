@@ -19,7 +19,10 @@ import type {
   FIBOComposition,
   FIBORender,
   FIBOEnhancements,
-  FIBOLight
+  FIBOLight,
+  ShotType,
+  CameraAngle,
+  LensType
 } from '../types/fibo';
 
 interface LightSettings {
@@ -417,10 +420,10 @@ export function buildEnhancedFIBOPrompt(options: EnhancedFIBOOptions): FIBOPromp
 
   // Build camera configuration
   const camera: FIBOCamera = {
-    shot_type: cameraSettings.shotType as any,
-    camera_angle: cameraSettings.cameraAngle as any,
+    shot_type: cameraSettings.shotType as ShotType | string,
+    camera_angle: cameraSettings.cameraAngle as CameraAngle | string,
     fov: cameraSettings.fov,
-    lens_type: cameraSettings.lensType as any,
+    lens_type: cameraSettings.lensType as LensType | string,
     aperture: cameraSettings.aperture,
     focus_distance_m: calculateFocusDistance(cameraSettings.fov, cameraSettings.shotType),
     pitch: 0,
@@ -455,7 +458,7 @@ export function buildEnhancedFIBOPrompt(options: EnhancedFIBOOptions): FIBOPromp
 
   // Add negative prompt if provided
   if (negativePrompt) {
-    (prompt as any).negative_prompt = negativePrompt;
+    (prompt as FIBOPrompt & { negative_prompt?: string }).negative_prompt = negativePrompt;
   }
 
   return prompt;

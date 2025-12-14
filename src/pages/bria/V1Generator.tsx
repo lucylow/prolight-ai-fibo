@@ -76,7 +76,11 @@ export default function V1Generator() {
   // Job state
   const [requestId, setRequestId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<string | null>(null);
-  const [jobResult, setJobResult] = useState<any>(null);
+  const [jobResult, setJobResult] = useState<{
+    result?: Array<{ urls?: string[]; seed?: number }>;
+    image_url?: string;
+    [key: string]: unknown;
+  } | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // Logs
@@ -134,7 +138,7 @@ export default function V1Generator() {
           log("Generation failed: " + (data.error || "Unknown error"));
           toast.error("Generation failed");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Status poll error:", err);
         // Continue polling on error
       }
@@ -348,7 +352,18 @@ export default function V1Generator() {
       }
 
       // Build request body
-      const requestBody: any = {
+      const requestBody: {
+        pipeline: "base" | "fast" | "hd";
+        model_version: string;
+        prompt: string;
+        num_results: number;
+        sync: boolean;
+        guidance_methods?: Array<{
+          method: string;
+          scale: number;
+          image_url?: string;
+        }>;
+      } = {
         pipeline,
         model_version: modelVersion,
         prompt,
@@ -390,7 +405,7 @@ export default function V1Generator() {
           setJobStatus("unknown");
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Generation error:", err);
       const errorMsg = err.response?.data?.error || err.message || "Unknown error";
       log(`Error: ${errorMsg}`);
@@ -425,7 +440,7 @@ export default function V1Generator() {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Pipeline</Label>
-              <Select value={pipeline} onValueChange={(v) => setPipeline(v as any)}>
+              <Select value={pipeline} onValueChange={(v) => setPipeline(v as "base" | "fast" | "hd")}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -498,7 +513,7 @@ export default function V1Generator() {
                     <Label>Method Type</Label>
                     <Select
                       value={method.method}
-                      onValueChange={(v) => updateGuidanceMethod(index, { method: v as any })}
+                      onValueChange={(v) => updateGuidanceMethod(index, { method: v as "controlnet_canny" | "controlnet_depth" | "controlnet_recoloring" | "controlnet_color_grid" })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -668,7 +683,7 @@ export default function V1Generator() {
                 <h3 className="font-semibold">Generated Images:</h3>
                 {jobResult.result && Array.isArray(jobResult.result) ? (
                   <div className="grid grid-cols-2 gap-4">
-                    {jobResult.result.map((item: any, idx: number) => (
+                    {jobResult.result.map((item, idx: number) => (
                       <div key={idx} className="space-y-2">
                         {item.urls && item.urls.length > 0 ? (
                           <>

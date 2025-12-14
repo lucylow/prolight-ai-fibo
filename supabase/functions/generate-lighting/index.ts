@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { createAIGatewayClientFromEnv, AIGatewayErrorClass } from "../_shared/lovable-ai-gateway-client.ts";
+import { createErrorResponseWithLogging } from "../_shared/error-handling.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -157,11 +158,17 @@ serve(async (req) => {
   try {
     // Validate request method
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ 
-        error: 'Method not allowed. Only POST requests are supported.',
-        errorCode: 'METHOD_NOT_ALLOWED'
-      }), {
-        status: 405,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('Method not allowed. Only POST requests are supported.'),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateMethod',
+          errorCode: 'METHOD_NOT_ALLOWED',
+          statusCode: 405,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -171,55 +178,83 @@ serve(async (req) => {
     try {
       const text = await req.text();
       if (!text || text.trim().length === 0) {
-        return new Response(JSON.stringify({ 
-          error: 'Request body is required and cannot be empty.',
-          errorCode: 'MISSING_BODY'
-        }), {
-          status: 400,
+        const errorResponse = createErrorResponseWithLogging(
+          new Error('Request body is required and cannot be empty.'),
+          {
+            functionName: 'generate-lighting',
+            action: 'parseBody',
+            errorCode: 'MISSING_BODY',
+            statusCode: 400,
+          }
+        );
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       const parsed = JSON.parse(text);
       sceneRequest = parsed as SceneRequest;
     } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid JSON in request body. Please check your request format.',
+      const errorResponse = createErrorResponseWithLogging(parseError, {
+        functionName: 'generate-lighting',
+        action: 'parseBody',
         errorCode: 'INVALID_JSON',
-        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
-      }), {
-        status: 400,
+        statusCode: 400,
+        metadata: {
+          parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+        },
+      });
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Validate required fields
     if (!sceneRequest.subjectDescription || typeof sceneRequest.subjectDescription !== 'string' || sceneRequest.subjectDescription.trim().length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'subjectDescription is required and must be a non-empty string.',
-        errorCode: 'MISSING_SUBJECT_DESCRIPTION'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('subjectDescription is required and must be a non-empty string.'),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateFields',
+          errorCode: 'MISSING_SUBJECT_DESCRIPTION',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (!sceneRequest.environment || typeof sceneRequest.environment !== 'string' || sceneRequest.environment.trim().length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'environment is required and must be a non-empty string.',
-        errorCode: 'MISSING_ENVIRONMENT'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('environment is required and must be a non-empty string.'),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateFields',
+          errorCode: 'MISSING_ENVIRONMENT',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (!sceneRequest.lightingSetup || typeof sceneRequest.lightingSetup !== 'object') {
-      return new Response(JSON.stringify({ 
-        error: 'lightingSetup is required and must be an object.',
-        errorCode: 'MISSING_LIGHTING_SETUP'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('lightingSetup is required and must be an object.'),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateFields',
+          errorCode: 'MISSING_LIGHTING_SETUP',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -227,22 +262,34 @@ serve(async (req) => {
     // Validate lightingSetup has at least one light
     const lightingKeys = Object.keys(sceneRequest.lightingSetup);
     if (lightingKeys.length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'lightingSetup must contain at least one light configuration.',
-        errorCode: 'EMPTY_LIGHTING_SETUP'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('lightingSetup must contain at least one light configuration.'),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateFields',
+          errorCode: 'EMPTY_LIGHTING_SETUP',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Validate cameraSettings
     if (!sceneRequest.cameraSettings || typeof sceneRequest.cameraSettings !== 'object') {
-      return new Response(JSON.stringify({ 
-        error: 'cameraSettings is required and must be an object.',
-        errorCode: 'MISSING_CAMERA_SETTINGS'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('cameraSettings is required and must be an object.'),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateFields',
+          errorCode: 'MISSING_CAMERA_SETTINGS',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -250,11 +297,18 @@ serve(async (req) => {
     const requiredCameraFields = ['shotType', 'cameraAngle', 'fov', 'lensType', 'aperture'];
     for (const field of requiredCameraFields) {
       if (!sceneRequest.cameraSettings[field]) {
-        return new Response(JSON.stringify({ 
-          error: `cameraSettings.${field} is required.`,
-          errorCode: 'MISSING_CAMERA_FIELD'
-        }), {
-          status: 400,
+        const errorResponse = createErrorResponseWithLogging(
+          new Error(`cameraSettings.${field} is required.`),
+          {
+            functionName: 'generate-lighting',
+            action: 'validateFields',
+            errorCode: 'MISSING_CAMERA_FIELD',
+            statusCode: 400,
+            metadata: { field },
+          }
+        );
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -262,11 +316,17 @@ serve(async (req) => {
 
     // Validate numeric fields
     if (typeof sceneRequest.cameraSettings.fov !== 'number' || sceneRequest.cameraSettings.fov <= 0) {
-      return new Response(JSON.stringify({ 
-        error: 'cameraSettings.fov must be a positive number.',
-        errorCode: 'INVALID_FOV'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('cameraSettings.fov must be a positive number.'),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateFields',
+          errorCode: 'INVALID_FOV',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -274,11 +334,18 @@ serve(async (req) => {
     // Validate string lengths
     const MAX_LENGTH = 5000;
     if (sceneRequest.subjectDescription.length > MAX_LENGTH) {
-      return new Response(JSON.stringify({ 
-        error: `subjectDescription exceeds maximum length of ${MAX_LENGTH} characters.`,
-        errorCode: 'FIELD_TOO_LONG'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error(`subjectDescription exceeds maximum length of ${MAX_LENGTH} characters.`),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateLength',
+          errorCode: 'FIELD_TOO_LONG',
+          statusCode: 400,
+          metadata: { field: 'subjectDescription', length: sceneRequest.subjectDescription.length, maxLength: MAX_LENGTH },
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -295,16 +362,30 @@ serve(async (req) => {
       });
     } catch (error) {
       if (error instanceof AIGatewayErrorClass) {
-        return new Response(JSON.stringify({ 
-          error: error.message,
+        const errorResponse = createErrorResponseWithLogging(error, {
+          functionName: 'generate-lighting',
+          action: 'initializeAIClient',
           errorCode: error.errorCode,
-          details: error.details
-        }), {
-          status: error.statusCode,
+          statusCode: error.statusCode,
+          retryable: error.retryable,
+          retryAfter: error.retryAfter,
+          metadata: error.details,
+        });
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      throw error;
+      const errorResponse = createErrorResponseWithLogging(error, {
+        functionName: 'generate-lighting',
+        action: 'initializeAIClient',
+        errorCode: 'CLIENT_INIT_ERROR',
+        statusCode: 500,
+      });
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Check credits before generation
@@ -317,14 +398,22 @@ serve(async (req) => {
       const creditCheck = await checkCredits(userId, creditsNeeded);
       
       if (!creditCheck.allowed) {
-        return new Response(JSON.stringify({
-          error: creditCheck.info?.reason === 'insufficient_credits'
-            ? `Insufficient credits. You have ${creditCheck.info.remaining} credits remaining, but ${creditsNeeded} are required.`
-            : 'No active subscription plan. Please subscribe to continue using ProLight AI.',
-          errorCode: creditCheck.info?.reason === 'insufficient_credits' ? 'INSUFFICIENT_CREDITS' : 'NO_ACTIVE_PLAN',
-          details: creditCheck.info,
-        }), {
-          status: 402,
+        const errorMessage = creditCheck.info?.reason === 'insufficient_credits'
+          ? `Insufficient credits. You have ${creditCheck.info.remaining} credits remaining, but ${creditsNeeded} are required.`
+          : 'No active subscription plan. Please subscribe to continue using ProLight AI.';
+        const errorResponse = createErrorResponseWithLogging(
+          new Error(errorMessage),
+          {
+            functionName: 'generate-lighting',
+            action: 'checkCredits',
+            errorCode: creditCheck.info?.reason === 'insufficient_credits' ? 'INSUFFICIENT_CREDITS' : 'NO_ACTIVE_PLAN',
+            statusCode: 402,
+            retryable: false,
+            metadata: creditCheck.info,
+          }
+        );
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
@@ -357,27 +446,47 @@ serve(async (req) => {
       textContent = imageResult.textContent;
     } catch (error) {
       if (error instanceof AIGatewayErrorClass) {
-        return new Response(JSON.stringify({ 
-          error: error.message,
+        const errorResponse = createErrorResponseWithLogging(error, {
+          functionName: 'generate-lighting',
+          action: 'generateImage',
           errorCode: error.errorCode,
-          details: error.details
-        }), {
-          status: error.statusCode,
+          statusCode: error.statusCode,
+          retryable: error.retryable,
+          retryAfter: error.retryAfter,
+          metadata: error.details,
+        });
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      throw error;
+      const errorResponse = createErrorResponseWithLogging(error, {
+        functionName: 'generate-lighting',
+        action: 'generateImage',
+        errorCode: 'IMAGE_GENERATION_ERROR',
+        statusCode: 500,
+      });
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate that we got an image
     if (!imageUrl) {
-      console.warn("AI response missing image URL");
-      return new Response(JSON.stringify({ 
-        error: "AI service did not generate an image. Please try again with a different prompt.",
-        errorCode: "AI_NO_IMAGE",
-        details: { textContent }
-      }), {
-        status: 502,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error("AI service did not generate an image."),
+        {
+          functionName: 'generate-lighting',
+          action: 'validateImage',
+          errorCode: 'AI_NO_IMAGE',
+          statusCode: 502,
+          retryable: true,
+          metadata: { textContent: textContent?.substring(0, 200) },
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -416,36 +525,16 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error("Error in generate-lighting:", error);
-    
-    // Provide more specific error messages
-    let errorMessage = "An unexpected error occurred during image generation.";
-    let errorCode = "UNKNOWN_ERROR";
-    let statusCode = 500;
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      
-      if (error.message.includes("LOVABLE_API_KEY")) {
-        errorCode = "CONFIG_ERROR";
-        errorMessage = "AI service configuration error. Please contact support.";
-      } else if (error.message.includes("timeout") || error.message.includes("Timeout")) {
-        errorCode = "TIMEOUT_ERROR";
-        errorMessage = "Request timed out. Please try again.";
-        statusCode = 504;
-      } else if (error.message.includes("network") || error.message.includes("fetch")) {
-        errorCode = "NETWORK_ERROR";
-        errorMessage = "Network error. Please check your connection and try again.";
-        statusCode = 503;
-      }
-    }
-
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      errorCode,
-      timestamp: new Date().toISOString()
-    }), {
-      status: statusCode,
+    const errorResponse = createErrorResponseWithLogging(error, {
+      functionName: 'generate-lighting',
+      action: 'mainHandler',
+      metadata: {
+        requestMethod: req.method,
+        hasBody: !!req.body,
+      },
+    });
+    return new Response(JSON.stringify(errorResponse), {
+      status: errorResponse.statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

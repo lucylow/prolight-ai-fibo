@@ -2,7 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, WifiOff, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { getUserErrorMessage, isErrorRetryable } from '@/services/errorService';
+import { getUserErrorMessage, isErrorRetryable, errorService, type ErrorContext } from '@/services/errorService';
 
 interface Props {
   children: ReactNode;
@@ -69,11 +69,20 @@ class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // Log to error reporting service in production
-    if (import.meta.env.PROD) {
-      // You can integrate with error reporting services here
-      // e.g., Sentry, LogRocket, etc.
-    }
+    // Log error with context
+    const context: ErrorContext = {
+      component: 'ErrorBoundary',
+      action: 'componentDidCatch',
+      metadata: {
+        componentStack: errorInfo.componentStack,
+        errorBoundary: true,
+        retryCount: this.state.retryCount,
+      },
+    };
+
+    errorService.logError(error, context).catch((loggingError) => {
+      console.error('Failed to log error to error service:', loggingError);
+    });
   }
 
   handleReset = () => {

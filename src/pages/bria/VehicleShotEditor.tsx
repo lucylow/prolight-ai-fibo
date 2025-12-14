@@ -92,9 +92,11 @@ const VehicleShotEditor = () => {
       } else {
         throw new Error('Enhancement failed');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Enhancement failed:', error);
-      toast.error(error.response?.data?.detail || 'Enhancement failed. Check console for details.');
+      const errorMsg = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 
+                      'Enhancement failed. Check console for details.';
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

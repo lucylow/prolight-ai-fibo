@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createAIGatewayClientFromEnv, AIGatewayErrorClass } from "../_shared/lovable-ai-gateway-client.ts";
+import { createErrorResponseWithLogging } from "../_shared/error-handling.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -79,11 +80,17 @@ serve(async (req) => {
   try {
     // Validate request method
     if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ 
-        error: 'Method not allowed. Only POST requests are supported.',
-        errorCode: 'METHOD_NOT_ALLOWED'
-      }), {
-        status: 405,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('Method not allowed. Only POST requests are supported.'),
+        {
+          functionName: 'natural-language-lighting',
+          action: 'validateMethod',
+          errorCode: 'METHOD_NOT_ALLOWED',
+          statusCode: 405,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -93,55 +100,83 @@ serve(async (req) => {
     try {
       const text = await req.text();
       if (!text || text.trim().length === 0) {
-        return new Response(JSON.stringify({ 
-          error: 'Request body is required and cannot be empty.',
-          errorCode: 'MISSING_BODY'
-        }), {
-          status: 400,
+        const errorResponse = createErrorResponseWithLogging(
+          new Error('Request body is required and cannot be empty.'),
+          {
+            functionName: 'natural-language-lighting',
+            action: 'parseBody',
+            errorCode: 'MISSING_BODY',
+            statusCode: 400,
+          }
+        );
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
       const parsed = JSON.parse(text);
       nlRequest = parsed as NaturalLanguageRequest;
     } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      return new Response(JSON.stringify({ 
-        error: 'Invalid JSON in request body. Please check your request format.',
+      const errorResponse = createErrorResponseWithLogging(parseError, {
+        functionName: 'natural-language-lighting',
+        action: 'parseBody',
         errorCode: 'INVALID_JSON',
-        details: parseError instanceof Error ? parseError.message : 'Unknown parse error'
-      }), {
-        status: 400,
+        statusCode: 400,
+        metadata: {
+          parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
+        },
+      });
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Validate required fields
     if (!nlRequest.sceneDescription || typeof nlRequest.sceneDescription !== 'string' || nlRequest.sceneDescription.trim().length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'sceneDescription is required and must be a non-empty string.',
-        errorCode: 'MISSING_SCENE_DESCRIPTION'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('sceneDescription is required and must be a non-empty string.'),
+        {
+          functionName: 'natural-language-lighting',
+          action: 'validateFields',
+          errorCode: 'MISSING_SCENE_DESCRIPTION',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (!nlRequest.lightingDescription || typeof nlRequest.lightingDescription !== 'string' || nlRequest.lightingDescription.trim().length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'lightingDescription is required and must be a non-empty string.',
-        errorCode: 'MISSING_LIGHTING_DESCRIPTION'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('lightingDescription is required and must be a non-empty string.'),
+        {
+          functionName: 'natural-language-lighting',
+          action: 'validateFields',
+          errorCode: 'MISSING_LIGHTING_DESCRIPTION',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (!nlRequest.subject || typeof nlRequest.subject !== 'string' || nlRequest.subject.trim().length === 0) {
-      return new Response(JSON.stringify({ 
-        error: 'subject is required and must be a non-empty string.',
-        errorCode: 'MISSING_SUBJECT'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error('subject is required and must be a non-empty string.'),
+        {
+          functionName: 'natural-language-lighting',
+          action: 'validateFields',
+          errorCode: 'MISSING_SUBJECT',
+          statusCode: 400,
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -149,21 +184,35 @@ serve(async (req) => {
     // Validate string lengths to prevent abuse
     const MAX_LENGTH = 5000;
     if (nlRequest.sceneDescription.length > MAX_LENGTH) {
-      return new Response(JSON.stringify({ 
-        error: `sceneDescription exceeds maximum length of ${MAX_LENGTH} characters.`,
-        errorCode: 'FIELD_TOO_LONG'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error(`sceneDescription exceeds maximum length of ${MAX_LENGTH} characters.`),
+        {
+          functionName: 'natural-language-lighting',
+          action: 'validateLength',
+          errorCode: 'FIELD_TOO_LONG',
+          statusCode: 400,
+          metadata: { field: 'sceneDescription', length: nlRequest.sceneDescription.length, maxLength: MAX_LENGTH },
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (nlRequest.lightingDescription.length > MAX_LENGTH) {
-      return new Response(JSON.stringify({ 
-        error: `lightingDescription exceeds maximum length of ${MAX_LENGTH} characters.`,
-        errorCode: 'FIELD_TOO_LONG'
-      }), {
-        status: 400,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error(`lightingDescription exceeds maximum length of ${MAX_LENGTH} characters.`),
+        {
+          functionName: 'natural-language-lighting',
+          action: 'validateLength',
+          errorCode: 'FIELD_TOO_LONG',
+          statusCode: 400,
+          metadata: { field: 'lightingDescription', length: nlRequest.lightingDescription.length, maxLength: MAX_LENGTH },
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -180,16 +229,30 @@ serve(async (req) => {
       });
     } catch (error) {
       if (error instanceof AIGatewayErrorClass) {
-        return new Response(JSON.stringify({ 
-          error: error.message,
+        const errorResponse = createErrorResponseWithLogging(error, {
+          functionName: 'natural-language-lighting',
+          action: 'initializeAIClient',
           errorCode: error.errorCode,
-          details: error.details
-        }), {
-          status: error.statusCode,
+          statusCode: error.statusCode,
+          retryable: error.retryable,
+          retryAfter: error.retryAfter,
+          metadata: error.details,
+        });
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      throw error;
+      const errorResponse = createErrorResponseWithLogging(error, {
+        functionName: 'natural-language-lighting',
+        action: 'initializeAIClient',
+        errorCode: 'CLIENT_INIT_ERROR',
+        statusCode: 500,
+      });
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Use AI to translate natural language to structured lighting JSON
@@ -212,16 +275,30 @@ Output ONLY the JSON object, nothing else.`,
       console.log("Translated text:", translatedText);
     } catch (error) {
       if (error instanceof AIGatewayErrorClass) {
-        return new Response(JSON.stringify({ 
-          error: error.message,
+        const errorResponse = createErrorResponseWithLogging(error, {
+          functionName: 'natural-language-lighting',
+          action: 'translateText',
           errorCode: error.errorCode,
-          details: error.details
-        }), {
-          status: error.statusCode,
+          statusCode: error.statusCode,
+          retryable: error.retryable,
+          retryAfter: error.retryAfter,
+          metadata: error.details,
+        });
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      throw error;
+      const errorResponse = createErrorResponseWithLogging(error, {
+        functionName: 'natural-language-lighting',
+        action: 'translateText',
+        errorCode: 'TRANSLATION_ERROR',
+        statusCode: 500,
+      });
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Parse the JSON from the response
@@ -268,27 +345,47 @@ Output ONLY the JSON object, nothing else.`,
       textContent = imageResult.textContent;
     } catch (error) {
       if (error instanceof AIGatewayErrorClass) {
-        return new Response(JSON.stringify({ 
-          error: error.message,
+        const errorResponse = createErrorResponseWithLogging(error, {
+          functionName: 'natural-language-lighting',
+          action: 'generateImage',
           errorCode: error.errorCode,
-          details: error.details
-        }), {
-          status: error.statusCode,
+          statusCode: error.statusCode,
+          retryable: error.retryable,
+          retryAfter: error.retryAfter,
+          metadata: error.details,
+        });
+        return new Response(JSON.stringify(errorResponse), {
+          status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      throw error;
+      const errorResponse = createErrorResponseWithLogging(error, {
+        functionName: 'natural-language-lighting',
+        action: 'generateImage',
+        errorCode: 'IMAGE_GENERATION_ERROR',
+        statusCode: 500,
+      });
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Validate that we got an image
     if (!imageUrl) {
-      console.warn("AI response missing image URL");
-      return new Response(JSON.stringify({ 
-        error: "AI service did not generate an image. Please try again with a different description.",
-        errorCode: "AI_NO_IMAGE",
-        details: { textContent }
-      }), {
-        status: 502,
+      const errorResponse = createErrorResponseWithLogging(
+        new Error("AI service did not generate an image."),
+        {
+          functionName: 'natural-language-lighting',
+          action: 'validateImage',
+          errorCode: 'AI_NO_IMAGE',
+          statusCode: 502,
+          retryable: true,
+          metadata: { textContent: textContent?.substring(0, 200) },
+        }
+      );
+      return new Response(JSON.stringify(errorResponse), {
+        status: errorResponse.statusCode,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -310,39 +407,16 @@ Output ONLY the JSON object, nothing else.`,
     });
 
   } catch (error) {
-    console.error("Error in natural-language-lighting:", error);
-    
-    // Provide more specific error messages
-    let errorMessage = "An unexpected error occurred during natural language processing.";
-    let errorCode = "UNKNOWN_ERROR";
-    let statusCode = 500;
-
-    if (error instanceof Error) {
-      errorMessage = error.message;
-      
-      if (error.message.includes("LOVABLE_API_KEY")) {
-        errorCode = "CONFIG_ERROR";
-        errorMessage = "AI service configuration error. Please contact support.";
-      } else if (error.message.includes("timeout") || error.message.includes("Timeout")) {
-        errorCode = "TIMEOUT_ERROR";
-        errorMessage = "Request timed out. Please try again.";
-        statusCode = 504;
-      } else if (error.message.includes("network") || error.message.includes("fetch")) {
-        errorCode = "NETWORK_ERROR";
-        errorMessage = "Network error. Please check your connection and try again.";
-        statusCode = 503;
-      } else if (error.message.includes("JSON") || error.message.includes("parse")) {
-        errorCode = "PARSE_ERROR";
-        errorMessage = "Failed to process AI response. Please try again with a different description.";
-      }
-    }
-
-    return new Response(JSON.stringify({ 
-      error: errorMessage,
-      errorCode,
-      timestamp: new Date().toISOString()
-    }), {
-      status: statusCode,
+    const errorResponse = createErrorResponseWithLogging(error, {
+      functionName: 'natural-language-lighting',
+      action: 'mainHandler',
+      metadata: {
+        requestMethod: req.method,
+        hasBody: !!req.body,
+      },
+    });
+    return new Response(JSON.stringify(errorResponse), {
+      status: errorResponse.statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

@@ -225,8 +225,13 @@ class ErrorService {
     // - Custom endpoint: fetch('/api/errors', { method: 'POST', body: JSON.stringify(report) })
 
     // For now, we'll use a simple approach that can be extended
-    if (typeof window !== 'undefined' && (window as any).__ERROR_REPORTER__) {
-      (window as any).__ERROR_REPORTER__(report);
+    if (typeof window !== 'undefined') {
+      const windowWithReporter = window as typeof window & {
+        __ERROR_REPORTER__?: (report: ErrorReport) => void;
+      };
+      if (windowWithReporter.__ERROR_REPORTER__) {
+        windowWithReporter.__ERROR_REPORTER__(report);
+      }
     }
   }
 

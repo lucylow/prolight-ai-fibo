@@ -31,6 +31,7 @@
     "/company/blog/:slug",
     "/company/careers",
     "/company/contact",
+    "/business-model",
     "/product",
     "/features",
     "/use-cases",
@@ -43,11 +44,15 @@
     "/generate/video-edit",
     "/bria/image-generation",
     "/bria/image-generation-v2",
+    "/bria/image-onboarding",
     "/bria/tailored-models",
     "/bria/ads-generation",
     "/bria/ads-generation-v1",
     "/bria/product-imagery",
+    "/bria/vehicle-shot",
     "/bria/image-editing",
-    "/bria/video-editing"
+    "/bria/video-editing",
+    "/bria/v1-generator",
+    "/demo/free-apis"
   ]
 }

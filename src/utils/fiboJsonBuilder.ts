@@ -41,13 +41,13 @@ export interface FIBOBaseJson {
     focus?: string;
     depth_of_field?: string;
   };
-  lighting?: Record<string, any>;
+  lighting?: Record<string, unknown>;
   style_medium?: string;
   artistic_style?: string;
-  color_palette?: Record<string, any>;
-  enhancements?: Record<string, any>;
-  composition?: Record<string, any>;
-  [key: string]: any;
+  color_palette?: Record<string, unknown>;
+  enhancements?: Record<string, unknown>;
+  composition?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface LightingConfig {
@@ -75,7 +75,7 @@ export interface LightingConfig {
     distance?: number;
     type?: string;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

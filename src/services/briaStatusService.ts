@@ -24,8 +24,8 @@ export interface BriaStatusResponse {
   request_id: string;
   status: BriaStatus;
   result: BriaStatusResult | null;
-  status_payload?: any;
-  error?: any;
+  status_payload?: unknown;
+  error?: unknown;
   last_checked?: string;
 }
 

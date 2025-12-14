@@ -114,9 +114,11 @@ const AdsGenerationV1 = () => {
 
       // Start polling for each scene (non-blocking)
       sceneObjs.forEach(scene => pollScene(scene));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('generate error', err);
-      const errorMsg = err?.response?.data?.error || err?.message || 'Failed to submit generation';
+      const errorMsg = (err as { response?: { data?: { error?: string } }; message?: string })?.response?.data?.error || 
+                      (err as { message?: string })?.message || 
+                      'Failed to submit generation';
       toast.error(errorMsg);
     } finally {
       setLoading(false);

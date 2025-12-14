@@ -296,7 +296,7 @@ export class BriaImageGenerationV2Service {
     for (const prompt of params.prompts) {
       const result = await this.textToImage({
         prompt,
-        aspect_ratio: params.aspect_ratio as any,
+        aspect_ratio: params.aspect_ratio as TextToImageV2Params['aspect_ratio'],
         guidance_scale: params.guidance_scale,
         steps_num: params.steps_num,
         seed: params.seed,
@@ -333,7 +333,7 @@ export class BriaImageGenerationV2Service {
 
     return this.textToImage({
       prompt,
-      aspect_ratio: (options?.aspectRatio as any) || '1:1',
+      aspect_ratio: (options?.aspectRatio as TextToImageV2Params['aspect_ratio']) || '1:1',
       seed: options?.seed,
       sync: true,
     });

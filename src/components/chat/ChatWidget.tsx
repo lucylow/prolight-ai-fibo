@@ -166,9 +166,25 @@ export function ChatWidget({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
+    try {
+      // Validate event
+      if (!e || !e.key) return;
+
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        
+        // Call handleSend with error handling
+        try {
+          handleSend();
+        } catch (error) {
+          console.error('Error sending message:', error);
+          toast.error('Failed to send message', {
+            description: 'Please try again.',
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error handling keydown event:', error);
     }
   };
 

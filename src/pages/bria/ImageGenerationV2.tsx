@@ -145,7 +145,7 @@ const ImageGenerationV2 = () => {
           );
           break;
 
-        case 'batch':
+        case 'batch': {
           const batchResults = await service.batchGeneration({
             prompts: batchPrompts,
             aspect_ratio: aspectRatio,
@@ -172,6 +172,7 @@ const ImageGenerationV2 = () => {
           setProcessing(false);
           toast.success(`Generated ${batchImages.length} images!`);
           return;
+        }
 
         default:
           toast.error('Unknown generation type');
@@ -291,7 +292,7 @@ const ImageGenerationV2 = () => {
           </p>
         </div>
 
-        <Tabs value={generationType} onValueChange={(v) => setGenerationType(v as any)} className="mb-6">
+        <Tabs value={generationType} onValueChange={(v) => setGenerationType(v as 'text' | 'image' | 'product' | 'batch')} className="mb-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="text">
               <Wand2 className="w-4 h-4 mr-2" />
@@ -461,7 +462,7 @@ const ImageGenerationV2 = () => {
                   <Label htmlFor="aspectRatio">Aspect Ratio</Label>
                   <Select
                     value={aspectRatio}
-                    onValueChange={(v) => setAspectRatio(v as any)}
+                    onValueChange={(v) => setAspectRatio(v as '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9')}
                   >
                     <SelectTrigger id="aspectRatio">
                       <SelectValue />
