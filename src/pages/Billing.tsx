@@ -177,7 +177,7 @@ export default function BillingDashboard() {
                   )}
                 </div>
                 {!subscription && (
-                  <Button onClick={() => navigate("/pricing/checkout")}>
+                  <Button onClick={() => navigate("/pricing")}>
                     Subscribe
                   </Button>
                 )}
@@ -186,7 +186,7 @@ export default function BillingDashboard() {
           ) : (
             <div className="text-center py-8">
               <p className="text-slate-400 mb-4">No active subscription</p>
-              <Button onClick={() => navigate("/pricing/checkout")}>
+              <Button onClick={() => navigate("/pricing")}>
                 View Plans
               </Button>
             </div>
@@ -285,7 +285,7 @@ export default function BillingDashboard() {
             </p>
             <Button 
               variant="outline" 
-              onClick={() => navigate("/pricing/checkout")}
+              onClick={() => navigate("/pricing")}
               className="w-full"
             >
               View Plans

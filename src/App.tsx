@@ -105,6 +105,7 @@ const PageWrapper = React.memo(({ children }: { children: React.ReactNode }) => 
           duration: 0.3,
           ease: [0.4, 0, 0.2, 1] // Custom easing for smoother feel
         }}
+        className="w-full"
         role="main"
         aria-live="polite"
       >
@@ -128,7 +129,7 @@ function AnimatedRoutes() {
         <Route path="/presets" element={<PageWrapper><Presets /></PageWrapper>} />
         <Route path="/natural-language" element={<PageWrapper><NaturalLanguage /></PageWrapper>} />
         <Route path="/history" element={<PageWrapper><History /></PageWrapper>} />
-        <Route path="/pricing" element={<PageWrapper><MarketingPricingPage /></PageWrapper>} />
+        <Route path="/pricing" element={<PageWrapper><Pricing /></PageWrapper>} />
         <Route path="/pricing/checkout" element={<PageWrapper><Pricing /></PageWrapper>} />
         <Route 
           path="/payment" 

@@ -228,9 +228,9 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full overflow-x-hidden">
       {/* Header */}
-      <header className="sticky top-0 w-full z-50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm transition-all duration-200">
+      <header className="sticky top-0 left-0 right-0 w-full z-50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm transition-all duration-200">
         <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
             {/* Logo */}
@@ -686,7 +686,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
       {/* Main Content */}
       <main 
-        className="min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]" 
+        className="min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)] w-full overflow-x-hidden" 
         role="main"
         id="main-content"
         aria-label="Main content"

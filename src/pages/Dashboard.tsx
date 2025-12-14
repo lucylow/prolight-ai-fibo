@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { Lightbulb, Palette, MessageSquare, History, Sparkles, TrendingUp, Clock } from "lucide-react";
+import { Lightbulb, Palette, MessageSquare, History, Sparkles, TrendingUp, Clock, CreditCard, Zap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { mockDashboardStats, shouldUseMockData } from "@/services/enhancedMockData";
 
@@ -143,7 +143,30 @@ const Dashboard = () => {
         </Card>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-teal-400" />
+              Billing & Plans
+            </CardTitle>
+            <CardDescription>Manage your subscription and billing</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              View your current plan, manage your subscription, and upgrade to unlock more features and credits.
+            </p>
+            <div className="flex gap-2">
+              <Button asChild variant="outline" className="flex-1">
+                <Link to="/billing">View Billing</Link>
+              </Button>
+              <Button asChild className="flex-1 bg-teal-500 hover:bg-teal-600 text-black">
+                <Link to="/pricing">Upgrade Plan</Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Getting Started</CardTitle>

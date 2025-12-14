@@ -333,11 +333,19 @@ const Index = () => {
         >
           <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 px-2">Ready to Transform Your Creative Workflow?</h2>
           <p className="text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8 opacity-90 leading-relaxed px-2">Join thousands of photographers and creators using Pro Lighting Simulator to create stunning images with AI-powered precision.</p>
-          <Link to="/studio">
-            <Button size="lg" className="bg-foreground text-primary hover:bg-foreground/90 rounded-full shadow-xl text-sm sm:text-base px-6 sm:px-8">
-              <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> <span className="whitespace-nowrap">Launch Pro Lighting Simulator</span>
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center">
+            <Link to="/studio">
+              <Button size="lg" className="bg-foreground text-primary hover:bg-foreground/90 rounded-full shadow-xl text-sm sm:text-base px-6 sm:px-8">
+                <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> <span className="whitespace-nowrap">Launch Simulator</span>
+              </Button>
+            </Link>
+            <Link to="/pricing">
+              <Button size="lg" variant="outline" className="bg-background/50 backdrop-blur-sm border-foreground/30 hover:bg-background/80 rounded-full text-sm sm:text-base px-6 sm:px-8">
+                <span className="whitespace-nowrap">View Pricing & Plans</span>
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
+          </div>
         </motion.div>
       </section>
 

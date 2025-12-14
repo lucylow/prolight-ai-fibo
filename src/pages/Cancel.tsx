@@ -52,7 +52,7 @@ export default function CancelPage() {
 
           <div className="flex gap-4 pt-4">
             <Button 
-              onClick={() => navigate("/pricing/checkout")} 
+              onClick={() => navigate("/pricing")} 
               className="flex-1 bg-teal-500 hover:bg-teal-600 text-black"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />

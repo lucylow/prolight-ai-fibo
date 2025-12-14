@@ -39,7 +39,7 @@ export default function PricingPage() {
     
     if (!user) {
       toast.error("Please sign in to subscribe");
-      navigate("/sign-in?redirect=/pricing/checkout");
+      navigate("/sign-in?redirect=/pricing");
       return;
     }
 
