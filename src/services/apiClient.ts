@@ -11,6 +11,8 @@ import type {
   BatchJobResponse,
   LightingAnalysis,
   HealthResponse,
+  FIBOLight,
+  LightingPreset,
 } from '@/types/fibo';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -380,14 +382,28 @@ class APIClient {
     };
   }
 
-  private mockListPresets(category?: string) {
-    const presets = [
+  private mockListPresets(category?: string): PresetListResponse {
+    const defaultMainLight: FIBOLight = {
+      type: 'area',
+      direction: 'front-above',
+      position: [0, 2, 2],
+      intensity: 0.8,
+      colorTemperature: 5600,
+      softness: 0.7,
+      enabled: true,
+      distance: 2.5
+    };
+
+    const presets: LightingPreset[] = [
       {
         presetId: 'butterfly_classic',
         name: 'Butterfly Classic',
         category: 'portrait',
         description: 'Soft, flattering beauty lighting',
-        lighting_config: {},
+        lighting_config: {
+          mainLight: defaultMainLight,
+          lightingStyle: 'soft'
+        },
         ideal_for: ['beauty', 'commercial', 'headshots'],
       },
       {
@@ -395,26 +411,51 @@ class APIClient {
         name: 'Rembrandt Classic',
         category: 'portrait',
         description: 'Dramatic side lighting',
-        lighting_config: {},
+        lighting_config: {
+          mainLight: {
+            type: 'area',
+            direction: 'side-45',
+            position: [2, 1.5, 1],
+            intensity: 0.9,
+            colorTemperature: 5200,
+            softness: 0.4,
+            enabled: true,
+            distance: 2.0
+          },
+          lightingStyle: 'dramatic'
+        },
         ideal_for: ['dramatic', 'editorial'],
       },
     ];
 
+    const filtered = category ? presets.filter((p) => p.category === category) : presets;
     return {
-      presets: category ? presets.filter((p) => p.category === category) : presets,
-      total: presets.length,
+      presets: filtered,
+      total: filtered.length,
       page: 1,
       page_size: 10,
     };
   }
 
-  private mockGetPreset(presetId: string) {
+  private mockGetPreset(presetId: string): LightingPreset {
     return {
       presetId,
       name: 'Sample Preset',
       category: 'portrait',
       description: 'A sample lighting preset',
-      lighting_config: {},
+      lighting_config: {
+        mainLight: {
+          type: 'area',
+          direction: 'front-above',
+          position: [0, 2, 2],
+          intensity: 0.8,
+          colorTemperature: 5600,
+          softness: 0.7,
+          enabled: true,
+          distance: 2.5
+        },
+        lightingStyle: 'soft'
+      },
       ideal_for: ['portraits'],
     };
   }
