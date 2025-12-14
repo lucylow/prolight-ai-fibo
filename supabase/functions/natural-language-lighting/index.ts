@@ -84,23 +84,153 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    // Use AI to translate natural language to structured lighting JSON
-    const translationResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          {
-            role: "system",
-            content: LIGHTING_SYSTEM_PROMPT
+    // Helper function to make AI request with retry logic
+    const makeAIRequest = async (
+      endpoint: string,
+      payload: Record<string, unknown>,
+      retries = 2
+    ): Promise<{ imageUrl: string; textContent: string } | Response> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
+
+      try {
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
           },
-          {
-            role: "user",
-            content: `Convert this lighting description to professional lighting JSON:
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          let errorText = '';
+          let errorData: Record<string, unknown> | null = null;
+          
+          try {
+            errorText = await response.text();
+            errorData = JSON.parse(errorText);
+          } catch {
+            // If parsing fails, use raw text
+          }
+
+          console.error("AI gateway error:", response.status, errorText);
+          
+          if (response.status === 401) {
+            return new Response(JSON.stringify({ 
+              error: "AI service authentication failed. Please check API configuration.",
+              errorCode: "AI_AUTH_ERROR"
+            }), {
+              status: 502,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          if (response.status === 429) {
+            const retryAfter = response.headers.get("Retry-After") || "60";
+            return new Response(JSON.stringify({ 
+              error: `AI service rate limit exceeded. Please try again in ${retryAfter} seconds.`,
+              errorCode: "AI_RATE_LIMIT",
+              retryAfter: parseInt(retryAfter)
+            }), {
+              status: 429,
+              headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json',
+                'Retry-After': retryAfter
+              },
+            });
+          }
+          
+          if (response.status === 402) {
+            return new Response(JSON.stringify({ 
+              error: "AI service payment required. Please add credits to your workspace.",
+              errorCode: "AI_PAYMENT_REQUIRED"
+            }), {
+              status: 402,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          if (response.status >= 500 && retries > 0) {
+            console.log(`Retrying AI request, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(endpoint, payload, retries - 1);
+          }
+
+          if (response.status >= 500) {
+            return new Response(JSON.stringify({ 
+              error: "AI service temporarily unavailable. Please try again later.",
+              errorCode: "AI_SERVER_ERROR",
+              details: errorData?.error?.message || errorText.substring(0, 200)
+            }), {
+              status: 502,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          return new Response(JSON.stringify({ 
+            error: `AI service error: ${errorData?.error?.message || errorText.substring(0, 200) || 'Unknown error'}`,
+            errorCode: "AI_CLIENT_ERROR",
+            details: errorData
+          }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        return await response.json();
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error instanceof Error && error.name === 'AbortError') {
+          if (retries > 0) {
+            console.log(`Retrying due to timeout, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(endpoint, payload, retries - 1);
+          }
+          return new Response(JSON.stringify({ 
+            error: "AI service request timed out. Please try again.",
+            errorCode: "AI_TIMEOUT"
+          }), {
+            status: 504,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          if (retries > 0) {
+            console.log(`Retrying due to network error, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(endpoint, payload, retries - 1);
+          }
+          return new Response(JSON.stringify({ 
+            error: "Network error connecting to AI service. Please check your connection.",
+            errorCode: "AI_NETWORK_ERROR"
+          }), {
+            status: 503,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        throw error;
+      }
+    };
+
+    // Use AI to translate natural language to structured lighting JSON
+    const translationPayload = {
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "system",
+          content: LIGHTING_SYSTEM_PROMPT
+        },
+        {
+          role: "user",
+          content: `Convert this lighting description to professional lighting JSON:
 
 Lighting intent: "${nlRequest.lightingDescription}"
 Scene: ${nlRequest.sceneDescription}
@@ -109,33 +239,35 @@ Style: ${nlRequest.styleIntent || 'professional photography'}
 Environment: ${nlRequest.environment || 'studio'}
 
 Output ONLY the JSON object, nothing else.`
-          }
-        ],
-      }),
-    });
+        }
+      ],
+    };
 
-    if (!translationResponse.ok) {
-      const errorText = await translationResponse.text();
-      console.error("Translation error:", translationResponse.status, errorText);
-      
-      if (translationResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (translationResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error("Failed to translate lighting description");
+    const translationResponse = await makeAIRequest(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      translationPayload
+    );
+
+    // Check if translationResponse is already a Response (error case)
+    if (translationResponse instanceof Response) {
+      return translationResponse;
     }
 
-    const translationData = await translationResponse.json();
+    const translationData = translationResponse;
     const translatedText = translationData.choices?.[0]?.message?.content || "";
     console.log("Translated text:", translatedText);
+
+    // Validate translation response
+    if (!translationData.choices || !Array.isArray(translationData.choices) || translationData.choices.length === 0) {
+      console.error("Invalid translation response structure");
+      return new Response(JSON.stringify({ 
+        error: "AI service returned invalid translation response. Please try again.",
+        errorCode: "AI_INVALID_TRANSLATION"
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Parse the JSON from the response
     let lightingJson;
@@ -145,10 +277,12 @@ Output ONLY the JSON object, nothing else.`
         lightingJson = JSON.parse(jsonMatch[0]);
         lightingJson = validateAndNormalizeLighting(lightingJson);
       } else {
-        throw new Error("No JSON found in response");
+        console.warn("No JSON found in translation response, using fallback");
+        lightingJson = getDefaultLighting(nlRequest.lightingDescription);
       }
     } catch (parseError) {
       console.error("Parse error:", parseError);
+      // Use fallback lighting configuration
       lightingJson = getDefaultLighting(nlRequest.lightingDescription);
     }
 
@@ -161,45 +295,67 @@ Output ONLY the JSON object, nothing else.`
     const imagePrompt = buildNLImagePrompt(nlRequest, lightingJson, lightingAnalysis);
     console.log("Image prompt:", imagePrompt);
 
-    const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: imagePrompt
-          }
-        ],
-        modalities: ["image", "text"]
-      }),
-    });
+    // Generate image using AI
+    const imagePayload = {
+      model: "google/gemini-2.5-flash-image-preview",
+      messages: [
+        {
+          role: "user",
+          content: imagePrompt
+        }
+      ],
+      modalities: ["image", "text"]
+    };
 
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error("Image generation error:", imageResponse.status, errorText);
-      
-      if (imageResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      if (imageResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error(`Image generation error: ${errorText}`);
+    const imageResponse = await makeAIRequest(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      imagePayload
+    );
+
+    // Check if imageResponse is already a Response (error case)
+    if (imageResponse instanceof Response) {
+      return imageResponse;
     }
 
-    const imageData = await imageResponse.json();
-    const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    const imageData = imageResponse;
+    
+    // Validate image response
+    if (!imageData.choices || !Array.isArray(imageData.choices) || imageData.choices.length === 0) {
+      console.error("Invalid image response structure");
+      return new Response(JSON.stringify({ 
+        error: "AI service returned invalid image response. Please try again.",
+        errorCode: "AI_INVALID_IMAGE_RESPONSE"
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const message = imageData.choices[0]?.message;
+    if (!message) {
+      return new Response(JSON.stringify({ 
+        error: "AI service returned incomplete image response. Please try again.",
+        errorCode: "AI_INCOMPLETE_IMAGE_RESPONSE"
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const imageUrl = message.images?.[0]?.image_url?.url;
+
+    // Validate that we got an image
+    if (!imageUrl) {
+      console.warn("AI response missing image URL");
+      return new Response(JSON.stringify({ 
+        error: "AI service did not generate an image. Please try again with a different description.",
+        errorCode: "AI_NO_IMAGE",
+        details: { textContent: message.content }
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     return new Response(JSON.stringify({
       image_url: imageUrl || null,
@@ -219,16 +375,65 @@ Output ONLY the JSON object, nothing else.`
 
   } catch (error) {
     console.error("Error in natural-language-lighting:", error);
+    
+    // Provide more specific error messages
+    let errorMessage = "An unexpected error occurred during natural language processing.";
+    let errorCode = "UNKNOWN_ERROR";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      if (error.message.includes("LOVABLE_API_KEY")) {
+        errorCode = "CONFIG_ERROR";
+        errorMessage = "AI service configuration error. Please contact support.";
+      } else if (error.message.includes("timeout") || error.message.includes("Timeout")) {
+        errorCode = "TIMEOUT_ERROR";
+        errorMessage = "Request timed out. Please try again.";
+        statusCode = 504;
+      } else if (error.message.includes("network") || error.message.includes("fetch")) {
+        errorCode = "NETWORK_ERROR";
+        errorMessage = "Network error. Please check your connection and try again.";
+        statusCode = 503;
+      } else if (error.message.includes("JSON") || error.message.includes("parse")) {
+        errorCode = "PARSE_ERROR";
+        errorMessage = "Failed to process AI response. Please try again with a different description.";
+      }
+    }
+
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
+      error: errorMessage,
+      errorCode,
+      timestamp: new Date().toISOString()
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
 
-function validateAndNormalizeLighting(lightingJson: any): any {
+interface NormalizedLighting {
+  lighting_setup: {
+    key: LightConfig;
+    fill: LightConfig;
+    rim: LightConfig;
+    ambient: LightConfig;
+  };
+  lighting_style: string;
+  mood_description: string;
+  shadow_intensity: number;
+}
+
+interface LightConfig {
+  direction: string;
+  intensity: number;
+  colorTemperature: number;
+  softness: number;
+  distance: number;
+  enabled: boolean;
+}
+
+function validateAndNormalizeLighting(lightingJson: Record<string, unknown>): NormalizedLighting {
   const setup = lightingJson.lighting_setup || {};
   
   const validated = {
@@ -246,20 +451,26 @@ function validateAndNormalizeLighting(lightingJson: any): any {
   return validated;
 }
 
-function normalizeLight(light: any, defaults: any): any {
-  if (!light) return { ...defaults, enabled: false };
+function normalizeLight(light: unknown, defaults: LightConfig): LightConfig {
+  if (!light || typeof light !== 'object') return { ...defaults, enabled: false };
+  
+  const lightObj = light as Record<string, unknown>;
   
   return {
-    direction: light.direction || defaults.direction,
-    intensity: Math.max(0, Math.min(1, light.intensity ?? defaults.intensity)),
-    colorTemperature: Math.max(1000, Math.min(10000, light.colorTemperature || light.color_temperature || defaults.colorTemperature)),
-    softness: Math.max(0, Math.min(1, light.softness ?? defaults.softness)),
-    distance: Math.max(0.1, Math.min(5, light.distance ?? defaults.distance)),
-    enabled: light.enabled !== false
+    direction: (typeof lightObj.direction === 'string' ? lightObj.direction : defaults.direction),
+    intensity: Math.max(0, Math.min(1, typeof lightObj.intensity === 'number' ? lightObj.intensity : defaults.intensity)),
+    colorTemperature: Math.max(1000, Math.min(10000, 
+      typeof lightObj.colorTemperature === 'number' ? lightObj.colorTemperature :
+      typeof lightObj.color_temperature === 'number' ? lightObj.color_temperature :
+      defaults.colorTemperature
+    )),
+    softness: Math.max(0, Math.min(1, typeof lightObj.softness === 'number' ? lightObj.softness : defaults.softness)),
+    distance: Math.max(0.1, Math.min(5, typeof lightObj.distance === 'number' ? lightObj.distance : defaults.distance)),
+    enabled: lightObj.enabled !== false
   };
 }
 
-function getDefaultLighting(description: string): any {
+function getDefaultLighting(description: string): NormalizedLighting {
   const desc = description.toLowerCase();
   
   // Detect lighting style from description
@@ -319,7 +530,14 @@ function getDefaultLighting(description: string): any {
   };
 }
 
-function buildNLImagePrompt(request: NaturalLanguageRequest, lightingJson: any, analysis: any): string {
+interface LightingAnalysisResult {
+  keyFillRatio: number;
+  lightingStyle?: string;
+  professionalRating?: number;
+  [key: string]: unknown;
+}
+
+function buildNLImagePrompt(request: NaturalLanguageRequest, lightingJson: NormalizedLighting, analysis: LightingAnalysisResult): string {
   const setup = lightingJson.lighting_setup;
   
   let lightingDesc = "";
@@ -356,7 +574,7 @@ Technical specs: ${analysis.keyFillRatio}:1 key-to-fill ratio, ${analysis.lighti
 Create a photorealistic, magazine-quality image with precise professional lighting matching the described setup.`;
 }
 
-function analyzeLightingFromJson(lightingJson: any) {
+function analyzeLightingFromJson(lightingJson: NormalizedLighting): LightingAnalysisResult {
   const setup = lightingJson.lighting_setup || {};
   const key = setup.key || { intensity: 0.8 };
   const fill = setup.fill || { intensity: 0.4 };

@@ -3,9 +3,88 @@ import { useLightingStore } from '@/stores/lightingStore';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+export interface GenerationError {
+  message: string;
+  code?: string;
+  retryable?: boolean;
+  details?: Record<string, unknown>;
+}
+
+const getErrorMessage = (error: unknown): GenerationError => {
+  if (error && typeof error === 'object' && 'error' in error) {
+    const errorData = (error as { error: Record<string, unknown> }).error;
+    return {
+      message: (typeof errorData.message === 'string' ? errorData.message : typeof errorData.error === 'string' ? errorData.error : 'Generation failed'),
+      code: (typeof errorData.errorCode === 'string' ? errorData.errorCode : typeof errorData.code === 'string' ? errorData.code : undefined),
+      retryable: ['AI_RATE_LIMIT', 'AI_SERVER_ERROR', 'AI_TIMEOUT', 'AI_NETWORK_ERROR', 'NETWORK_ERROR', 'TIMEOUT_ERROR'].includes(
+        (typeof errorData.errorCode === 'string' ? errorData.errorCode : typeof errorData.code === 'string' ? errorData.code : '') || ''
+      ),
+      details: errorData.details as Record<string, unknown> | undefined
+    };
+  }
+  
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = error.message;
+    let code = 'UNKNOWN_ERROR';
+    let retryable = false;
+
+    if (message.includes('rate limit') || message.includes('Rate limit')) {
+      code = 'RATE_LIMIT';
+      retryable = true;
+    } else if (message.includes('timeout') || message.includes('Timeout')) {
+      code = 'TIMEOUT';
+      retryable = true;
+    } else if (message.includes('network') || message.includes('Network')) {
+      code = 'NETWORK_ERROR';
+      retryable = true;
+    } else if (message.includes('payment') || message.includes('Payment')) {
+      code = 'PAYMENT_REQUIRED';
+    } else if (message.includes('authentication') || message.includes('auth')) {
+      code = 'AUTH_ERROR';
+    }
+
+    return { message, code, retryable };
+  }
+
+  return {
+    message: typeof error === 'string' ? error : 'An unexpected error occurred',
+    code: 'UNKNOWN_ERROR',
+    retryable: false
+  };
+};
+
+const getUserFriendlyMessage = (error: GenerationError): string => {
+  switch (error.code) {
+    case 'AI_RATE_LIMIT':
+    case 'RATE_LIMIT':
+      return 'Too many requests. Please wait a moment and try again.';
+    case 'AI_TIMEOUT':
+    case 'TIMEOUT':
+      return 'The request took too long. Please try again.';
+    case 'AI_NETWORK_ERROR':
+    case 'NETWORK_ERROR':
+      return 'Network error. Please check your connection and try again.';
+    case 'AI_PAYMENT_REQUIRED':
+    case 'PAYMENT_REQUIRED':
+      return 'Payment required. Please add credits to your workspace.';
+    case 'AI_AUTH_ERROR':
+    case 'AUTH_ERROR':
+      return 'Authentication failed. Please check your configuration.';
+    case 'AI_NO_IMAGE':
+      return 'The AI service did not generate an image. Please try again with a different prompt.';
+    case 'AI_INVALID_RESPONSE':
+    case 'AI_INCOMPLETE_RESPONSE':
+      return 'The AI service returned an invalid response. Please try again.';
+    case 'AI_SERVER_ERROR':
+      return 'The AI service is temporarily unavailable. Please try again later.';
+    default:
+      return error.message || 'An unexpected error occurred.';
+  }
+};
+
 export const useGeneration = () => {
   const [isGenerating, setIsGenerating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<GenerationError | null>(null);
   const { setLoading, setGenerationResult, lightingSetup, cameraSettings, sceneSettings } = useLightingStore();
 
   const generateFromCurrentSetup = async () => {
@@ -30,11 +109,29 @@ export const useGeneration = () => {
       });
 
       if (fnError) {
-        throw new Error(fnError.message);
+        const genError = getErrorMessage({ error: { message: fnError.message, code: fnError.name } });
+        setError(genError);
+        toast.error(getUserFriendlyMessage(genError));
+        throw genError;
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      if (data?.error) {
+        const genError = getErrorMessage(data);
+        setError(genError);
+        toast.error(getUserFriendlyMessage(genError));
+        throw genError;
+      }
+
+      // Validate response has required fields
+      if (!data?.image_url && !data?.image_id) {
+        const genError: GenerationError = {
+          message: 'Invalid response from generation service',
+          code: 'INVALID_RESPONSE',
+          retryable: true
+        };
+        setError(genError);
+        toast.error('Invalid response received. Please try again.');
+        throw genError;
       }
 
       console.log('Generation result:', data);
@@ -47,13 +144,14 @@ export const useGeneration = () => {
         generation_metadata: data.generation_metadata
       });
 
+      setError(null);
       toast.success('Image generated successfully!');
       return data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw new Error(errorMessage);
+      const genError = getErrorMessage(err);
+      setError(genError);
+      toast.error(getUserFriendlyMessage(genError));
+      throw genError;
     } finally {
       setIsGenerating(false);
       setLoading(false);
@@ -80,11 +178,29 @@ export const useGeneration = () => {
       });
 
       if (fnError) {
-        throw new Error(fnError.message);
+        const genError = getErrorMessage({ error: { message: fnError.message, code: fnError.name } });
+        setError(genError);
+        toast.error(getUserFriendlyMessage(genError));
+        throw genError;
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      if (data?.error) {
+        const genError = getErrorMessage(data);
+        setError(genError);
+        toast.error(getUserFriendlyMessage(genError));
+        throw genError;
+      }
+
+      // Validate response has required fields
+      if (!data?.image_url && !data?.image_id) {
+        const genError: GenerationError = {
+          message: 'Invalid response from generation service',
+          code: 'INVALID_RESPONSE',
+          retryable: true
+        };
+        setError(genError);
+        toast.error('Invalid response received. Please try again.');
+        throw genError;
       }
 
       console.log('NL Generation result:', data);
@@ -97,13 +213,14 @@ export const useGeneration = () => {
         generation_metadata: data.generation_metadata
       });
 
+      setError(null);
       toast.success('Image generated from description!');
       return data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      throw new Error(errorMessage);
+      const genError = getErrorMessage(err);
+      setError(genError);
+      toast.error(getUserFriendlyMessage(genError));
+      throw genError;
     } finally {
       setIsGenerating(false);
       setLoading(false);
@@ -117,21 +234,34 @@ export const useGeneration = () => {
       });
 
       if (fnError) {
-        throw new Error(fnError.message);
+        const genError = getErrorMessage({ error: { message: fnError.message, code: fnError.name } });
+        toast.error(getUserFriendlyMessage(genError));
+        throw genError;
+      }
+
+      if (data?.error) {
+        const genError = getErrorMessage(data);
+        toast.error(getUserFriendlyMessage(genError));
+        throw genError;
       }
 
       console.log('Analysis result:', data);
       return data;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
-      toast.error(errorMessage);
-      throw new Error(errorMessage);
+      const genError = getErrorMessage(err);
+      toast.error(getUserFriendlyMessage(genError));
+      throw genError;
     }
+  };
+
+  const clearError = () => {
+    setError(null);
   };
 
   return {
     isGenerating,
     error,
+    clearError,
     generateFromCurrentSetup,
     generateFromNaturalLanguage,
     analyzeLighting,

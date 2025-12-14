@@ -84,8 +84,8 @@ const Presets = () => {
 
   const handleLoadPreset = (preset: typeof presets[0]) => {
     loadPreset({
-      lightingSetup: preset.lightingSetup as any,
-      cameraSettings: preset.cameraSettings as any,
+      lightingSetup: preset.lightingSetup,
+      cameraSettings: preset.cameraSettings,
     });
     toast.success(`Loaded ${preset.name} preset`);
   };

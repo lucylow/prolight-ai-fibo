@@ -14,6 +14,55 @@ import type {
   LightingPreset,
 } from '@/types/fibo';
 
+/**
+ * Custom API Error class with error codes and details
+ */
+export class APIError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public statusCode: number = 0,
+    public details?: Record<string, unknown>
+  ) {
+    super(message);
+    this.name = 'APIError';
+    Object.setPrototypeOf(this, APIError.prototype);
+  }
+
+  /**
+   * Check if error is retryable
+   */
+  isRetryable(): boolean {
+    return ['NETWORK_ERROR', 'TIMEOUT_ERROR', 'SERVER_ERROR', 'RATE_LIMIT'].includes(this.code);
+  }
+
+  /**
+   * Get user-friendly error message
+   */
+  getUserMessage(): string {
+    switch (this.code) {
+      case 'AUTH_ERROR':
+        return 'Authentication failed. Please check your credentials.';
+      case 'FORBIDDEN':
+        return 'You do not have permission to perform this action.';
+      case 'NOT_FOUND':
+        return 'The requested resource was not found.';
+      case 'RATE_LIMIT':
+        return this.message; // Already user-friendly
+      case 'NETWORK_ERROR':
+        return 'Unable to connect to the server. Please check your internet connection.';
+      case 'TIMEOUT_ERROR':
+        return 'The request took too long. Please try again.';
+      case 'SERVER_ERROR':
+        return 'The server encountered an error. Please try again later.';
+      case 'CLIENT_ERROR':
+        return this.message || 'An error occurred with your request.';
+      default:
+        return this.message || 'An unexpected error occurred.';
+    }
+  }
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const API_PREFIX = '/api';
 
@@ -41,7 +90,8 @@ class APIClient {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    retries: number = 3
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     const headers: HeadersInit = {
@@ -49,21 +99,143 @@ class APIClient {
       ...options.headers,
     };
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        headers,
-      });
+    let lastError: Error | null = null;
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+        const response = await fetch(url, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          // Try to parse error response
+          let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+          let errorDetails: Record<string, unknown> | null = null;
+
+          try {
+            const errorData = await response.json();
+            if (errorData.error) {
+              errorMessage = errorData.error;
+            } else if (errorData.message) {
+              errorMessage = errorData.message;
+            } else if (errorData.detail) {
+              errorMessage = errorData.detail;
+            }
+            errorDetails = errorData;
+          } catch {
+            // If JSON parsing fails, use status text
+            const text = await response.text().catch(() => '');
+            if (text) {
+              errorMessage = text.substring(0, 200);
+            }
+          }
+
+          // Handle specific status codes
+          if (response.status === 401) {
+            throw new APIError('Authentication failed. Please check your credentials.', 'AUTH_ERROR', response.status, errorDetails);
+          } else if (response.status === 403) {
+            throw new APIError('Access forbidden. You may not have permission for this operation.', 'FORBIDDEN', response.status, errorDetails);
+          } else if (response.status === 404) {
+            throw new APIError('Resource not found.', 'NOT_FOUND', response.status, errorDetails);
+          } else if (response.status === 429) {
+            const retryAfter = response.headers.get('Retry-After');
+            const retrySeconds = retryAfter ? parseInt(retryAfter, 10) : 60;
+            throw new APIError(
+              `Rate limit exceeded. Please try again in ${retrySeconds} seconds.`,
+              'RATE_LIMIT',
+              response.status,
+              { retryAfter: retrySeconds, ...errorDetails }
+            );
+          } else if (response.status >= 500) {
+            // Retry on server errors
+            if (attempt < retries) {
+              const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+              await new Promise(resolve => setTimeout(resolve, delay));
+              continue;
+            }
+            throw new APIError(
+              'Server error. Please try again later.',
+              'SERVER_ERROR',
+              response.status,
+              errorDetails
+            );
+          } else {
+            throw new APIError(errorMessage, 'CLIENT_ERROR', response.status, errorDetails);
+          }
+        }
+
+        return await response.json();
+      } catch (error) {
+        lastError = error as Error;
+
+        // Don't retry on certain errors
+        if (error instanceof APIError) {
+          if (error.code === 'AUTH_ERROR' || error.code === 'FORBIDDEN' || error.code === 'NOT_FOUND') {
+            throw error;
+          }
+          if (error.code === 'RATE_LIMIT' && attempt < retries) {
+            const retryAfter = (typeof error.details === 'object' && error.details !== null && 'retryAfter' in error.details) 
+              ? (error.details.retryAfter as number) 
+              : 60;
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            continue;
+          }
+        }
+
+        // Handle network errors
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          if (attempt < retries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new APIError(
+            'Network error. Please check your connection and try again.',
+            'NETWORK_ERROR',
+            0,
+            { originalError: error.message }
+          );
+        }
+
+        // Handle abort (timeout)
+        if (error instanceof Error && error.name === 'AbortError') {
+          if (attempt < retries) {
+            const delay = Math.min(1000 * Math.pow(2, attempt), 10000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new APIError(
+            'Request timeout. The server took too long to respond.',
+            'TIMEOUT_ERROR',
+            0,
+            { originalError: error.message }
+          );
+        }
+
+        // If it's the last attempt, throw the error
+        if (attempt === retries) {
+          if (error instanceof APIError) {
+            throw error;
+          }
+          throw new APIError(
+            error instanceof Error ? error.message : 'An unexpected error occurred',
+            'UNKNOWN_ERROR',
+            0,
+            { originalError: error }
+          );
+        }
       }
-
-      return await response.json();
-    } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
-      throw error;
     }
+
+    // This should never be reached, but TypeScript needs it
+    throw lastError || new APIError('Request failed after retries', 'UNKNOWN_ERROR', 0);
   }
 
   // ============================================================================
@@ -111,7 +283,7 @@ class APIClient {
   async generateFromPreset(
     presetId: string,
     sceneDescription: string,
-    customSettings?: Record<string, any>
+    customSettings?: Record<string, unknown>
   ): Promise<GenerationResponse> {
     if (this.useMock) {
       return this.mockGenerate({
@@ -160,12 +332,12 @@ class APIClient {
     return this.request<PresetListResponse>(`/presets?${params}`);
   }
 
-  async getPreset(presetId: string) {
+  async getPreset(presetId: string): Promise<LightingPreset> {
     if (this.useMock) {
       return this.mockGetPreset(presetId);
     }
 
-    return this.request(`/presets/${presetId}`);
+    return this.request<LightingPreset>(`/presets/${presetId}`);
   }
 
   async listCategories() {
@@ -176,12 +348,12 @@ class APIClient {
     return this.request('/presets/categories');
   }
 
-  async searchPresets(query: string, page: number = 1, pageSize: number = 10) {
+  async searchPresets(query: string, page: number = 1, pageSize: number = 10): Promise<PresetListResponse> {
     if (this.useMock) {
       return this.mockSearchPresets(query);
     }
 
-    return this.request('/presets/search', {
+    return this.request<PresetListResponse>('/presets/search', {
       method: 'POST',
       body: JSON.stringify({ query, page, page_size: pageSize }),
     });
@@ -212,20 +384,20 @@ class APIClient {
     return this.request<HistoryResponse>(`/history?${params}`);
   }
 
-  async getGenerationDetail(generationId: string) {
+  async getGenerationDetail(generationId: string): Promise<HistoryItem> {
     if (this.useMock) {
       return this.mockGetGenerationDetail(generationId);
     }
 
-    return this.request(`/history/${generationId}`);
+    return this.request<HistoryItem>(`/history/${generationId}`);
   }
 
-  async deleteGeneration(generationId: string) {
+  async deleteGeneration(generationId: string): Promise<{ status: string; message: string }> {
     if (this.useMock) {
       return { status: 'success', message: 'Deleted' };
     }
 
-    return this.request(`/history/${generationId}`, { method: 'DELETE' });
+    return this.request<{ status: string; message: string }>(`/history/${generationId}`, { method: 'DELETE' });
   }
 
   async clearHistory() {
@@ -236,12 +408,22 @@ class APIClient {
     return this.request('/history/clear', { method: 'POST' });
   }
 
-  async getHistoryStats() {
+  async getHistoryStats(): Promise<{
+    total_generations: number;
+    total_cost_credits: number;
+    average_cost_per_generation: number;
+    preset_distribution: Record<string, number>;
+  }> {
     if (this.useMock) {
       return this.mockGetHistoryStats();
     }
 
-    return this.request('/history/stats');
+    return this.request<{
+      total_generations: number;
+      total_cost_credits: number;
+      average_cost_per_generation: number;
+      preset_distribution: Record<string, number>;
+    }>('/history/stats');
   }
 
   // ============================================================================
@@ -249,7 +431,7 @@ class APIClient {
   // ============================================================================
 
   async batchGenerate(
-    items: any[],
+    items: Array<Record<string, unknown>>,
     presetName?: string,
     totalCount?: number
   ): Promise<BatchJobResponse> {
@@ -313,7 +495,7 @@ class APIClient {
   // Analysis Endpoints
   // ============================================================================
 
-  async analyzeLighting(lightingSetup: Record<string, any>): Promise<LightingAnalysis> {
+  async analyzeLighting(lightingSetup: Record<string, unknown>): Promise<LightingAnalysis> {
     if (this.useMock) {
       return this.mockAnalyzeLighting(lightingSetup);
     }
@@ -324,7 +506,7 @@ class APIClient {
     });
   }
 
-  async compareLightingSetups(setup1: Record<string, any>, setup2: Record<string, any>) {
+  async compareLightingSetups(setup1: Record<string, unknown>, setup2: Record<string, unknown>) {
     if (this.useMock) {
       return this.mockCompareLightingSetups(setup1, setup2);
     }
@@ -335,12 +517,20 @@ class APIClient {
     });
   }
 
-  async getStyleRecommendations(lightingStyle: string) {
+  async getStyleRecommendations(lightingStyle: string): Promise<{
+    description: string;
+    key_to_fill_ratio: string;
+    tips: string[];
+  }> {
     if (this.useMock) {
       return this.mockGetStyleRecommendations(lightingStyle);
     }
 
-    return this.request(`/analyze/recommendations/${lightingStyle}`);
+    return this.request<{
+      description: string;
+      key_to_fill_ratio: string;
+      tips: string[];
+    }>(`/analyze/recommendations/${lightingStyle}`);
   }
 
   // ============================================================================
@@ -481,7 +671,7 @@ class APIClient {
     };
   }
 
-  private mockBatchGenerate(items: any[]) {
+  private mockBatchGenerate(items: Array<Record<string, unknown>>) {
     return {
       batch_id: `batch_${Date.now()}`,
       status: 'processing',
@@ -522,7 +712,7 @@ class APIClient {
     };
   }
 
-  private mockAnalyzeLighting(lightingSetup: Record<string, any>) {
+  private mockAnalyzeLighting(lightingSetup: Record<string, unknown>) {
     return {
       key_to_fill_ratio: 2.5,
       color_temperature_consistency: 0.95,
@@ -532,7 +722,7 @@ class APIClient {
     };
   }
 
-  private mockCompareLightingSetups(setup1: Record<string, any>, setup2: Record<string, any>) {
+  private mockCompareLightingSetups(setup1: Record<string, unknown>, setup2: Record<string, unknown>) {
     return {
       setup_1: this.mockAnalyzeLighting(setup1),
       setup_2: this.mockAnalyzeLighting(setup2),

@@ -304,10 +304,26 @@ function generateRecommendations(
   return recommendations;
 }
 
+interface ColorAnalysis {
+  averageTemperature: number;
+  temperatureRange: string;
+  harmonyScore: number;
+  harmonyAssessment: string;
+  warmthDescription?: string;
+  temperatures?: number[];
+}
+
+interface ShadowAnalysis {
+  shadowIntensity: number;
+  shadowSoftness: number;
+  shadowCharacter: string;
+  transitionQuality?: string;
+}
+
 function generateTechnicalNotes(
   lightingSetup: Record<string, LightSettings>,
-  colorAnalysis: any,
-  shadowAnalysis: any
+  colorAnalysis: ColorAnalysis,
+  shadowAnalysis: ShadowAnalysis
 ): string[] {
   const notes: string[] = [];
   

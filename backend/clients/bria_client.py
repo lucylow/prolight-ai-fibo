@@ -23,17 +23,47 @@ logger = logging.getLogger(__name__)
 
 class BriaAuthError(Exception):
     """Raised when Bria API authentication fails."""
-    pass
+    def __init__(self, message: str = "Bria API authentication failed"):
+        self.message = message
+        super().__init__(self.message)
 
 
 class BriaRateLimitError(Exception):
     """Raised when Bria API rate limit is exceeded."""
-    pass
+    def __init__(self, message: str = "Bria API rate limit exceeded", retry_after: Optional[int] = None):
+        self.message = message
+        self.retry_after = retry_after
+        super().__init__(self.message)
 
 
 class BriaAPIError(Exception):
     """Raised for general Bria API errors."""
-    pass
+    def __init__(self, message: str = "Bria API error", status_code: Optional[int] = None, details: Optional[Dict[str, Any]] = None):
+        self.message = message
+        self.status_code = status_code
+        self.details = details or {}
+        super().__init__(self.message)
+    
+    def __str__(self) -> str:
+        if self.status_code:
+            return f"{self.message} (Status: {self.status_code})"
+        return self.message
+
+
+class BriaTimeoutError(Exception):
+    """Raised when Bria API request times out."""
+    def __init__(self, message: str = "Bria API request timed out", timeout: Optional[float] = None):
+        self.message = message
+        self.timeout = timeout
+        super().__init__(self.message)
+
+
+class BriaNetworkError(Exception):
+    """Raised when network error occurs with Bria API."""
+    def __init__(self, message: str = "Network error connecting to Bria API", original_error: Optional[Exception] = None):
+        self.message = message
+        self.original_error = original_error
+        super().__init__(self.message)
 
 
 class BriaClient:
@@ -179,12 +209,45 @@ class BriaClient:
             
             return response.json()
         
+        except httpx.TimeoutException as e:
+            logger.error(f"Request timeout: {e}")
+            raise BriaTimeoutError(
+                f"Bria API request timed out after {self.timeout}s",
+                timeout=self.timeout
+            )
+        except httpx.ConnectError as e:
+            logger.error(f"Connection error: {e}")
+            raise BriaNetworkError(
+                "Failed to connect to Bria API. Check your network connection.",
+                original_error=e
+            )
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP error: {e}")
-            raise
+            # Re-raise as appropriate exception type
+            if e.response.status_code == 401:
+                raise BriaAuthError(
+                    "Bria API authentication failed. Check BRIA_API_TOKEN for current environment."
+                )
+            elif e.response.status_code == 429:
+                retry_after = e.response.headers.get("Retry-After")
+                retry_seconds = int(retry_after) if retry_after else 60
+                raise BriaRateLimitError(
+                    f"Bria API rate limit exceeded. Retry after {retry_seconds} seconds.",
+                    retry_after=retry_seconds
+                )
+            else:
+                error_detail = e.response.text[:500] if e.response.text else str(e)
+                raise BriaAPIError(
+                    f"Bria API error {e.response.status_code}: {error_detail}",
+                    status_code=e.response.status_code,
+                    details={"response_text": error_detail}
+                )
         except httpx.RequestError as e:
             logger.error(f"Request error: {e}")
-            raise
+            raise BriaNetworkError(
+                f"Network error: {str(e)}",
+                original_error=e
+            )
     
     async def generate_image(
         self,

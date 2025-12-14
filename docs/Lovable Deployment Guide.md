@@ -101,22 +101,26 @@ from backend.settings import settings
 
 ```
 prolight-ai-fibo/
-├── backend/
+├── backend/                     # ✅ FastAPI backend (Lovable auto-detects)
 │   ├── settings.py              # ✅ Environment config
-│   ├── clients/
-│   │   ├── __init__.py
-│   │   └── bria_client.py       # ✅ Async FIBO client
-│   ├── routes/
-│   │   ├── __init__.py
-│   │   └── generate.py          # ✅ API endpoints
-│   ├── utils/
-│   │   └── lighting_mapper.py   # ✅ 3D → FIBO mapping
-│   ├── tests/                   # ✅ 36 tests
-│   ├── requirements.txt         # ✅ Dependencies
-│   └── .env.example             # ✅ Template
-├── frontend/                    # ✅ React UI
+│   ├── app/                     # ✅ FastAPI application
+│   ├── clients/                 # ✅ Bria API client
+│   ├── routes/                  # ✅ API endpoints
+│   ├── utils/                   # ✅ Utilities
+│   ├── tests/                   # ✅ Test suite
+│   ├── requirements.txt         # ✅ Python dependencies
+│   └── .env.example             # ✅ Environment template
+├── src/                         # ✅ React frontend (Lovable auto-detects)
+│   ├── components/              # ✅ React components
+│   ├── pages/                   # ✅ Page components
+│   ├── hooks/                   # ✅ Custom hooks
+│   └── ...
+├── docs/                        # ✅ Documentation
+├── public/                      # ✅ Static assets
+├── package.json                 # ✅ Frontend dependencies (Lovable requirement)
+├── vite.config.ts               # ✅ Vite config (Lovable requirement)
 ├── .gitignore                   # ✅ Excludes venv, cache
-└── README.md                    # ✅ Documentation
+└── README.md                    # ✅ Main documentation
 ```
 
 ## 🧪 Local Development (Optional)

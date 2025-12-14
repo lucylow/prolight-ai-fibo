@@ -65,48 +65,214 @@ serve(async (req) => {
     const imagePrompt = buildProfessionalImagePrompt(sceneRequest, fiboJson, lightingAnalysis);
     console.log("Image prompt:", imagePrompt);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: imagePrompt
-          }
-        ],
-        modalities: ["image", "text"]
-      }),
-    });
+    // Helper function to make AI request with retry logic
+    const makeAIRequest = async (retries = 2): Promise<{ imageUrl: string; textContent: string } | Response> => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for AI
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      try {
+        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "google/gemini-2.5-flash-image-preview",
+            messages: [
+              {
+                role: "user",
+                content: imagePrompt
+              }
+            ],
+            modalities: ["image", "text"]
+          }),
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          let errorText = '';
+          let errorData: Record<string, unknown> | null = null;
+          
+          try {
+            errorText = await response.text();
+            errorData = JSON.parse(errorText);
+          } catch {
+            // If parsing fails, use raw text
+          }
+
+          console.error("AI gateway error:", response.status, errorText);
+          
+          // Handle specific error codes
+          if (response.status === 401) {
+            return new Response(JSON.stringify({ 
+              error: "AI service authentication failed. Please check API configuration.",
+              errorCode: "AI_AUTH_ERROR"
+            }), {
+              status: 502,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+          
+          if (response.status === 429) {
+            const retryAfter = response.headers.get("Retry-After") || "60";
+            return new Response(JSON.stringify({ 
+              error: `AI service rate limit exceeded. Please try again in ${retryAfter} seconds.`,
+              errorCode: "AI_RATE_LIMIT",
+              retryAfter: parseInt(retryAfter)
+            }), {
+              status: 429,
+              headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json',
+                'Retry-After': retryAfter
+              },
+            });
+          }
+          
+          if (response.status === 402) {
+            return new Response(JSON.stringify({ 
+              error: "AI service payment required. Please add credits to your workspace.",
+              errorCode: "AI_PAYMENT_REQUIRED"
+            }), {
+              status: 402,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          if (response.status >= 500 && retries > 0) {
+            // Retry on server errors
+            console.log(`Retrying AI request, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(retries - 1);
+          }
+
+          if (response.status >= 500) {
+            return new Response(JSON.stringify({ 
+              error: "AI service temporarily unavailable. Please try again later.",
+              errorCode: "AI_SERVER_ERROR",
+              details: errorData?.error?.message || errorText.substring(0, 200)
+            }), {
+              status: 502,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
+
+          return new Response(JSON.stringify({ 
+            error: `AI service error: ${errorData?.error?.message || errorText.substring(0, 200) || 'Unknown error'}`,
+            errorCode: "AI_CLIENT_ERROR",
+            details: errorData
+          }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const data = await response.json();
+        console.log("AI response received");
+
+        // Validate response structure
+        if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+          console.error("Invalid AI response structure:", JSON.stringify(data).substring(0, 500));
+          if (retries > 0) {
+            console.log(`Retrying due to invalid response structure, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(retries - 1);
+          }
+          return new Response(JSON.stringify({ 
+            error: "AI service returned invalid response. Please try again.",
+            errorCode: "AI_INVALID_RESPONSE"
+          }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const message = data.choices[0]?.message;
+        if (!message) {
+          if (retries > 0) {
+            console.log(`Retrying due to missing message, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(retries - 1);
+          }
+          return new Response(JSON.stringify({ 
+            error: "AI service returned incomplete response. Please try again.",
+            errorCode: "AI_INCOMPLETE_RESPONSE"
+          }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        const imageUrl = message.images?.[0]?.image_url?.url;
+        const textContent = message.content || "";
+
+        // Validate that we got an image
+        if (!imageUrl) {
+          console.warn("AI response missing image URL:", JSON.stringify(message).substring(0, 500));
+          if (retries > 0) {
+            console.log(`Retrying due to missing image, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(retries - 1);
+          }
+          return new Response(JSON.stringify({ 
+            error: "AI service did not generate an image. Please try again with a different prompt.",
+            errorCode: "AI_NO_IMAGE",
+            details: { textContent }
+          }), {
+            status: 502,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        return { imageUrl, textContent };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        
+        if (error instanceof Error && error.name === 'AbortError') {
+          if (retries > 0) {
+            console.log(`Retrying due to timeout, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(retries - 1);
+          }
+          return new Response(JSON.stringify({ 
+            error: "AI service request timed out. The request took too long. Please try again.",
+            errorCode: "AI_TIMEOUT"
+          }), {
+            status: 504,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          if (retries > 0) {
+            console.log(`Retrying due to network error, ${retries} attempts remaining...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
+            return makeAIRequest(retries - 1);
+          }
+          return new Response(JSON.stringify({ 
+            error: "Network error connecting to AI service. Please check your connection and try again.",
+            errorCode: "AI_NETWORK_ERROR"
+          }), {
+            status: 503,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        throw error;
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error(`AI gateway error: ${errorText}`);
+    };
+
+    const aiResult = await makeAIRequest();
+    
+    // Check if aiResult is already a Response (error case)
+    if (aiResult instanceof Response) {
+      return aiResult;
     }
 
-    const data = await response.json();
-    console.log("AI response received");
-
-    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    const textContent = data.choices?.[0]?.message?.content || "";
+    const { imageUrl, textContent } = aiResult;
 
     return new Response(JSON.stringify({
       image_url: imageUrl || null,
@@ -127,10 +293,35 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Error in generate-lighting:", error);
+    
+    // Provide more specific error messages
+    let errorMessage = "An unexpected error occurred during image generation.";
+    let errorCode = "UNKNOWN_ERROR";
+    let statusCode = 500;
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      
+      if (error.message.includes("LOVABLE_API_KEY")) {
+        errorCode = "CONFIG_ERROR";
+        errorMessage = "AI service configuration error. Please contact support.";
+      } else if (error.message.includes("timeout") || error.message.includes("Timeout")) {
+        errorCode = "TIMEOUT_ERROR";
+        errorMessage = "Request timed out. Please try again.";
+        statusCode = 504;
+      } else if (error.message.includes("network") || error.message.includes("fetch")) {
+        errorCode = "NETWORK_ERROR";
+        errorMessage = "Network error. Please check your connection and try again.";
+        statusCode = 503;
+      }
+    }
+
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
+      error: errorMessage,
+      errorCode,
+      timestamp: new Date().toISOString()
     }), {
-      status: 500,
+      status: statusCode,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -139,7 +330,7 @@ serve(async (req) => {
 function buildFiboJson(request: SceneRequest) {
   const { lightingSetup, cameraSettings, subjectDescription, environment } = request;
 
-  const lightingJson: Record<string, any> = {};
+  const lightingJson: Record<string, Record<string, unknown>> = {};
   for (const [type, settings] of Object.entries(lightingSetup)) {
     if (settings.enabled) {
       lightingJson[`${type}_light`] = {
@@ -201,7 +392,14 @@ function buildFiboJson(request: SceneRequest) {
   };
 }
 
-function buildProfessionalImagePrompt(request: SceneRequest, fiboJson: any, analysis: any): string {
+interface LightingAnalysis {
+  keyFillRatio: number;
+  lightingStyle: string;
+  professionalRating: number;
+  [key: string]: unknown;
+}
+
+function buildProfessionalImagePrompt(request: SceneRequest, fiboJson: Record<string, unknown>, analysis: LightingAnalysis): string {
   const { lightingSetup, cameraSettings } = request;
   
   // Build detailed lighting description

@@ -63,7 +63,10 @@ const Scene = () => {
       <SubjectModel />
       {Object.entries(lightingSetup).map(([type, config]) => {
         if (type === 'ambient' || !lightPositions[type]) return null;
-        return <LightSource key={type} config={config as any} position={lightPositions[type]} />;
+        if (type === 'key' || type === 'fill' || type === 'rim') {
+          return <LightSource key={type} config={config} position={lightPositions[type]} />;
+        }
+        return null;
       })}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
         <planeGeometry args={[10, 10]} />

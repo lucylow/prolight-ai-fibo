@@ -159,6 +159,16 @@ services:
 docker-compose up -d
 ```
 
+## 📚 Documentation
+
+Additional documentation is available in the [`docs/`](./docs/) folder:
+
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Complete deployment instructions
+- **[Lovable Deployment](./docs/LOVABLE_DEPLOYMENT.md)** - Step-by-step Lovable deployment guide
+- **[Setup Guide](./docs/SETUP.md)** - Detailed setup instructions
+- **[Hackathon Submission](./docs/HACKATHON_SUBMISSION.md)** - Hackathon submission details
+- **[Enhanced README](./docs/README_ENHANCED.md)** - Extended documentation
+
 ## 📚 API Documentation
 
 ### Core Endpoints
