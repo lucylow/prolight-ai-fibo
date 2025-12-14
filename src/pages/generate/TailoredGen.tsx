@@ -1,13 +1,17 @@
 // pages/generate/TailoredGen.tsx
-import { tailoredTextToImage } from "@/api/bria";
-import { useState } from "react";
+import { enhancedBriaClient } from "@/services/enhancedBriaClient";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AssetGrid } from "@/components/AssetGrid";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { useEnhancedStatus } from "@/hooks/useEnhancedStatus";
+import { JobStatusPanel } from "@/components/JobStatusPanel";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 export default function TailoredGen() {
   const [modelId, setModelId] = useState("brand-v1");
@@ -15,6 +19,29 @@ export default function TailoredGen() {
   const [structuredPrompt, setStructuredPrompt] = useState<string>("");
   const [images, setImages] = useState<Array<{ url?: string; image_url?: string }>>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [jobId, setJobId] = useState<string>();
+
+  const { 
+    status, 
+    isLoading: isStatusLoading, 
+    error: statusError, 
+    retry: retryStatus,
+    progress,
+    elapsedTime 
+  } = useEnhancedStatus(jobId, {
+    onComplete: (completedStatus) => {
+      if (completedStatus.data && typeof completedStatus.data === 'object') {
+        const data = completedStatus.data as { images?: Array<{ url?: string; image_url?: string }> };
+        if (data.images) {
+          setImages(data.images);
+          toast.success(`Generated ${data.images.length} image${data.images.length > 1 ? 's' : ''} with brand model!`);
+        }
+      }
+    },
+    onError: (error) => {
+      toast.error(`Status check failed: ${error.message}`);
+    },
+  });
 
   async function generate() {
     if (!prompt && !structuredPrompt) {
@@ -22,8 +49,14 @@ export default function TailoredGen() {
       return;
     }
 
+    if (!modelId.trim()) {
+      toast.error("Please enter a Model ID");
+      return;
+    }
+
     setIsGenerating(true);
     setImages([]);
+    setJobId(undefined);
 
     try {
       let promptData: string | object = prompt;
@@ -39,23 +72,31 @@ export default function TailoredGen() {
         }
       }
 
-      const res = await tailoredTextToImage({
+      const res = await enhancedBriaClient.tailoredGeneration({
         model_id: modelId,
         prompt: typeof promptData === "string" ? promptData : undefined,
         structured_prompt: typeof promptData === "object" ? promptData : undefined,
+        sync: false, // Use async for better UX
       });
 
       if (res.request_id) {
-        toast.success("Generation started! Check status for results.");
-        setImages(res.data?.images || []);
+        setJobId(res.request_id);
+        toast.success("Generation started! Monitoring progress...");
       } else if (res.images) {
+        // Sync response
         setImages(res.images);
         toast.success("Image generated with brand model!");
+      } else if (res.data && typeof res.data === 'object') {
+        const data = res.data as { images?: Array<{ url?: string; image_url?: string }> };
+        if (data.images) {
+          setImages(data.images);
+          toast.success("Image generated with brand model!");
+        }
       }
     } catch (error: unknown) {
       const errorMessage = error && typeof error === 'object' 
-        ? ('response' in error 
-          ? (error.response as { data?: { error?: string } })?.data?.error 
+        ? ('error' in error 
+          ? String((error as { error?: string }).error)
           : 'message' in error 
             ? String(error.message) 
             : undefined)
@@ -66,6 +107,21 @@ export default function TailoredGen() {
       setIsGenerating(false);
     }
   }
+
+  // Update images when status completes (fallback)
+  useEffect(() => {
+    if (status?.status === "COMPLETED") {
+      if (status.data && typeof status.data === 'object') {
+        const data = status.data as { images?: Array<{ url?: string; image_url?: string }> };
+        if (data.images && data.images.length > 0) {
+          setImages(data.images);
+        }
+      }
+      if (status.images && status.images.length > 0) {
+        setImages(status.images);
+      }
+    }
+  }, [status]);
 
   return (
     <div className="container mx-auto p-6 space-y-6">

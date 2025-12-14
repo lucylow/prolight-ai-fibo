@@ -1,15 +1,17 @@
 // pages/generate/AdsGenerator.tsx
-import { generateAds } from "@/api/bria";
+import { enhancedBriaClient } from "@/services/enhancedBriaClient";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useStatus } from "@/hooks/useStatus";
+import { useEnhancedStatus } from "@/hooks/useEnhancedStatus";
 import { JobStatusPanel } from "@/components/JobStatusPanel";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { AssetGrid } from "@/components/AssetGrid";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AdsGenerator() {
   const [brandId, setBrandId] = useState("nike_brand");
@@ -19,15 +21,41 @@ export default function AdsGenerator() {
   const [jobId, setJobId] = useState<string>();
   const [assets, setAssets] = useState<Array<{ url?: string; image_url?: string }>>([]);
   const [isGenerating, setIsGenerating] = useState(false);
-  const { status } = useStatus(jobId);
+  
+  const { 
+    status, 
+    isLoading: isStatusLoading, 
+    error: statusError, 
+    retry: retryStatus,
+    progress,
+    elapsedTime 
+  } = useEnhancedStatus(jobId, {
+    onComplete: (completedStatus) => {
+      if (completedStatus.data && typeof completedStatus.data === 'object') {
+        const data = completedStatus.data as { images?: Array<{ url?: string; image_url?: string }> };
+        if (data.images) {
+          setAssets(data.images);
+          toast.success(`Generated ${data.images.length} ad${data.images.length > 1 ? 's' : ''}!`);
+        }
+      }
+    },
+    onError: (error) => {
+      toast.error(`Status check failed: ${error.message}`);
+    },
+  });
 
   async function run() {
+    if (!brandId.trim() || !templateId.trim()) {
+      toast.error("Please provide both Brand ID and Template ID");
+      return;
+    }
+
     setIsGenerating(true);
     setJobId(undefined);
     setAssets([]);
 
     try {
-      const res = await generateAds({
+      const res = await enhancedBriaClient.generateAds({
         brand_id: brandId,
         template_id: templateId,
         formats,
@@ -36,14 +64,14 @@ export default function AdsGenerator() {
 
       if (res.request_id) {
         setJobId(res.request_id);
-        toast.success("Ads generation started!");
+        toast.success("Ads generation started! Monitoring progress...");
       } else {
-        toast.error("Failed to start generation");
+        toast.error("Failed to start generation - no request ID returned");
       }
     } catch (error: unknown) {
       const errorMessage = error && typeof error === 'object' 
-        ? ('response' in error 
-          ? (error.response as { data?: { error?: string } })?.data?.error 
+        ? ('error' in error 
+          ? String((error as { error?: string }).error)
           : 'message' in error 
             ? String(error.message) 
             : undefined)
@@ -55,10 +83,19 @@ export default function AdsGenerator() {
     }
   }
 
-  // Update assets when status completes
+  // Update assets when status completes (fallback)
   useEffect(() => {
-    if (status?.status === "COMPLETED" && status?.data?.images) {
-      setAssets(status.data.images);
+    if (status?.status === "COMPLETED") {
+      if (status.data && typeof status.data === 'object') {
+        const data = status.data as { images?: Array<{ url?: string; image_url?: string }> };
+        if (data.images && data.images.length > 0) {
+          setAssets(data.images);
+        }
+      }
+      // Also check direct images array
+      if (status.images && status.images.length > 0) {
+        setAssets(status.images);
+      }
     }
   }, [status]);
 
@@ -126,13 +163,68 @@ export default function AdsGenerator() {
 
       {jobId && (
         <div className="space-y-4">
-          <JobStatusPanel requestId={jobId} status={status} />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Generation Progress</CardTitle>
+                {statusError && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={retryStatus}
+                    className="gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Retry Status Check
+                  </Button>
+                )}
+              </div>
+              <CardDescription>
+                Request ID: {jobId}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isStatusLoading && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span>Processing...</span>
+                    <span>{Math.round(progress)}%</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                  <p className="text-xs text-muted-foreground">
+                    Elapsed: {Math.floor(elapsedTime / 1000)}s
+                  </p>
+                </div>
+              )}
+              <JobStatusPanel requestId={jobId} status={status} />
+            </CardContent>
+          </Card>
         </div>
       )}
 
       {assets.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Generated Ads</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Generated Ads ({assets.length})</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                assets.forEach((asset, index) => {
+                  const url = asset.url || asset.image_url;
+                  if (url) {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `ad-${index + 1}.jpg`;
+                    link.click();
+                  }
+                });
+                toast.success(`Downloaded ${assets.length} ad${assets.length > 1 ? 's' : ''}`);
+              }}
+            >
+              Download All
+            </Button>
+          </div>
           <AssetGrid assets={assets} />
         </div>
       )}

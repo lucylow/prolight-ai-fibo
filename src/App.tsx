@@ -54,6 +54,8 @@ import BriaProductImagery from "./pages/bria/ProductImagery";
 import BriaImageEditing from "./pages/bria/ImageEditing";
 import BriaVideoEditing from "./pages/bria/VideoEditing";
 import BriaImageOnboarding from "./pages/bria/ImageOnboarding";
+import BriaVehicleShotEditor from "./pages/bria/VehicleShotEditor";
+import BriaV1Generator from "./pages/bria/V1Generator";
 import PaymentPage from "./pages/PaymentPage";
 import Dashboard from "./pages/Dashboard";
 import AccountSettings from "./pages/AccountSettings";
@@ -192,6 +194,7 @@ function AnimatedRoutes() {
         <Route path="/bria/vehicle-shot" element={<PageWrapper><BriaVehicleShotEditor /></PageWrapper>} />
         <Route path="/bria/image-editing" element={<PageWrapper><BriaImageEditing /></PageWrapper>} />
         <Route path="/bria/video-editing" element={<PageWrapper><BriaVideoEditing /></PageWrapper>} />
+        <Route path="/bria/v1-generator" element={<PageWrapper><BriaV1Generator /></PageWrapper>} />
         <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
       </Routes>
     </AnimatePresence>

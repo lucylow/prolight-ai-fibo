@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 import { getMockGenerationResponse } from '@/services/mockData';
 import type { GenerateRequest } from '@/types/fibo';
 import {
-  generateLighting,
-  generateFromNaturalLanguage,
-  analyzeLighting,
+  generateLighting as generateLightingAPI,
+  generateFromNaturalLanguage as generateFromNaturalLanguageAPI,
+  analyzeLighting as analyzeLightingAPI,
   EdgeFunctionErrorClass,
   type GenerateLightingRequest,
   type NaturalLanguageLightingRequest,
@@ -59,10 +59,46 @@ export const useGeneration = () => {
     setLoading(true);
 
     try {
+      // Convert LightingSetup to API format
+      const apiLightingSetup: GenerateLightingRequest['lightingSetup'] = {
+        key: {
+          direction: lightingSetup.key.direction,
+          intensity: lightingSetup.key.intensity,
+          colorTemperature: lightingSetup.key.colorTemperature,
+          softness: lightingSetup.key.softness,
+          distance: lightingSetup.key.distance,
+          enabled: lightingSetup.key.enabled,
+        },
+        fill: {
+          direction: lightingSetup.fill.direction,
+          intensity: lightingSetup.fill.intensity,
+          colorTemperature: lightingSetup.fill.colorTemperature,
+          softness: lightingSetup.fill.softness,
+          distance: lightingSetup.fill.distance,
+          enabled: lightingSetup.fill.enabled,
+        },
+        rim: {
+          direction: lightingSetup.rim.direction,
+          intensity: lightingSetup.rim.intensity,
+          colorTemperature: lightingSetup.rim.colorTemperature,
+          softness: lightingSetup.rim.softness,
+          distance: lightingSetup.rim.distance,
+          enabled: lightingSetup.rim.enabled,
+        },
+        ambient: {
+          direction: 'omnidirectional',
+          intensity: lightingSetup.ambient.intensity,
+          colorTemperature: lightingSetup.ambient.colorTemperature,
+          softness: 1.0,
+          distance: 0,
+          enabled: lightingSetup.ambient.enabled,
+        },
+      };
+
       const sceneRequest: GenerateLightingRequest = {
         subjectDescription: sceneSettings.subjectDescription,
         environment: sceneSettings.environment,
-        lightingSetup: lightingSetup as GenerateLightingRequest['lightingSetup'],
+        lightingSetup: apiLightingSetup,
         cameraSettings,
         stylePreset: sceneSettings.stylePreset,
         enhanceHDR: sceneSettings.enhanceHDR,
@@ -75,7 +111,12 @@ export const useGeneration = () => {
         console.info('Using mock data (VITE_USE_MOCK_DATA enabled)');
         const mockRequest: GenerateRequest = {
           scene_description: sceneSettings.subjectDescription || sceneSettings.environment || 'Professional product photography',
-          lighting_setup: lightingSetup as Record<string, unknown>,
+          lighting_setup: {
+            key: lightingSetup.key,
+            fill: lightingSetup.fill,
+            rim: lightingSetup.rim,
+            ambient: lightingSetup.ambient,
+          } as unknown as Record<string, unknown>,
           use_mock: true,
         };
         const mockResponse = getMockGenerationResponse(mockRequest);
@@ -147,94 +188,19 @@ export const useGeneration = () => {
     setLoading(true);
 
     try {
-      const nlRequest = {
+      const nlRequest: NaturalLanguageLightingRequest = {
         sceneDescription,
         lightingDescription,
         subject: sceneSettings.subjectDescription,
         styleIntent: sceneSettings.stylePreset,
+        environment: sceneSettings.environment,
       };
 
       console.log('Generating from NL:', nlRequest);
 
-      let data;
-      let fnError;
-
-      try {
-        const result = await supabase.functions.invoke('natural-language-lighting', {
-          body: nlRequest
-        });
-        data = result.data;
-        fnError = result.error;
-      } catch (invokeError) {
-        console.warn('Supabase function invocation failed, using mock data:', invokeError);
-        fnError = invokeError as Error;
-      }
-
-      // If there's an error, try to use mock data as fallback
-      if (fnError) {
-        const errorMessage = fnError instanceof Error ? fnError.message : String(fnError);
-        const isNetworkError = errorMessage.includes('network') || 
-                              errorMessage.includes('fetch') || 
-                              errorMessage.includes('Failed to fetch');
-        
-        // Use mock data for network errors or if explicitly enabled
-        if (isNetworkError || import.meta.env.VITE_USE_MOCK_DATA === 'true') {
-          console.info('Falling back to mock data due to error:', errorMessage);
-          toast.warning('Using mock data due to connection issue. Some features may be limited.');
-          
-          const mockRequest: GenerateRequest = {
-            scene_description: sceneDescription,
-            lighting_setup: {},
-            use_mock: true,
-          };
-          const mockResponse = getMockGenerationResponse(mockRequest);
-          setGenerationResult({
-            image_url: mockResponse.image_url,
-            image_id: mockResponse.generation_id,
-            fibo_json: undefined,
-            lightingAnalysis: mockResponse.analysis,
-            generation_metadata: {
-              timestamp: mockResponse.timestamp,
-              duration_seconds: mockResponse.duration_seconds,
-              cost_credits: mockResponse.cost_credits,
-            }
-          });
-          
-          setError(null);
-          toast.success('Mock image generated from description!');
-          return {
-            image_url: mockResponse.image_url,
-            image_id: mockResponse.generation_id,
-            fibo_json: undefined,
-            lighting_analysis: mockResponse.analysis,
-            generation_metadata: {
-              timestamp: mockResponse.timestamp,
-              duration_seconds: mockResponse.duration_seconds,
-              cost_credits: mockResponse.cost_credits,
-            }
-          };
-        }
-        
-        // For non-network errors, throw normally
-        const genError = getErrorMessage({ error: { message: errorMessage, code: fnError.name || 'FUNCTION_ERROR' } });
-        setError(genError);
-        toast.error(getUserFriendlyMessage(genError));
-        throw genError;
-      }
-
-      if (data?.error) {
-        const genError = getErrorMessage(data);
-        setError(genError);
-        toast.error(getUserFriendlyMessage(genError));
-        throw genError;
-      }
-
-      // Validate response has required fields
-      if (!data?.image_url && !data?.image_id) {
-        // Try mock data fallback if response is invalid
-        console.warn('Invalid response, falling back to mock data');
-        toast.warning('Invalid response received. Using mock data.');
-        
+      // Use mock data if explicitly enabled
+      if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+        console.info('Using mock data (VITE_USE_MOCK_DATA enabled)');
         const mockRequest: GenerateRequest = {
           scene_description: sceneDescription,
           lighting_setup: {},
@@ -252,7 +218,6 @@ export const useGeneration = () => {
             cost_credits: mockResponse.cost_credits,
           }
         });
-        
         setError(null);
         toast.success('Mock image generated from description!');
         return {
@@ -268,6 +233,11 @@ export const useGeneration = () => {
         };
       }
 
+      // Call the edge function with improved error handling
+      const data = await generateFromNaturalLanguageAPI(nlRequest, {
+        showToast: false, // We'll show toast after setting state
+      });
+
       console.log('NL Generation result:', data);
 
       setGenerationResult({
@@ -282,9 +252,16 @@ export const useGeneration = () => {
       toast.success('Image generated from description!');
       return data;
     } catch (err) {
-      const genError = getErrorMessage(err);
+      const genError = toGenerationError(err);
       setError(genError);
-      toast.error(getUserFriendlyMessage(genError));
+      
+      // Show error toast (already shown by edge client, but show again if needed)
+      if (err instanceof EdgeFunctionErrorClass) {
+        toast.error(err.getUserMessage());
+      } else {
+        toast.error(genError.message || 'An unexpected error occurred');
+      }
+      
       throw genError;
     } finally {
       setIsGenerating(false);
@@ -298,11 +275,47 @@ export const useGeneration = () => {
       if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
         console.info('Using mock data for analysis (VITE_USE_MOCK_DATA enabled)');
         const { getMockLightingAnalysis } = await import('@/services/mockData');
-        return getMockLightingAnalysis(lightingSetup as Record<string, unknown>);
+        return getMockLightingAnalysis(lightingSetup as unknown as Record<string, unknown>);
       }
 
+      // Convert LightingSetup to API format
+      const apiLightingSetup: AnalyzeLightingRequest['lightingSetup'] = {
+        key: {
+          direction: lightingSetup.key.direction,
+          intensity: lightingSetup.key.intensity,
+          colorTemperature: lightingSetup.key.colorTemperature,
+          softness: lightingSetup.key.softness,
+          distance: lightingSetup.key.distance,
+          enabled: lightingSetup.key.enabled,
+        },
+        fill: {
+          direction: lightingSetup.fill.direction,
+          intensity: lightingSetup.fill.intensity,
+          colorTemperature: lightingSetup.fill.colorTemperature,
+          softness: lightingSetup.fill.softness,
+          distance: lightingSetup.fill.distance,
+          enabled: lightingSetup.fill.enabled,
+        },
+        rim: {
+          direction: lightingSetup.rim.direction,
+          intensity: lightingSetup.rim.intensity,
+          colorTemperature: lightingSetup.rim.colorTemperature,
+          softness: lightingSetup.rim.softness,
+          distance: lightingSetup.rim.distance,
+          enabled: lightingSetup.rim.enabled,
+        },
+        ambient: {
+          direction: 'omnidirectional',
+          intensity: lightingSetup.ambient.intensity,
+          colorTemperature: lightingSetup.ambient.colorTemperature,
+          softness: 1.0,
+          distance: 0,
+          enabled: lightingSetup.ambient.enabled,
+        },
+      };
+
       const request: AnalyzeLightingRequest = {
-        lightingSetup: lightingSetup as AnalyzeLightingRequest['lightingSetup'],
+        lightingSetup: apiLightingSetup,
         styleContext: sceneSettings.stylePreset,
       };
 

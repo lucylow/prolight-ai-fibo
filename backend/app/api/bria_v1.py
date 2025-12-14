@@ -471,3 +471,38 @@ async def enhance_prompt(request: PromptEnhanceRequest):
             raise HTTPException(status_code=e.response.status_code, detail=error_detail)
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/status/{request_id}")
+async def get_status(request_id: str):
+    """
+    Get status of a Bria V1 job by request_id.
+    
+    This is a simple wrapper that can be extended to query your status service
+    or directly poll Bria's status endpoint.
+    """
+    if not BRIA_API_TOKEN:
+        raise HTTPException(status_code=500, detail="BRIA_API_TOKEN not configured")
+    
+    # For now, return a placeholder. In production, integrate with your status service
+    # or call Bria's status endpoint directly
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Try to get status from Bria directly (if they expose a status endpoint)
+            # Otherwise, this should query your status service database
+            resp = await client.get(
+                f"{BRIA_V1_BASE}/status/{request_id}",
+                headers={"api_token": BRIA_API_TOKEN}
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError:
+        # If Bria doesn't have a direct status endpoint, return a placeholder
+        # In production, query your status service database here
+        return {
+            "request_id": request_id,
+            "status": "unknown",
+            "message": "Status endpoint not fully implemented. Check your status service."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
