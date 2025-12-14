@@ -397,6 +397,7 @@ const Index = () => {
           <br />
           <span className="text-[10px] opacity-60">
             Build: {typeof __BUILD_TIME__ !== 'undefined' && __BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleString() : 'dev mode'}
+            {typeof __COMMIT_HASH__ !== 'undefined' && __COMMIT_HASH__ && ` (${__COMMIT_HASH__})`}
           </span>
         </div>
       </footer>
