@@ -16,7 +16,7 @@ export default function MoodPaletteEditor() {
   const [palette, setPalette] = useState<number[][]>([]);
   const [luminance, setLuminance] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [patches, setPatches] = useState<Record<string, any>>({});
+  const [patches, setPatches] = useState<Record<string, unknown>>({});
   const [mood, setMood] = useState<string>("neutral");
 
   const lights = useLightingStore((s) => s.lights);
@@ -40,7 +40,7 @@ export default function MoodPaletteEditor() {
       setPalette(resp.data.palette);
       setLuminance(resp.data.luminance);
       toast.success("Palette extracted");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("palette extract failed", err);
       toast.error("Palette extraction failed");
     } finally {

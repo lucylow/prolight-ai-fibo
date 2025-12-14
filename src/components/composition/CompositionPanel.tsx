@@ -42,7 +42,15 @@ export default function CompositionPanel() {
         { image_url: urlInput }
       );
       // map proposals
-      const pro = resp.data.proposals.map((p: any) => ({
+      interface Proposal {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        aspect: number;
+        score: number;
+      }
+      const pro = (resp.data.proposals as Proposal[]).map((p) => ({
         x: p.x,
         y: p.y,
         width: p.width,
@@ -57,10 +65,13 @@ export default function CompositionPanel() {
         height: resp.data.height,
       });
       toast.success("Composition proposals ready");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? (err.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
       toast.error(
-        err.response?.data?.detail || "Failed to analyze image"
+        errorMessage || "Failed to analyze image"
       );
     } finally {
       setLoading(false);
@@ -81,7 +92,15 @@ export default function CompositionPanel() {
         `/compose/analyze?method=${method}`,
         { image_url: currentImage.image_url }
       );
-      const pro = resp.data.proposals.map((p: any) => ({
+      interface Proposal {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+        aspect: number;
+        score: number;
+      }
+      const pro = (resp.data.proposals as Proposal[]).map((p) => ({
         x: p.x,
         y: p.y,
         width: p.width,
@@ -95,17 +114,29 @@ export default function CompositionPanel() {
         height: resp.data.height,
       });
       toast.success("Composition proposals ready");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? (err.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
       toast.error(
-        err.response?.data?.detail || "Failed to analyze image"
+        errorMessage || "Failed to analyze image"
       );
     } finally {
       setLoading(false);
     }
   }
 
-  async function onSelectProposal(p: any) {
+  interface Proposal {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    aspect: number;
+    score: number;
+  }
+
+  async function onSelectProposal(p: Proposal) {
     setSelected(p);
   }
 
@@ -128,7 +159,7 @@ export default function CompositionPanel() {
       toast.info(
         "Preview applied (temporary). Use Accept to commit or Cancel to revert."
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       toast.error("Preview failed");
     }
@@ -156,7 +187,7 @@ export default function CompositionPanel() {
       toast.success("Composition accepted and saved.");
       // clear preview override
       setPreviewCameraOverride(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       toast.error("Failed to accept composition");
     }
