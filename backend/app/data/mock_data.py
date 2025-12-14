@@ -4,7 +4,10 @@ Contains presets, FIBO templates, generation history, and test fixtures.
 """
 
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+import time
+import hashlib
+import json
+from typing import Dict, List, Any, Optional
 
 # ============================================================================
 # FIBO JSON Prompt Templates
@@ -666,3 +669,101 @@ class MockDataManager:
         if template_type == "product":
             return FIBO_PRODUCT_TEMPLATE.copy()
         return FIBO_PORTRAIT_TEMPLATE.copy()
+
+    # --- New API Mock Implementations ---
+
+    @staticmethod
+    def get_mock_ads_generation(ad_campaign_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock Ads Generation API response."""
+        return {
+            "status": "processing",
+            "job_id": f"ad_job_{int(time.time())}",
+            "campaign_name": ad_campaign_data.get("campaign_name"),
+            "estimated_completion": (datetime.now() + timedelta(minutes=5)).isoformat(),
+            "creatives_generated": 0,
+            "target_formats": ad_campaign_data.get("ad_formats", []),
+        }
+
+    @staticmethod
+    def get_mock_image_onboarding(image_url: str, tags: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Mock Image Onboarding response."""
+        return {
+            "status": "completed",
+            "asset_id": f"asset_{int(time.time())}",
+            "original_url": image_url,
+            "processed_url": f"https://storage.bria.ai/processed/{int(time.time())}.png",
+            "tags": tags or [],
+            "metadata": {"dominant_color": "blue", "resolution": "2048x2048"},
+        }
+
+    @staticmethod
+    def get_mock_video_editing(video_url: str, edit_instructions: str) -> Dict[str, Any]:
+        """Mock Video Editing (async v2) response."""
+        return {
+            "status": "processing",
+            "job_id": f"video_job_{int(time.time())}",
+            "original_url": video_url,
+            "instructions": edit_instructions,
+            "estimated_completion": (datetime.now() + timedelta(minutes=15)).isoformat(),
+        }
+
+    @staticmethod
+    def get_mock_tailored_generation(fibo_prompt: Dict[str, Any], user_profile: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock Tailored Generation response."""
+        gen_id = f"tailored_gen_{int(time.time())}"
+        return {
+            "status": "completed",
+            "generation_id": gen_id,
+            "image_url": f"https://via.placeholder.com/2048x2048?text=Tailored+Gen+{gen_id}",
+            "duration_seconds": 4.0,
+            "cost_credits": 0.05,
+            "timestamp": datetime.now().isoformat(),
+            "meta": {"user_profile": user_profile, "fibo_prompt_hash": hashlib.sha256(json.dumps(fibo_prompt, sort_keys=True).encode()).hexdigest()},
+        }
+
+    @staticmethod
+    def get_mock_product_shot_editing(image_url: str, product_prompt: str) -> Dict[str, Any]:
+        """Mock Product Shot Editing response."""
+        return {
+            "status": "completed",
+            "original_url": image_url,
+            "edited_url": f"https://storage.bria.ai/edited/product_{int(time.time())}.png",
+            "prompt_applied": product_prompt,
+            "model": "product-shot-edit-v1",
+            "cost_credits": 0.03,
+        }
+
+    @staticmethod
+    def get_mock_image_editing(image_url: str, edit_prompt: str) -> Dict[str, Any]:
+        """Mock Image Editing response."""
+        return {
+            "status": "completed",
+            "original_url": image_url,
+            "edited_url": f"https://storage.bria.ai/edited/image_{int(time.time())}.png",
+            "prompt_applied": edit_prompt,
+            "model": "image-edit-v1",
+            "cost_credits": 0.02,
+        }
+
+    @staticmethod
+    def get_mock_generation_v1(fibo_prompt: Dict[str, Any]) -> Dict[str, Any]:
+        """Mock Image Generation (v1) response."""
+        gen_id = f"v1_gen_{int(time.time())}"
+        return {
+            "status": "completed",
+            "job_id": gen_id,
+            "image_url": f"https://via.placeholder.com/2048x2048?text=V1+Gen+{gen_id}",
+            "cost_credits": 0.04,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    @staticmethod
+    def get_mock_status(job_id: str) -> Dict[str, Any]:
+        """Return a mock status response."""
+        return {
+            "job_id": job_id,
+            "status": "completed",
+            "progress": 100,
+            "result_url": f"https://via.placeholder.com/2048x2048?text=Job+Result+{job_id}",
+            "timestamp": datetime.now().isoformat(),
+        }

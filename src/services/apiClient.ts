@@ -11,7 +11,6 @@ import type {
   BatchJobResponse,
   LightingAnalysis,
   HealthResponse,
-  LightingPreset,
 } from '@/types/fibo';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -381,28 +380,14 @@ class APIClient {
     };
   }
 
-  private mockListPresets(category?: string): PresetListResponse {
-    const defaultMainLight = {
-      type: 'area' as const,
-      direction: '45 degrees camera-right',
-      position: [1, 1, 1] as [number, number, number],
-      intensity: 0.8,
-      colorTemperature: 5600,
-      softness: 0.5,
-      enabled: true,
-      distance: 1.5,
-    };
-
-    const presets: LightingPreset[] = [
+  private mockListPresets(category?: string) {
+    const presets = [
       {
         presetId: 'butterfly_classic',
         name: 'Butterfly Classic',
         category: 'portrait',
         description: 'Soft, flattering beauty lighting',
-        lighting_config: {
-          mainLight: { ...defaultMainLight, direction: 'above camera' },
-          lightingStyle: 'butterfly',
-        },
+        lighting_config: {},
         ideal_for: ['beauty', 'commercial', 'headshots'],
       },
       {
@@ -410,10 +395,7 @@ class APIClient {
         name: 'Rembrandt Classic',
         category: 'portrait',
         description: 'Dramatic side lighting',
-        lighting_config: {
-          mainLight: { ...defaultMainLight, direction: '45 degrees side' },
-          lightingStyle: 'rembrandt',
-        },
+        lighting_config: {},
         ideal_for: ['dramatic', 'editorial'],
       },
     ];

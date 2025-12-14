@@ -1,10 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getConfig, validateConfig } from "../_shared/config.ts";
-import { createLogger, generateRequestId } from "../_shared/logger.ts";
-import { createMetricsTracker } from "../_shared/metrics.ts";
-import { fetchWithRetry } from "../_shared/retry.ts";
-import { getIdempotencyKey, handleIdempotencyCheck, setInProgress, setCompleted, setFailed } from "../_shared/idempotency.ts";
-import { handleCors, jsonResponse, errorResponse, handleHttpError, corsHeaders } from "../_shared/response.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface LightSettings {
   direction: string;
@@ -31,6 +30,7 @@ interface SceneRequest {
   negativePrompt?: string;
 }
 
+// Professional lighting style definitions
 const LIGHTING_STYLES: Record<string, { ratioRange: [number, number]; description: string }> = {
   high_contrast_dramatic: { ratioRange: [8.0, Infinity], description: "Dramatic high-contrast" },
   dramatic: { ratioRange: [4.0, 8.0], description: "Strong dramatic shadows" },
@@ -40,83 +40,77 @@ const LIGHTING_STYLES: Record<string, { ratioRange: [number, number]; descriptio
 };
 
 serve(async (req) => {
-  // Handle CORS
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
-
-  // Initialize request context
-  const requestId = generateRequestId();
-  const config = getConfig();
-  const logger = createLogger('generate-lighting', requestId);
-  const metrics = createMetricsTracker('generate-lighting', requestId, config.env);
-
-  // Check idempotency
-  const idempotencyKey = getIdempotencyKey(req);
-  const cachedResponse = handleIdempotencyCheck(idempotencyKey, corsHeaders);
-  if (cachedResponse) {
-    metrics.cacheHit();
-    logger.info('request.cache_hit', { idempotencyKey });
-    return cachedResponse;
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
 
-  metrics.invocation(idempotencyKey || undefined);
-  logger.info('request.start', { env: config.env });
-
   try {
-    // Validate configuration
-    validateConfig(config, ['lovableApiKey']);
-
     const sceneRequest: SceneRequest = await req.json();
-    logger.info('request.parsed', { subject: sceneRequest.subjectDescription });
+    console.log("Received scene request:", JSON.stringify(sceneRequest));
 
-    // Mark as in progress if idempotency key provided
-    if (idempotencyKey) {
-      setInProgress(idempotencyKey, requestId);
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     // Build FIBO-style JSON from lighting setup
     const fiboJson = buildFiboJson(sceneRequest);
-    const lightingAnalysis = analyzeLighting(sceneRequest.lightingSetup, sceneRequest.stylePreset);
-    const imagePrompt = buildProfessionalImagePrompt(sceneRequest, fiboJson, lightingAnalysis);
+    console.log("Built FIBO JSON:", JSON.stringify(fiboJson));
 
-    logger.info('prompt.built', { 
-      style: lightingAnalysis.lightingStyle,
-      ratio: lightingAnalysis.keyFillRatio 
+    // Calculate comprehensive lighting analysis
+    const lightingAnalysis = analyzeLighting(sceneRequest.lightingSetup, sceneRequest.stylePreset);
+    console.log("Lighting analysis:", JSON.stringify(lightingAnalysis));
+
+    // Generate professional image prompt with detailed lighting specs
+    const imagePrompt = buildProfessionalImagePrompt(sceneRequest, fiboJson, lightingAnalysis);
+    console.log("Image prompt:", imagePrompt);
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-image-preview",
+        messages: [
+          {
+            role: "user",
+            content: imagePrompt
+          }
+        ],
+        modalities: ["image", "text"]
+      }),
     });
 
-    // Call AI with retry
-    const response = await fetchWithRetry(
-      () => fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image-preview",
-          messages: [{ role: "user", content: imagePrompt }],
-          modalities: ["image", "text"]
-        }),
-      }),
-      { maxAttempts: 3, baseDelayMs: 500 }
-    );
-
     if (!response.ok) {
-      logger.error('ai.error', undefined, { status: response.status });
-      if (idempotencyKey) setFailed(idempotencyKey, `AI error: ${response.status}`);
-      metrics.error(response.status, `AI gateway error: ${response.status}`);
-      return handleHttpError(response);
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
+      
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw new Error(`AI gateway error: ${errorText}`);
     }
 
     const data = await response.json();
-    logger.info('ai.response_received');
+    console.log("AI response received");
 
     const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
     const textContent = data.choices?.[0]?.message?.content || "";
 
-    const result = {
+    return new Response(JSON.stringify({
       image_url: imageUrl || null,
-      image_id: requestId,
+      image_id: crypto.randomUUID(),
       fibo_json: fiboJson,
       lighting_analysis: lightingAnalysis,
       generation_metadata: {
@@ -125,37 +119,27 @@ serve(async (req) => {
         lighting_style: lightingAnalysis.lightingStyle,
         key_fill_ratio: lightingAnalysis.keyFillRatio,
         professional_rating: lightingAnalysis.professionalRating,
-        timestamp: new Date().toISOString(),
-        request_id: requestId,
-        environment: config.env
+        timestamp: new Date().toISOString()
       }
-    };
-
-    // Store completed result
-    if (idempotencyKey) {
-      setCompleted(idempotencyKey, result);
-    }
-
-    metrics.completed(200, { hasImage: !!imageUrl });
-    logger.complete(200, { imageGenerated: !!imageUrl });
-
-    return jsonResponse(result);
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    logger.error('request.failed', error instanceof Error ? error : errorMessage);
-    metrics.error(500, errorMessage);
-    
-    if (idempotencyKey) setFailed(idempotencyKey, errorMessage);
-    
-    return errorResponse(errorMessage, 500);
+    console.error("Error in generate-lighting:", error);
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
 
 function buildFiboJson(request: SceneRequest) {
   const { lightingSetup, cameraSettings, subjectDescription, environment } = request;
 
-  const lightingJson: Record<string, unknown> = {};
+  const lightingJson: Record<string, any> = {};
   for (const [type, settings] of Object.entries(lightingSetup)) {
     if (settings.enabled) {
       lightingJson[`${type}_light`] = {
@@ -170,6 +154,7 @@ function buildFiboJson(request: SceneRequest) {
     }
   }
 
+  // Extract color temperatures for white balance
   const keyTemp = lightingSetup.key?.colorTemperature || 5600;
   
   return {
@@ -216,9 +201,10 @@ function buildFiboJson(request: SceneRequest) {
   };
 }
 
-function buildProfessionalImagePrompt(request: SceneRequest, _fiboJson: unknown, analysis: ReturnType<typeof analyzeLighting>): string {
+function buildProfessionalImagePrompt(request: SceneRequest, fiboJson: any, analysis: any): string {
   const { lightingSetup, cameraSettings } = request;
   
+  // Build detailed lighting description
   let lightingDesc = "";
   
   if (lightingSetup.key?.enabled) {
@@ -243,8 +229,10 @@ function buildProfessionalImagePrompt(request: SceneRequest, _fiboJson: unknown,
     lightingDesc += `Ambient fill: ${Math.round(lightingSetup.ambient.intensity * 100)}% for shadow detail. `;
   }
 
+  // Build camera description
   const dofDesc = getDepthOfField(cameraSettings.aperture);
   
+  // Construct the professional prompt
   return `Generate a professional studio photograph with expert-level lighting control:
 
 SUBJECT: ${request.subjectDescription}
@@ -298,8 +286,10 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePres
 
   const keyIntensity = key?.enabled ? key.intensity : 0;
   const fillIntensity = fill?.enabled ? fill.intensity : 0.1;
+  
   const keyFillRatio = keyIntensity / Math.max(fillIntensity, 0.1);
   
+  // Determine lighting style
   let lightingStyle = "classical_portrait";
   if (keyFillRatio >= 8) lightingStyle = "high_contrast_dramatic";
   else if (keyFillRatio >= 4) lightingStyle = "dramatic";
@@ -307,6 +297,7 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePres
   else if (keyFillRatio >= 1.5) lightingStyle = "soft_lighting";
   else lightingStyle = "flat_lighting";
 
+  // Calculate contrast score
   const intensities = [
     key?.enabled ? key.intensity : 0,
     fill?.enabled ? fill.intensity : 0,
@@ -317,8 +308,10 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePres
   const maxIntensity = Math.max(...intensities, 0.1);
   const minIntensity = Math.min(...intensities, 0);
   const contrastScore = intensities.length > 1 ? (maxIntensity - minIntensity) / maxIntensity : 0.5;
+
   const totalExposure = intensities.reduce((a, b) => a + b, 0);
 
+  // Color temperature analysis
   const temps = [
     key?.enabled ? key.colorTemperature : null,
     fill?.enabled ? fill.colorTemperature : null,
@@ -327,6 +320,7 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>, stylePres
 
   const avgTemp = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : 5600;
 
+  // Calculate professional rating based on context
   const styleContext = stylePreset?.includes("dramatic") ? "dramatic" : 
                        stylePreset?.includes("fashion") ? "fashion" : 
                        stylePreset?.includes("beauty") ? "beauty" : "portrait";

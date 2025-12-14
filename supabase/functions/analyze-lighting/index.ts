@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { getConfig } from "../_shared/config.ts";
-import { createLogger, generateRequestId } from "../_shared/logger.ts";
-import { createMetricsTracker } from "../_shared/metrics.ts";
-import { handleCors, jsonResponse, errorResponse, corsHeaders } from "../_shared/response.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface LightSettings {
   direction: string;
@@ -13,6 +14,12 @@ interface LightSettings {
   enabled: boolean;
 }
 
+interface AnalysisRequest {
+  lightingSetup: Record<string, LightSettings>;
+  styleContext?: string;
+}
+
+// Professional lighting style definitions with ratio ranges
 const LIGHTING_STYLES: Record<string, { ratioRange: [number, number]; description: string }> = {
   high_contrast_dramatic: { ratioRange: [8.0, Infinity], description: "Dramatic, high-contrast lighting with deep shadows" },
   dramatic: { ratioRange: [4.0, 8.0], description: "Dramatic lighting with strong shadows" },
@@ -22,6 +29,7 @@ const LIGHTING_STYLES: Record<string, { ratioRange: [number, number]; descriptio
   ultra_soft: { ratioRange: [0.0, 1.0], description: "Very soft, almost shadowless lighting" }
 };
 
+// Professional rating configurations per style context
 const PROFESSIONAL_RATINGS: Record<string, { idealRatio: [number, number]; maxScore: number }> = {
   portrait: { idealRatio: [2.0, 3.0], maxScore: 10 },
   fashion: { idealRatio: [3.0, 6.0], maxScore: 10 },
@@ -33,36 +41,35 @@ const PROFESSIONAL_RATINGS: Record<string, { idealRatio: [number, number]; maxSc
 };
 
 serve(async (req) => {
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
-
-  const requestId = generateRequestId();
-  const config = getConfig();
-  const logger = createLogger('analyze-lighting', requestId);
-  const metrics = createMetricsTracker('analyze-lighting', requestId, config.env);
-
-  metrics.invocation();
-  logger.info('request.start', { env: config.env });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
 
   try {
     const body = await req.json();
+    
+    // Support both direct lightingSetup or wrapped request
     const lightingSetup: Record<string, LightSettings> = body.lightingSetup || body;
     const styleContext: string = body.styleContext || "portrait";
     
-    logger.info('request.parsed', { styleContext, lightCount: Object.keys(lightingSetup).length });
+    console.log("Analyzing lighting setup:", JSON.stringify(lightingSetup));
+    console.log("Style context:", styleContext);
 
     const analysis = analyzeLighting(lightingSetup, styleContext);
-    
-    metrics.completed(200, { style: analysis.lightingStyle });
-    logger.complete(200, { rating: analysis.professionalRating });
+    console.log("Analysis result:", JSON.stringify(analysis));
 
-    return jsonResponse(analysis);
+    return new Response(JSON.stringify(analysis), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    logger.error('request.failed', error instanceof Error ? error : errorMessage);
-    metrics.error(400, errorMessage);
-    return errorResponse(errorMessage, 400);
+    console.error("Error in analyze-lighting:", error);
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
 
@@ -72,17 +79,27 @@ function analyzeLighting(lightingSetup: Record<string, LightSettings>, styleCont
   const rim = lightingSetup.rim;
   const ambient = lightingSetup.ambient;
 
+  // Calculate key metrics
   const keyFillRatio = calculateKeyFillRatio(key, fill);
   const contrastScore = calculateContrastScore(lightingSetup);
   const totalExposure = calculateTotalExposure(lightingSetup);
   const colorAnalysis = analyzeColorTemperatures(lightingSetup);
   const shadowAnalysis = analyzeShadowCharacteristics(lightingSetup);
   
+  // Determine lighting style
   const lightingStyle = determineLightingStyle(keyFillRatio);
   const lightingStyleDescription = LIGHTING_STYLES[lightingStyle]?.description || "Custom lighting setup";
+  
+  // Calculate professional rating
   const professionalRating = calculateProfessionalRating(keyFillRatio, contrastScore, styleContext);
+  
+  // Generate recommendations
   const recommendations = generateRecommendations(lightingSetup, keyFillRatio, styleContext);
+  
+  // Generate technical notes
   const technicalNotes = generateTechnicalNotes(lightingSetup, colorAnalysis, shadowAnalysis);
+  
+  // Calculate 3D light positions for visualization
   const lightPositions = calculate3DLightPositions(lightingSetup);
 
   return {
@@ -144,15 +161,18 @@ function analyzeColorTemperatures(lightingSetup: Record<string, LightSettings>) 
   const temps = activeLights.map(light => light.colorTemperature);
   const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
   
+  // Calculate variance and harmony score
   const variance = temps.reduce((sum, temp) => sum + Math.pow(temp - avgTemp, 2), 0) / temps.length;
   const harmonyScore = Math.max(0, 1 - (variance / 2000000));
   
+  // Determine harmony assessment
   let harmonyAssessment: string;
   if (harmonyScore > 0.8) harmonyAssessment = "harmonious";
   else if (harmonyScore > 0.6) harmonyAssessment = "balanced";
   else if (harmonyScore > 0.4) harmonyAssessment = "contrasting";
   else harmonyAssessment = "creative_contrast";
   
+  // Determine warmth
   let warmthDescription: string;
   if (avgTemp < 3500) warmthDescription = "very warm (tungsten)";
   else if (avgTemp < 4500) warmthDescription = "warm";
@@ -182,6 +202,7 @@ function analyzeShadowCharacteristics(lightingSetup: Record<string, LightSetting
   const shadowIntensity = Math.max(0, 1 - (fillIntensity / Math.max(key.intensity, 0.1)));
   const shadowSoftness = key.softness;
   
+  // Determine shadow character
   let shadowCharacter: string;
   if (shadowIntensity > 0.7 && shadowSoftness < 0.4) shadowCharacter = "hard_dramatic";
   else if (shadowIntensity > 0.7) shadowCharacter = "dramatic";
@@ -212,6 +233,7 @@ function calculateProfessionalRating(keyFillRatio: number, contrastScore: number
   const [idealMin, idealMax] = styleConfig.idealRatio;
   const maxScore = styleConfig.maxScore;
   
+  // Ratio score: how close to ideal ratio
   let ratioScore: number;
   if (keyFillRatio >= idealMin && keyFillRatio <= idealMax) {
     ratioScore = 1.0;
@@ -220,6 +242,7 @@ function calculateProfessionalRating(keyFillRatio: number, contrastScore: number
     ratioScore = Math.max(0, 1 - (distance / (idealMax * 2)));
   }
   
+  // Combined score with weights
   return Math.min((ratioScore * 0.6 + contrastScore * 0.4) * maxScore, maxScore);
 }
 
@@ -237,12 +260,14 @@ function generateRecommendations(
   const styleConfig = PROFESSIONAL_RATINGS[styleContext] || PROFESSIONAL_RATINGS.portrait;
   const [idealMin, idealMax] = styleConfig.idealRatio;
   
+  // Ratio-based recommendations
   if (keyFillRatio > idealMax) {
     recommendations.push(`Consider reducing key light or increasing fill light to achieve ideal ${styleContext} ratio (${idealMin}:1 to ${idealMax}:1)`);
   } else if (keyFillRatio < idealMin) {
     recommendations.push(`Consider increasing key light intensity for better definition in ${styleContext} photography`);
   }
   
+  // Individual light recommendations
   if (key) {
     if (key.softness < 0.3) {
       recommendations.push("Soften key light for more flattering shadows and better skin texture");
@@ -266,6 +291,7 @@ function generateRecommendations(
     recommendations.push("High ambient light may flatten the image - reduce for more three-dimensional look");
   }
   
+  // Color temperature recommendations
   const colorAnalysis = analyzeColorTemperatures(lightingSetup);
   if (colorAnalysis.harmonyAssessment === "creative_contrast") {
     recommendations.push("Color temperatures vary significantly - ensure this is intentional for creative effect");
@@ -280,21 +306,25 @@ function generateRecommendations(
 
 function generateTechnicalNotes(
   lightingSetup: Record<string, LightSettings>,
-  colorAnalysis: ReturnType<typeof analyzeColorTemperatures>,
-  shadowAnalysis: ReturnType<typeof analyzeShadowCharacteristics>
+  colorAnalysis: any,
+  shadowAnalysis: any
 ): string[] {
   const notes: string[] = [];
   
+  // Count active lights
   const activeLights = Object.values(lightingSetup).filter(light => light?.enabled).length;
   notes.push(`Active lights: ${activeLights}/4`);
   
+  // Color temperature notes
   notes.push(`Color temperature range: ${colorAnalysis.temperatureRange}`);
   notes.push(`Color harmony: ${colorAnalysis.harmonyAssessment} (score: ${colorAnalysis.harmonyScore})`);
   notes.push(`Overall warmth: ${colorAnalysis.warmthDescription}`);
   
+  // Shadow notes
   notes.push(`Shadow character: ${shadowAnalysis.shadowCharacter}`);
   notes.push(`Shadow transitions: ${shadowAnalysis.transitionQuality}`);
   
+  // Exposure notes
   const totalExposure = calculateTotalExposure(lightingSetup);
   if (totalExposure > 1.2) {
     notes.push("⚠️ High total exposure - watch for overexposure on highlights");
@@ -316,6 +346,7 @@ function calculate3DLightPositions(lightingSetup: Record<string, LightSettings>)
     const direction = settings.direction.toLowerCase();
     const distance = settings.distance || 1.5;
     
+    // Convert direction description to 3D coordinates
     if (direction.includes("45 degrees") && direction.includes("right")) {
       positions[lightType] = { x: 0.7 * distance, y: 0.7, z: 0.5 * distance };
     } else if (direction.includes("45 degrees") && direction.includes("left")) {
