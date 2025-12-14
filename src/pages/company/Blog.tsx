@@ -1,33 +1,57 @@
-const posts = [
-  {
-    title: "Why Deterministic AI Matters for Creative Teams",
-    excerpt: "Prompt randomness breaks production workflows. Structured generation fixes it.",
-    date: "2025-01-12"
-  },
-  {
-    title: "From Studio Lighting to FIBO JSON",
-    excerpt: "How we mapped professional lighting theory into AI-native schemas.",
-    date: "2024-12-02"
-  }
-];
+import React, { useEffect, useState } from "react";
+import { SEO } from "@/components/SEO";
+import { Link } from "react-router-dom";
+
+// Vite: import all .mdx files from content/posts
+const mdxFiles = import.meta.glob("../../content/posts/*.mdx", { eager: true }) as Record<string, any>;
+
+type PostMeta = { 
+  title: string; 
+  date: string; 
+  description?: string; 
+  slug: string;
+  mod: any;
+};
 
 export default function BlogPage() {
-  return (
-    <div className="max-w-5xl mx-auto px-6 pt-24 pb-20">
-      <h1 className="text-4xl font-bold mb-12">Blog</h1>
+  const [posts, setPosts] = useState<PostMeta[]>([]);
 
-      <div className="space-y-8">
-        {posts.map(post => (
-          <article
-            key={post.title}
-            className="border rounded-xl p-6 hover:bg-gray-50 transition"
-          >
-            <h2 className="text-xl font-semibold">{post.title}</h2>
-            <p className="text-gray-600 mt-2">{post.excerpt}</p>
-            <p className="text-sm text-gray-400 mt-4">{post.date}</p>
-          </article>
-        ))}
+  useEffect(() => {
+    const list = Object.entries(mdxFiles).map(([path, mod]) => {
+      const meta = mod.frontmatter || mod.meta || {};
+      const slug = path.split("/").pop()?.replace(/\.mdx$/, "") || "";
+      return { 
+        title: meta.title || slug, 
+        date: meta.date || "1970-01-01", 
+        description: meta.description || "", 
+        slug, 
+        mod 
+      };
+    }).sort((a, b) => (a.date < b.date ? 1 : -1));
+    setPosts(list);
+  }, []);
+
+  return (
+    <>
+      <SEO title="Blog" description="ProLight AI engineering & product updates" />
+      <div className="max-w-5xl mx-auto px-6 py-16">
+        <h1 className="text-4xl font-bold mb-8">Blog</h1>
+        <div className="grid gap-6">
+          {posts.map(post => (
+            <article key={post.slug} className="p-6 border rounded-lg bg-card">
+              <h2 className="text-xl font-semibold">{post.title}</h2>
+              <p className="text-sm text-muted-foreground">{post.date}</p>
+              <p className="mt-3 text-muted-foreground">{post.description}</p>
+              <Link 
+                to={`/company/blog/${post.slug}`} 
+                className="mt-3 inline-block text-primary hover:text-primary/80"
+              >
+                Read →
+              </Link>
+            </article>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -58,6 +58,20 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        brand: {
+          50: "#f0fdf9",
+          100: "#ccfbf1",
+          300: "#2dd4bf",
+          500: "#14b8a6",
+          700: "#0f766e",
+        },
+        surface: {
+          light: "#ffffff",
+          dark: "#0b0f14",
+        },
+      },
+      boxShadow: {
+        card: "0 8px 24px rgba(2,6,23,0.12)",
       },
       borderRadius: {
         lg: "var(--radius)",

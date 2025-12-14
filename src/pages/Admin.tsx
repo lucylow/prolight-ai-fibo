@@ -1,0 +1,272 @@
+import React, { useEffect, useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Breadcrumbs from "@/components/Breadcrumbs";
+import { Shield, Users, Building2, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
+import axios from "axios";
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  teams: number;
+  role: "admin" | "editor" | "viewer";
+  status: "active" | "suspended";
+  createdAt: string;
+}
+
+interface Organization {
+  id: string;
+  name: string;
+  members: number;
+  plan: string;
+  createdAt: string;
+}
+
+const Admin = () => {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+    fetchOrganizations();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      // TODO: Replace with actual API endpoint
+      // const response = await axios.get(`${API_BASE_URL}/api/admin/users`);
+      // setUsers(response.data);
+      
+      // Mock data
+      setUsers([
+        {
+          id: "1",
+          name: "John Doe",
+          email: "john@example.com",
+          teams: 2,
+          role: "admin",
+          status: "active",
+          createdAt: "2025-01-15",
+        },
+        {
+          id: "2",
+          name: "Jane Smith",
+          email: "jane@example.com",
+          teams: 1,
+          role: "editor",
+          status: "active",
+          createdAt: "2025-02-20",
+        },
+        {
+          id: "3",
+          name: "Bob Wilson",
+          email: "bob@example.com",
+          teams: 0,
+          role: "viewer",
+          status: "suspended",
+          createdAt: "2025-03-10",
+        },
+      ]);
+    } catch (error: any) {
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrganizations = async () => {
+    try {
+      // TODO: Replace with actual API endpoint
+      // const response = await axios.get(`${API_BASE_URL}/api/admin/organizations`);
+      // setOrganizations(response.data);
+      
+      // Mock data
+      setOrganizations([
+        {
+          id: "1",
+          name: "ProLight Studio",
+          members: 12,
+          plan: "Pro",
+          createdAt: "2025-01-15",
+        },
+        {
+          id: "2",
+          name: "Retail Brand Inc",
+          members: 5,
+          plan: "Enterprise",
+          createdAt: "2025-02-20",
+        },
+      ]);
+    } catch (error: any) {
+      toast.error("Failed to load organizations");
+    }
+  };
+
+  const handleSuspendUser = async (userId: string) => {
+    try {
+      // TODO: Replace with actual API endpoint
+      // await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/suspend`);
+      toast.success("User suspended");
+      fetchUsers();
+    } catch (error: any) {
+      toast.error("Failed to suspend user");
+    }
+  };
+
+  const handleResetMFA = async (userId: string) => {
+    try {
+      // TODO: Replace with actual API endpoint
+      // await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/reset-mfa`);
+      toast.success("MFA reset");
+    } catch (error: any) {
+      toast.error("Failed to reset MFA");
+    }
+  };
+
+  const getRoleBadgeVariant = (role: string): "default" | "secondary" | "outline" => {
+    switch (role) {
+      case "admin":
+        return "default";
+      case "editor":
+        return "secondary";
+      case "viewer":
+        return "outline";
+      default:
+        return "outline";
+    }
+  };
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <Breadcrumbs />
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Shield className="w-8 h-8 text-primary" />
+          <h1 className="text-3xl font-bold">Admin Console</h1>
+        </div>
+        <p className="text-muted-foreground">Manage users, organizations, and system settings</p>
+      </div>
+
+      <Tabs defaultValue="users" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Users
+          </TabsTrigger>
+          <TabsTrigger value="organizations" className="flex items-center gap-2">
+            <Building2 className="w-4 h-4" />
+            Organizations
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="users">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+              <CardDescription>View and manage user accounts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Teams</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.teams}</TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(user.role)}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.status === "active" ? "default" : "destructive"}>
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{new Date(user.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {user.status === "active" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleSuspendUser(user.id)}
+                            >
+                              Suspend
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleResetMFA(user.id)}
+                          >
+                            Reset MFA
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="organizations">
+          <Card>
+            <CardHeader>
+              <CardTitle>Organizations</CardTitle>
+              <CardDescription>View all organizations and their details</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Organization Name</TableHead>
+                    <TableHead>Members</TableHead>
+                    <TableHead>Plan</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {organizations.map((org) => (
+                    <TableRow key={org.id}>
+                      <TableCell className="font-medium">{org.name}</TableCell>
+                      <TableCell>{org.members}</TableCell>
+                      <TableCell>
+                        <Badge>{org.plan}</Badge>
+                      </TableCell>
+                      <TableCell>{new Date(org.createdAt).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default Admin;
