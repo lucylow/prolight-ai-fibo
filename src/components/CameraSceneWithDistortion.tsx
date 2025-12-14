@@ -58,17 +58,17 @@ const DistortionShader = {
 };
 
 function PostprocessingComposer() {
-  const composerRef = useRef<any>(null);
+  const composerRef = useRef<EffectComposer | null>(null);
   const k1 = useCameraStore((s) => s.lensSim.distortionK1);
   const k2 = useCameraStore((s) => s.lensSim.distortionK2);
   const aspect = useCameraStore((s) => s.camera.aspectRatio);
 
   // create shader pass once
-  const passRef = useRef<any>(null);
+  const passRef = useRef<ShaderPass | null>(null);
   useEffect(() => {
     // create ShaderPass using the shader object
     try {
-      passRef.current = new ShaderPass(DistortionShader as any);
+      passRef.current = new ShaderPass(DistortionShader as THREE.ShaderMaterialParameters);
       // material created inside pass; set initial uniforms
       passRef.current.material.uniforms.k1.value = k1;
       passRef.current.material.uniforms.k2.value = k2;
@@ -117,7 +117,7 @@ function PostprocessingComposer() {
   }, [k1, k2, aspect]);
 
   // render composer (we still return <EffectComposer> to keep react-three-postprocessing happy)
-  return <EffectComposer ref={composerRef as any} disableGamma={false} />;
+  return <EffectComposer ref={composerRef} disableGamma={false} />;
 }
 
 /** small demo scene (replace with your product scene) */

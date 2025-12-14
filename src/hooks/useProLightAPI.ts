@@ -73,7 +73,7 @@ export function usePresets() {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.listPresets(category, page, pageSize);
-        setState({ loading: false, error: null, data: result as any });
+        setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
         const err = handleError(error, 'Failed to fetch presets');
@@ -88,7 +88,7 @@ export function usePresets() {
     setState({ loading: true, error: null, data: null });
     try {
       const result = await apiClient.getPreset(presetId);
-      setState({ loading: false, error: null, data: result as any });
+      setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
       const err = handleError(error, 'Operation failed');
@@ -102,7 +102,7 @@ export function usePresets() {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.searchPresets(query, page, pageSize);
-        setState({ loading: false, error: null, data: result as any });
+        setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
         const err = handleError(error, 'Failed to fetch presets');
@@ -128,7 +128,7 @@ export function useHistory() {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.getHistory(page, pageSize, presetFilter);
-        setState({ loading: false, error: null, data: result as any });
+        setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
         const err = handleError(error, 'Failed to fetch presets');
@@ -143,7 +143,7 @@ export function useHistory() {
     setState({ loading: true, error: null, data: null });
     try {
       const result = await apiClient.getGenerationDetail(generationId);
-      setState({ loading: false, error: null, data: result as any });
+      setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
       const err = handleError(error, 'Operation failed');
@@ -156,7 +156,7 @@ export function useHistory() {
     setState({ loading: true, error: null, data: null });
     try {
       const result = await apiClient.deleteGeneration(generationId);
-      setState({ loading: false, error: null, data: result as any });
+      setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
       const err = handleError(error, 'Operation failed');
@@ -169,7 +169,7 @@ export function useHistory() {
     setState({ loading: true, error: null, data: null });
     try {
       const result = await apiClient.getHistoryStats();
-      setState({ loading: false, error: null, data: result as any });
+      setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
       const err = handleError(error, 'Operation failed');
@@ -199,7 +199,7 @@ export function useBatchGeneration() {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.batchGenerate(items, presetName, totalCount);
-        setState({ loading: false, error: null, data: result as any });
+        setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
         const err = handleError(error, 'Failed to fetch presets');
@@ -238,7 +238,7 @@ export function useBatchGeneration() {
         numLightingSetups,
         presetId
       );
-      setState({ loading: false, error: null, data: result as any });
+      setState({ loading: false, error: null, data: result });
       return result;
       } catch (error) {
         const err = handleError(error, 'Failed to fetch presets');
@@ -292,7 +292,7 @@ export function useLightingAnalysis() {
     setState({ loading: true, error: null, data: null });
     try {
       const result = await apiClient.getStyleRecommendations(lightingStyle);
-      setState({ loading: false, error: null, data: result as any });
+      setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
       const err = handleError(error, 'Failed to get style recommendations');

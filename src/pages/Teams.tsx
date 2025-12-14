@@ -60,7 +60,8 @@ const Teams = () => {
         { id: "1", name: "ProLight Studio", memberCount: 12, role: "admin" },
         { id: "2", name: "Client - Retail Brand", memberCount: 5, role: "editor" },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to load teams:", error);
       toast.error("Failed to load teams");
     } finally {
       setLoading(false);
@@ -79,7 +80,8 @@ const Teams = () => {
         { id: "2", name: "Jane Smith", email: "jane@example.com", role: "editor", status: "active" },
         { id: "3", name: "Bob Wilson", email: "bob@example.com", role: "viewer", status: "pending" },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to load team members:", error);
       toast.error("Failed to load team members");
     }
   };
@@ -104,8 +106,11 @@ const Teams = () => {
       if (selectedTeam) {
         fetchTeamMembers(selectedTeam.id);
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Failed to send invitation");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error 
+        ? (error.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
+      toast.error(errorMessage || "Failed to send invitation");
     } finally {
       setLoading(false);
     }

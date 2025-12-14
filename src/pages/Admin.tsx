@@ -76,7 +76,8 @@ const Admin = () => {
           createdAt: "2025-03-10",
         },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to load users:", error);
       toast.error("Failed to load users");
     } finally {
       setLoading(false);
@@ -106,7 +107,8 @@ const Admin = () => {
           createdAt: "2025-02-20",
         },
       ]);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to load organizations:", error);
       toast.error("Failed to load organizations");
     }
   };
@@ -117,7 +119,8 @@ const Admin = () => {
       // await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/suspend`);
       toast.success("User suspended");
       fetchUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to suspend user:", error);
       toast.error("Failed to suspend user");
     }
   };
@@ -127,7 +130,8 @@ const Admin = () => {
       // TODO: Replace with actual API endpoint
       // await axios.post(`${API_BASE_URL}/api/admin/users/${userId}/reset-mfa`);
       toast.success("MFA reset");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to reset MFA:", error);
       toast.error("Failed to reset MFA");
     }
   };

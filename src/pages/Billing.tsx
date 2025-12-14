@@ -23,7 +23,7 @@ export default function BillingDashboard() {
       setLoading(true);
       const data = await stripeClient.getInvoices(MOCK_CUSTOMER_ID, 12);
       setInvoices(data.invoices);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load invoices:", error);
       toast.error("Failed to load billing history");
     } finally {

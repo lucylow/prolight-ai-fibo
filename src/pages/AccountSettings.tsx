@@ -37,8 +37,11 @@ const AccountSettings = () => {
       await axios.patch(`${API_BASE_URL}/api/profile`, profileForm);
       toast.success("Profile updated successfully!");
       await refreshSession();
-    } catch (error: any) {
-      toast.error(error?.response?.data?.detail || "Failed to update profile");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' && 'response' in error 
+        ? (error.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
+      toast.error(errorMessage || "Failed to update profile");
     } finally {
       setLoading(false);
     }

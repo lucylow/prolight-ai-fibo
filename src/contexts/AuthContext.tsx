@@ -114,9 +114,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       setLoading(false);
-      throw new Error(error.message || "OAuth login failed");
+      const errorMessage = error && typeof error === 'object' && 'message' in error 
+        ? String(error.message) 
+        : "OAuth login failed";
+      throw new Error(errorMessage);
     }
   };
 

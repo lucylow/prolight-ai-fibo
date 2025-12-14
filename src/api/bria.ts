@@ -62,7 +62,7 @@ export async function editImage(route: string, payload: {
 export async function editProductShot(payload: {
   asset_id: string;
   operation: string;
-  params?: any;
+  params?: Record<string, unknown>;
 }) {
   const { data } = await bria.post("/product-shot", payload);
   return data;
