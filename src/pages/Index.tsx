@@ -41,51 +41,51 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen pt-16 sm:pt-20 overflow-hidden">
+    <div className="min-h-screen pt-16 sm:pt-20 overflow-x-hidden">
       <FiboBadge />
       
       {/* Hero */}
-      <section className="min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)] flex items-center px-4 sm:px-6 md:px-8 lg:px-[5%] py-8 sm:py-12 md:py-16 lg:py-20 relative">
+      <section className="min-h-[calc(100vh-4rem)] sm:min-h-[calc(100vh-5rem)] flex flex-col lg:flex-row items-center px-4 sm:px-6 md:px-8 lg:px-[5%] py-8 sm:py-12 md:py-16 lg:py-20 relative">
         <AnimatedBackground />
         
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="max-w-2xl z-10 w-full"
+          className="max-w-2xl z-10 w-full lg:w-auto"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.2 }}
-            className="fibo-badge inline-flex items-center gap-2 mb-4 sm:mb-6"
+            className="fibo-badge inline-flex items-center gap-2 mb-4 sm:mb-6 text-xs sm:text-sm"
           >
-            <Zap className="w-3 h-3 text-secondary" />
+            <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-secondary" />
             <span>FIBO Hackathon 2025</span>
           </motion.div>
           
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 sm:mb-6">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-tight mb-4 sm:mb-6">
             <span className="text-foreground">Precision Lighting</span>
             <br />
             <span className="text-white">Powered by FIBO</span>
           </h1>
           
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-muted-foreground mb-6 sm:mb-8 leading-relaxed max-w-xl">
             Create perfect studio lighting setups in seconds using FIBO's JSON-native AI technology. 
             <span className="text-foreground font-medium"> No equipment, no guesswork, just professional results.</span>
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
             <Link to="/studio" className="w-full sm:w-auto">
-              <Button size="lg" className="gradient-fibo rounded-full animate-pulse-glow group w-full sm:w-auto">
-                <Zap className="mr-2 h-5 w-5" /> 
-                Launch Simulator
+              <Button size="lg" className="gradient-fibo rounded-full animate-pulse-glow group w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8">
+                <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> 
+                <span className="whitespace-nowrap">Launch Simulator</span>
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <a href="#demo" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="rounded-full border-muted-foreground/30 hover:border-primary hover:text-primary backdrop-blur-sm w-full sm:w-auto">
-                <Play className="mr-2 h-5 w-5" /> Watch Demo
+              <Button size="lg" variant="outline" className="rounded-full border-muted-foreground/30 hover:border-primary hover:text-primary backdrop-blur-sm w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8">
+                <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> <span className="whitespace-nowrap">Watch Demo</span>
               </Button>
             </a>
           </div>
@@ -97,7 +97,7 @@ const Index = () => {
           initial={{ opacity: 0, scale: 0.9, x: 50 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="absolute right-[5%] top-1/2 -translate-y-1/2 w-1/2 max-w-[600px] h-[250px] sm:h-[300px] md:h-[400px] lg:h-[500px] hidden lg:block"
+          className="w-full lg:w-1/2 max-w-[600px] h-[250px] sm:h-[300px] md:h-[350px] lg:h-[400px] xl:h-[500px] mt-8 lg:mt-0 lg:absolute lg:right-[5%] lg:top-1/2 lg:-translate-y-1/2 order-first lg:order-last"
         >
           <div className="w-full h-full rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden glass-card-premium">
             <LightingCanvas keyIntensity={keyIntensity / 100} fillIntensity={fillIntensity / 100} colorTemp={colorTemp} />
@@ -113,10 +113,10 @@ const Index = () => {
           viewport={{ once: true }}
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-4">Professional Lighting Control at Your Fingertips</h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto px-4">Our simulator combines photographic expertise with cutting-edge AI for unprecedented creative control</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 px-4">Professional Lighting Control at Your Fingertips</h2>
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">Our simulator combines photographic expertise with cutting-edge AI for unprecedented creative control</p>
         </motion.div>
-        <div className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {features.map((feature, i) => (
             <motion.div 
               key={i} 
@@ -137,28 +137,28 @@ const Index = () => {
       </section>
 
       {/* Demo */}
-      <section id="demo" className="py-24 px-[5%] relative">
+      <section id="demo" className="py-12 sm:py-16 md:py-20 lg:py-24 px-4 sm:px-6 md:px-8 lg:px-[5%] relative">
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/5 to-transparent pointer-events-none" />
         
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-8 sm:mb-12 md:mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Interactive Lighting Demo</h2>
-          <p className="text-lg text-muted-foreground">See how easy it is to create professional lighting setups</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 px-4">Interactive Lighting Demo</h2>
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground px-4">See how easy it is to create professional lighting setups</p>
         </motion.div>
         
-        <div className="flex flex-col lg:flex-row items-center gap-8 sm:gap-12">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6 sm:gap-8 lg:gap-12">
           <motion.div 
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             className="flex-1 w-full order-2 lg:order-1"
           >
-            <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">Real-time Lighting Control</h3>
-            <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">Adjust the parameters below to see how different lighting setups affect your scene.</p>
+            <h3 className="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4">Real-time Lighting Control</h3>
+            <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-4 sm:mb-6 md:mb-8 leading-relaxed">Adjust the parameters below to see how different lighting setups affect your scene.</p>
             
             {[
               { label: 'Key Light Intensity', value: keyIntensity, setValue: setKeyIntensity, unit: '%', max: 100 },
@@ -198,7 +198,7 @@ const Index = () => {
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="flex-1 h-[250px] sm:h-[300px] md:h-[350px] lg:h-[400px] w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl glass-card-premium order-1 lg:order-2"
+            className="flex-1 h-[250px] sm:h-[300px] md:h-[350px] lg:h-[400px] xl:h-[450px] w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl glass-card-premium order-1 lg:order-2"
           >
             <LightingCanvas keyIntensity={keyIntensity / 100} fillIntensity={fillIntensity / 100} colorTemp={colorTemp} />
           </motion.div>
@@ -206,24 +206,24 @@ const Index = () => {
       </section>
 
       {/* Comparison Table */}
-      <section className="py-24 px-[5%]">
+      <section className="py-12 sm:py-16 md:py-20 lg:py-24 px-4 sm:px-6 md:px-8 lg:px-[5%]">
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-8 sm:mb-12 md:mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">ProLight AI vs Traditional</h2>
-          <p className="text-lg text-muted-foreground">See the difference FIBO makes</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 px-4">ProLight AI vs Traditional</h2>
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground px-4">See the difference FIBO makes</p>
         </motion.div>
         
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="glass-card-premium p-8 max-w-3xl mx-auto overflow-hidden"
+          className="glass-card-premium p-4 sm:p-6 md:p-8 max-w-3xl mx-auto overflow-x-auto"
         >
-          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center mb-4 pb-4 border-b border-border/30">
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center mb-4 pb-4 border-b border-border/30 min-w-[280px]">
             <div className="text-muted-foreground text-xs sm:text-sm font-medium">Feature</div>
             <div className="gradient-text font-bold text-xs sm:text-sm">ProLight AI</div>
             <div className="text-muted-foreground text-xs sm:text-sm">Traditional</div>
@@ -254,8 +254,8 @@ const Index = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-4">Powered by FIBO's JSON-Native AI</h2>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 sm:mb-12 px-4">Our simulator leverages BRIA FIBO's revolutionary architecture for deterministic control</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 px-4">Powered by FIBO's JSON-Native AI</h2>
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 md:mb-12 px-4">Our simulator leverages BRIA FIBO's revolutionary architecture for deterministic control</p>
         </motion.div>
         
         <motion.div 
@@ -264,7 +264,7 @@ const Index = () => {
           viewport={{ once: true }}
           className="glass-card-premium p-4 sm:p-6 md:p-8 max-w-3xl mx-auto text-left overflow-x-auto"
         >
-          <pre className="text-xs sm:text-sm text-primary/90 font-mono whitespace-pre-wrap">{`{
+          <pre className="text-[10px] sm:text-xs md:text-sm text-primary/90 font-mono whitespace-pre-wrap break-words">{`{
   "lighting": {
     "main_light": {
       "direction": "45 degrees camera-right",
@@ -299,10 +299,10 @@ const Index = () => {
           viewport={{ once: true }}
           className="text-center mb-8 sm:mb-12 md:mb-16"
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 px-4">Perfect For Creative Professionals</h2>
-          <p className="text-base sm:text-lg text-muted-foreground px-4">Whether you're a photographer, filmmaker, or content creator</p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold mb-3 sm:mb-4 px-4">Perfect For Creative Professionals</h2>
+          <p className="text-sm sm:text-base md:text-lg text-muted-foreground px-4">Whether you're a photographer, filmmaker, or content creator</p>
         </motion.div>
-        <div className="grid sm:grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
           {useCases.map((item, i) => (
             <motion.div 
               key={i} 
@@ -323,7 +323,7 @@ const Index = () => {
       </section>
 
       {/* CTA */}
-      <section className="mx-4 sm:mx-6 md:mx-8 lg:mx-[5%] mb-12 sm:mb-16 md:mb-20 lg:mb-24 gradient-fibo rounded-2xl sm:rounded-3xl py-12 sm:py-14 md:py-16 px-6 sm:px-8 text-center relative overflow-hidden">
+      <section className="mx-4 sm:mx-6 md:mx-8 lg:mx-[5%] mb-12 sm:mb-16 md:mb-20 lg:mb-24 gradient-fibo rounded-2xl sm:rounded-3xl py-8 sm:py-12 md:py-14 lg:py-16 px-4 sm:px-6 md:px-8 text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-foreground/5 to-transparent" />
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -331,19 +331,19 @@ const Index = () => {
           viewport={{ once: true }}
           className="relative z-10"
         >
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">Ready to Transform Your Creative Workflow?</h2>
-          <p className="text-base sm:text-lg max-w-2xl mx-auto mb-6 sm:mb-8 opacity-90 leading-relaxed">Join thousands of photographers and creators using Pro Lighting Simulator to create stunning images with AI-powered precision.</p>
+          <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-3 sm:mb-4 px-2">Ready to Transform Your Creative Workflow?</h2>
+          <p className="text-sm sm:text-base md:text-lg max-w-2xl mx-auto mb-4 sm:mb-6 md:mb-8 opacity-90 leading-relaxed px-2">Join thousands of photographers and creators using Pro Lighting Simulator to create stunning images with AI-powered precision.</p>
           <Link to="/studio">
-            <Button size="lg" className="bg-foreground text-primary hover:bg-foreground/90 rounded-full shadow-xl">
-              <Zap className="mr-2 h-5 w-5" /> Launch Pro Lighting Simulator
+            <Button size="lg" className="bg-foreground text-primary hover:bg-foreground/90 rounded-full shadow-xl text-sm sm:text-base px-6 sm:px-8">
+              <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> <span className="whitespace-nowrap">Launch Pro Lighting Simulator</span>
             </Button>
           </Link>
         </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-background/80 backdrop-blur-xl py-12 sm:py-16 px-4 sm:px-6 md:px-8 lg:px-[5%] border-t border-border/30">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-10 md:gap-12 mb-8 sm:mb-12">
+      <footer className="bg-background/80 backdrop-blur-xl py-8 sm:py-12 md:py-16 px-4 sm:px-6 md:px-8 lg:px-[5%] border-t border-border/30">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 md:gap-10 lg:gap-12 mb-6 sm:mb-8 md:mb-12">
           <div className="sm:col-span-2 md:col-span-1">
             <div className="flex items-center gap-3 font-bold text-lg sm:text-xl mb-3 sm:mb-4">
               <div className="w-10 h-10 rounded-xl gradient-fibo flex items-center justify-center">
