@@ -2,8 +2,15 @@
 import { useEffect, useState } from "react";
 import { getStatus } from "@/api/bria";
 
+interface StatusResponse {
+  status?: string;
+  state?: string;
+  error?: string;
+  data?: unknown;
+}
+
 export function useStatus(requestId?: string) {
-  const [status, setStatus] = useState<any>(null);
+  const [status, setStatus] = useState<StatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 

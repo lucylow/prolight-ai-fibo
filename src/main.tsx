@@ -4,7 +4,7 @@ import "./index.css";
 import { ThemeProvider as NextThemeProvider } from "next-themes";
 
 createRoot(document.getElementById("root")!).render(
-  <NextThemeProvider attribute="class" defaultTheme="system" enableSystem={true}>
+  <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
     <App />
   </NextThemeProvider>
 );

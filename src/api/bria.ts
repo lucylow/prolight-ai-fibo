@@ -37,7 +37,7 @@ export async function generateAds(payload: {
   formats?: string[];
   prompt?: string;
   structured_prompt?: object;
-  branding_blocks?: any[];
+  branding_blocks?: unknown[];
 }) {
   const { data } = await bria.post("/ads-generate", payload);
   return data;
@@ -47,8 +47,8 @@ export async function generateAds(payload: {
 export async function editImage(route: string, payload: {
   asset_id: string;
   operation?: string;
-  params?: any;
-  [key: string]: any;
+  params?: Record<string, unknown>;
+  [key: string]: unknown;
 }) {
   const { data } = await bria.post("/image-edit", {
     asset_id: payload.asset_id,
@@ -72,8 +72,8 @@ export async function editProductShot(payload: {
 export async function editVideo(route: string, payload: {
   asset_id: string;
   operation?: string;
-  params?: any;
-  [key: string]: any;
+  params?: Record<string, unknown>;
+  [key: string]: unknown;
 }) {
   const { data } = await bria.post("/video-edit", {
     asset_id: payload.asset_id,
