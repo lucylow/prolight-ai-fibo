@@ -52,8 +52,15 @@ export default function TailoredGen() {
         setImages(res.images);
         toast.success("Image generated with brand model!");
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.message || "Failed to generate image");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' 
+        ? ('response' in error 
+          ? (error.response as { data?: { error?: string } })?.data?.error 
+          : 'message' in error 
+            ? String(error.message) 
+            : undefined)
+        : undefined;
+      toast.error(errorMessage || "Failed to generate image");
       console.error("Tailored generation error:", error);
     } finally {
       setIsGenerating(false);

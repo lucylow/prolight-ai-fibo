@@ -42,9 +42,12 @@ export const signInAPI = async (email: string, password: string): Promise<User> 
     }
 
     throw new Error("Login failed");
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Sign in error:", error);
-    throw new Error(error.message || "Failed to sign in");
+    const errorMessage = error && typeof error === 'object' && 'message' in error 
+      ? String(error.message) 
+      : "Failed to sign in";
+    throw new Error(errorMessage);
   }
 };
 
@@ -52,9 +55,12 @@ export const signOutAPI = async (): Promise<void> => {
   try {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Sign out error:", error);
-    throw new Error(error.message || "Failed to sign out");
+    const errorMessage = error && typeof error === 'object' && 'message' in error 
+      ? String(error.message) 
+      : "Failed to sign out";
+    throw new Error(errorMessage);
   }
 };
 

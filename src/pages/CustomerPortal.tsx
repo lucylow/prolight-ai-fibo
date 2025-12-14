@@ -21,9 +21,12 @@ export default function CustomerPortal() {
 
       // Redirect to Stripe Customer Portal
       window.location.href = session.url;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Portal error:", error);
-      toast.error(error?.response?.data?.detail || "Could not open customer portal");
+      const errorMessage = error && typeof error === 'object' && 'response' in error 
+        ? (error.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
+      toast.error(errorMessage || "Could not open customer portal");
       setLoading(false);
     }
   };

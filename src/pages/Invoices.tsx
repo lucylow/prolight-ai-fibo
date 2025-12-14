@@ -71,9 +71,9 @@ const Invoices = () => {
       const end = start + perPage;
       setInvoices(filtered.slice(start, end));
       setTotalPages(Math.ceil(filtered.length / perPage));
-    } catch (error: any) {
+    } catch (error: unknown) {
+      console.error("Failed to load invoices:", error);
       toast.error("Failed to load invoices");
-      console.error(error);
     } finally {
       setLoading(false);
     }

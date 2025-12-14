@@ -32,8 +32,15 @@ export default function ProductEditor() {
         setAssetId(res.asset_id);
         toast.success("Image onboarded successfully!");
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.message || "Failed to onboard image");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' 
+        ? ('response' in error 
+          ? (error.response as { data?: { error?: string } })?.data?.error 
+          : 'message' in error 
+            ? String(error.message) 
+            : undefined)
+        : undefined;
+      toast.error(errorMessage || "Failed to onboard image");
     } finally {
       setIsLoading(false);
     }
@@ -66,8 +73,15 @@ export default function ProductEditor() {
         setResults(res.images);
         toast.success("Product shot edited successfully!");
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.message || "Failed to edit product shot");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' 
+        ? ('response' in error 
+          ? (error.response as { data?: { error?: string } })?.data?.error 
+          : 'message' in error 
+            ? String(error.message) 
+            : undefined)
+        : undefined;
+      toast.error(errorMessage || "Failed to edit product shot");
       console.error("Product editing error:", error);
     } finally {
       setIsLoading(false);

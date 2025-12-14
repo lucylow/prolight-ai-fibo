@@ -28,8 +28,10 @@ const SignIn = () => {
       await auth.login(email, password);
       toast.success("Welcome back!");
       navigate("/dashboard");
-    } catch (err: any) {
-      const errorMessage = err.message || "Invalid credentials, please try again.";
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'message' in err 
+        ? String(err.message) 
+        : "Invalid credentials, please try again.";
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -42,8 +44,11 @@ const SignIn = () => {
       setLoading(true);
       await auth.loginWithOAuth(provider);
       // OAuth will redirect, so we don't need to navigate here
-    } catch (err: any) {
-      toast.error(err.message || `Failed to sign in with ${provider}`);
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'message' in err 
+        ? String(err.message) 
+        : `Failed to sign in with ${provider}`;
+      toast.error(errorMessage);
       setLoading(false);
     }
   };

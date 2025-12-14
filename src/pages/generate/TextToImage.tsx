@@ -57,8 +57,15 @@ export default function TextToImage() {
         setImages(res.images);
         toast.success("Image generated successfully!");
       }
-    } catch (error: any) {
-      toast.error(error?.response?.data?.error || error?.message || "Failed to generate image");
+    } catch (error: unknown) {
+      const errorMessage = error && typeof error === 'object' 
+        ? ('response' in error 
+          ? (error.response as { data?: { error?: string } })?.data?.error 
+          : 'message' in error 
+            ? String(error.message) 
+            : undefined)
+        : undefined;
+      toast.error(errorMessage || "Failed to generate image");
       console.error("Generation error:", error);
     } finally {
       setIsGenerating(false);

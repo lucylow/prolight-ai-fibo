@@ -77,9 +77,12 @@ export default function PricingPage() {
 
       // Redirect to Stripe Checkout
       window.location.href = session.url;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Checkout error:", error);
-      toast.error(error?.response?.data?.detail || "Failed to start checkout");
+      const errorMessage = error && typeof error === 'object' && 'response' in error 
+        ? (error.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
+      toast.error(errorMessage || "Failed to start checkout");
       setLoading(null);
     }
   };
