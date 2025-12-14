@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -23,7 +23,7 @@ interface RecordUsageRequest {
 /**
  * Get current period bounds from subscription or fallback to current month
  */
-function getPeriodBounds(subscription: any): { start: string; end: string } {
+function getPeriodBounds(subscription: { current_period_start?: string; current_period_end?: string } | null | undefined): { start: string; end: string } {
   if (subscription?.current_period_start && subscription?.current_period_end) {
     return {
       start: subscription.current_period_start,
@@ -261,7 +261,7 @@ serve(async (req) => {
  * Get subscription item ID for Stripe metered usage reporting
  */
 async function getSubscriptionItemId(
-  supabase: any,
+  supabase: SupabaseClient,
   userId: string
 ): Promise<string | null> {
   const { data } = await supabase

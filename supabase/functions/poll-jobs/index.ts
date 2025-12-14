@@ -26,10 +26,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 /**
  * Normalize Bria status response
  */
-function normalizeBriaStatus(request_id: string, briaResponseData: any): {
+function normalizeBriaStatus(request_id: string, briaResponseData: BriaResponseData | Record<string, unknown>): {
   status: 'IN_PROGRESS' | 'COMPLETED' | 'ERROR' | 'UNKNOWN';
-  result: any;
-  error: any;
+  result: Record<string, unknown>;
+  error: Record<string, unknown>;
 } {
   const statusRaw = (briaResponseData?.status || briaResponseData?.state || '').toString().toUpperCase();
   
@@ -41,12 +41,12 @@ function normalizeBriaStatus(request_id: string, briaResponseData: any): {
   } else if (statusRaw.includes('ERROR') || statusRaw.includes('FAILED')) {
     status = 'ERROR';
   } else {
-    status = (statusRaw || 'UNKNOWN') as any;
+    status = (statusRaw || 'UNKNOWN') as 'IN_PROGRESS' | 'COMPLETED' | 'ERROR' | 'UNKNOWN';
   }
 
   // Extract result fields
   const payloadResult = briaResponseData?.result || briaResponseData?.outputs || briaResponseData?.output || briaResponseData;
-  const result: any = {};
+  const result: Record<string, unknown> = {};
   
   if (payloadResult) {
     if (payloadResult.image_url) result.image_url = payloadResult.image_url;

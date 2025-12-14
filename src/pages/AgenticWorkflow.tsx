@@ -176,7 +176,7 @@ export default function AgenticWorkflow() {
       const id = payload.runId;
       setRunId(id);
       setRunStatus("running");
-      openRunStream(id);
+      await openRunStream(id);
     } catch (err) {
       console.error(err);
       setRunStatus("error");
@@ -187,7 +187,7 @@ export default function AgenticWorkflow() {
     }
   }
 
-  function openRunStream(runId: string) {
+  async function openRunStream(runId: string) {
     if (USE_MOCK) {
       // Simulate proposal event
       setTimeout(() => {
@@ -223,27 +223,54 @@ export default function AgenticWorkflow() {
       return;
     }
 
+    // Use enhanced SSE client with auto-reconnection
+    const { EnhancedSSEClient } = await import("@/utils/agentic/enhancedSSE");
     const sseUrl = `/api/runs/${runId}/stream`;
-    const es = new EventSource(sseUrl, { withCredentials: true });
-    esRef.current = es;
+    
+    const sseClient = new EnhancedSSEClient({
+      url: sseUrl,
+      withCredentials: true,
+      reconnectInterval: 3000,
+      maxReconnectAttempts: 10,
+      heartbeatInterval: 30000,
+      onMessage: (ev) => {
+        try {
+          const payload = JSON.parse(ev.data) as RunEvent;
+          handleRunEvent(payload);
+        } catch (err) {
+          console.warn("Invalid SSE message", ev.data);
+        }
+      },
+      onError: (err) => {
+        console.error("SSE error", err);
+        setRunLogs((l) => [
+          ...l,
+          { t: Date.now(), type: "error", message: "Stream error - attempting reconnection..." },
+        ]);
+      },
+      onOpen: () => {
+        setRunLogs((l) => [
+          ...l,
+          { t: Date.now(), type: "status", message: "Stream connected" },
+        ]);
+      },
+      onReconnect: (attempt) => {
+        setRunLogs((l) => [
+          ...l,
+          { t: Date.now(), type: "status", message: `Reconnecting... (attempt ${attempt})` },
+        ]);
+      },
+      onClose: () => {
+        setRunLogs((l) => [
+          ...l,
+          { t: Date.now(), type: "status", message: "Stream closed" },
+        ]);
+        setRunStatus((s) => (s === "running" ? "interrupted" : s));
+      },
+    });
 
-    es.onmessage = (ev) => {
-      try {
-        const payload = JSON.parse(ev.data) as RunEvent;
-        handleRunEvent(payload);
-      } catch (err) {
-        console.warn("Invalid SSE message", ev.data);
-      }
-    };
-
-    es.onerror = (err) => {
-      console.error("SSE error", err);
-      setRunLogs((l) => [
-        ...l,
-        { t: Date.now(), type: "error", message: "Stream error or closed" },
-      ]);
-      setRunStatus((s) => (s === "running" ? "interrupted" : s));
-    };
+    sseClient.connect();
+    esRef.current = sseClient;
   }
 
   function handleRunEvent(ev: RunEvent) {

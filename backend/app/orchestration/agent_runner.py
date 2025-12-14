@@ -9,6 +9,7 @@ import httpx
 
 from .orchestrator import WorkflowContext
 from .routing import AgentRole
+from .observability import trace_agent_execution
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,7 @@ async def call_mcp(
         raise
 
 
+@trace_agent_execution("planner")
 async def planner_agent(ctx: WorkflowContext) -> WorkflowContext:
     """
     Planner Agent: Analyzes input and creates execution plan.
@@ -178,6 +180,7 @@ async def critic_agent(ctx: WorkflowContext) -> WorkflowContext:
         raise
 
 
+@trace_agent_execution("executor")
 async def executor_agent(ctx: WorkflowContext) -> WorkflowContext:
     """
     Executor Agent: Executes the approved plan.

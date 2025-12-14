@@ -363,9 +363,12 @@ export function createErrorResponseWithLogging(
 }
 
 /**
- * Wrap async handler with error handling
+ * Wrap async handler with error handling and optional performance monitoring
+ * 
+ * Note: For performance monitoring, import and use withPerformanceMonitoring separately
+ * This keeps the error handler lightweight and avoids import dependencies
  */
-export function withErrorHandling<T extends (...args: any[]) => Promise<any>>(
+export function withErrorHandling<T extends (...args: unknown[]) => Promise<Response>>(
   handler: T,
   functionName: string
 ): T {

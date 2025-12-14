@@ -28,7 +28,7 @@ async function getUserId(authHeader: string | null): Promise<string | null> {
 /**
  * Check if user has sufficient credits
  */
-async function checkCredits(userId: string, creditsNeeded: number = 1): Promise<{ allowed: boolean; info?: any }> {
+async function checkCredits(userId: string, creditsNeeded: number = 1): Promise<{ allowed: boolean; info?: Record<string, unknown> }> {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -328,7 +328,7 @@ serve(async (req) => {
 
     // Build payload based on mode
     const mode = request.mode || 'generate';
-    let payload: Record<string, unknown> = {
+    const payload: Record<string, unknown> = {
       mode,
       prompt_json: flux2Prompt,
     };

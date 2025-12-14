@@ -70,6 +70,7 @@ const Invoices = lazy(() => import("./pages/Invoices"));
 const Admin = lazy(() => import("./pages/Admin"));
 const BusinessModelCanvas = lazy(() => import("./pages/BusinessModelCanvas"));
 const FreeApisDemo = lazy(() => import("./components/FreeApisDemo"));
+const AgenticWorkflow = lazy(() => import("./pages/AgenticWorkflow"));
 
 // Enhanced loading fallback component with better UX
 const PageLoader: React.FC = () => (

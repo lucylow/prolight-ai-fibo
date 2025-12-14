@@ -41,7 +41,7 @@ export function AgentEditor({
         onUpdate();
         return;
       }
-      await fetch(`/api/agents/${agent.id}`, {
+      const response = await fetch(`/api/agents/${agent.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(local),

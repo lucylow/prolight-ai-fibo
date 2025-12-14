@@ -277,6 +277,221 @@ export const FIBO_MOCK_DATA = {
         style_medium: "luxury fashion photography",
         context: "high-end fashion brand catalog"
       }
+    },
+    fragrance: {
+      structured_prompt: {
+        short_description: "Premium fragrance bottle on reflective surface with sophisticated lighting",
+        objects: [
+          {
+            description: "Luxury glass perfume bottle with elegant design",
+            location: "center foreground on dark reflective acrylic surface",
+            relationship: "isolated luxury fragrance product on premium surface",
+            relative_size: "medium-sized bottle with fine details",
+            shape_and_color: "tall glass bottle with gold cap and label",
+            texture: "smooth glass surface with subtle reflections, metallic cap",
+            appearance_details: "premium fragrance bottle with visible branding and elegant proportions",
+            number_of_objects: 1,
+            pose: "upright position showing full bottle design",
+            lighting: {
+              key_light: { type: "directional", intensity: 1.3, direction: "top-left 55°" },
+              fill_light: { type: "softbox", intensity: 0.5, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 0.8, direction: "rear-top" }
+            }
+          }
+        ],
+        background_setting: "luxury fragrance photography studio with dark reflective backdrop",
+        lighting: {
+          conditions: "sophisticated lighting emphasizing glass and reflections",
+          direction: "key light top-left, fill right, rim rear-top",
+          shadows: "defined shadows with elegant separation"
+        },
+        aesthetics: {
+          composition: "centered bottle with dramatic negative space",
+          color_scheme: "dark rich background with product highlights",
+          mood_atmosphere: "luxury fragrance photography with emphasis on elegance"
+        },
+        photographic_characteristics: {
+          lens: "90mm f/2.8",
+          aperture: "f/5.6",
+          shutter_speed: "1/160s",
+          iso: "100",
+          white_balance: "5500K daylight"
+        },
+        style_medium: "luxury fragrance photography",
+        context: "premium fragrance brand catalog and marketing"
+      }
+    },
+    homeDecor: {
+      structured_prompt: {
+        short_description: "Modern home decor item on natural wood surface with warm lighting",
+        objects: [
+          {
+            description: "Contemporary ceramic vase with minimalist design",
+            location: "center foreground on light wood surface",
+            relationship: "isolated home decor item on natural surface",
+            relative_size: "medium-sized decorative object",
+            shape_and_color: "cylindrical white ceramic vase with clean lines",
+            texture: "matte ceramic finish with subtle texture",
+            appearance_details: "modern home decor with minimalist aesthetic",
+            number_of_objects: 1,
+            pose: "upright position showing full form",
+            lighting: {
+              key_light: { type: "softbox", intensity: 1.0, direction: "front-left 40°" },
+              fill_light: { type: "softbox", intensity: 0.7, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 0.6, direction: "rear" }
+            }
+          }
+        ],
+        background_setting: "lifestyle photography studio with natural wood backdrop",
+        lighting: {
+          conditions: "warm natural lighting for home decor",
+          direction: "key light front-left, fill right, rim rear",
+          shadows: "soft natural shadows"
+        },
+        aesthetics: {
+          composition: "centered item with natural negative space",
+          color_scheme: "warm wood tones with neutral product",
+          mood_atmosphere: "modern lifestyle home decor photography"
+        },
+        photographic_characteristics: {
+          lens: "85mm f/2.8",
+          aperture: "f/5.6",
+          shutter_speed: "1/125s",
+          iso: "200",
+          white_balance: "5200K daylight"
+        },
+        style_medium: "lifestyle home decor photography",
+        context: "home decor brand catalog and e-commerce"
+      }
+    },
+    sportswear: {
+      structured_prompt: {
+        short_description: "Premium athletic shoes on dynamic surface with energetic lighting",
+        objects: [
+          {
+            description: "High-performance athletic running shoes",
+            location: "center foreground on textured surface",
+            relationship: "isolated sportswear product on dynamic surface",
+            relative_size: "large footwear item with visible details",
+            shape_and_color: "modern running shoes in black and neon accents",
+            texture: "synthetic mesh upper with rubber sole, technical details visible",
+            appearance_details: "premium athletic footwear with visible technology and branding",
+            number_of_objects: 1,
+            pose: "positioned to show side profile and sole design",
+            lighting: {
+              key_light: { type: "directional", intensity: 1.4, direction: "top-left 50°" },
+              fill_light: { type: "softbox", intensity: 0.6, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 0.9, direction: "rear-right" }
+            }
+          }
+        ],
+        background_setting: "dynamic sportswear photography studio with textured backdrop",
+        lighting: {
+          conditions: "energetic lighting setup for athletic products",
+          direction: "key light top-left, fill right, rim rear-right",
+          shadows: "defined shadows with good contrast"
+        },
+        aesthetics: {
+          composition: "centered product with dynamic negative space",
+          color_scheme: "neutral background with vibrant product accents",
+          mood_atmosphere: "energetic sportswear product photography"
+        },
+        photographic_characteristics: {
+          lens: "90mm f/2.8",
+          aperture: "f/6.3",
+          shutter_speed: "1/160s",
+          iso: "100",
+          white_balance: "5600K daylight"
+        },
+        style_medium: "sportswear product photography",
+        context: "athletic brand catalog and marketing"
+      }
+    },
+    food: {
+      structured_prompt: {
+        short_description: "Gourmet food presentation on elegant surface with appetizing lighting",
+        objects: [
+          {
+            description: "Artfully plated gourmet dish",
+            location: "center foreground on elegant table setting",
+            relationship: "food presentation on styled surface",
+            relative_size: "medium-sized food composition",
+            shape_and_color: "colorful gourmet dish with various components",
+            texture: "varied textures from different food elements",
+            appearance_details: "professionally styled food with visible ingredients and garnishes",
+            number_of_objects: 1,
+            pose: "top-down or angled view showing full presentation",
+            lighting: {
+              key_light: { type: "softbox", intensity: 1.1, direction: "front-top 45°" },
+              fill_light: { type: "reflector", intensity: 0.5, direction: "front" },
+              rim_light: { type: "hairlight", intensity: 0.6, direction: "rear-top" }
+            }
+          }
+        ],
+        background_setting: "food photography studio with styled table setting",
+        lighting: {
+          conditions: "appetizing lighting optimized for food photography",
+          direction: "key light front-top, fill front, rim rear-top",
+          shadows: "soft shadows to maintain food appeal"
+        },
+        aesthetics: {
+          composition: "centered food presentation with styled negative space",
+          color_scheme: "warm tones with food colors as focus",
+          mood_atmosphere: "appetizing gourmet food photography"
+        },
+        photographic_characteristics: {
+          lens: "100mm f/2.8 macro",
+          aperture: "f/5.6",
+          shutter_speed: "1/125s",
+          iso: "200",
+          white_balance: "5500K daylight"
+        },
+        style_medium: "gourmet food photography",
+        context: "restaurant marketing and food brand catalog"
+      }
+    },
+    automotive: {
+      structured_prompt: {
+        short_description: "Luxury vehicle detail on reflective surface with dramatic lighting",
+        objects: [
+          {
+            description: "Premium car wheel and tire detail",
+            location: "center foreground on reflective surface",
+            relationship: "isolated automotive detail on premium surface",
+            relative_size: "large automotive component",
+            shape_and_color: "polished alloy wheel with tire",
+            texture: "highly polished metal with rubber tire texture",
+            appearance_details: "luxury automotive detail with visible craftsmanship",
+            number_of_objects: 1,
+            pose: "angled view showing wheel design and tire",
+            lighting: {
+              key_light: { type: "directional", intensity: 1.5, direction: "top-left 60°" },
+              fill_light: { type: "softbox", intensity: 0.4, direction: "front-right" },
+              rim_light: { type: "hairlight", intensity: 1.0, direction: "rear-left 45°" }
+            }
+          }
+        ],
+        background_setting: "automotive photography studio with dark reflective backdrop",
+        lighting: {
+          conditions: "dramatic lighting emphasizing metal and reflections",
+          direction: "key light top-left, fill right, rim rear-left",
+          shadows: "defined dramatic shadows"
+        },
+        aesthetics: {
+          composition: "centered detail with dramatic negative space",
+          color_scheme: "dark background with bright metal highlights",
+          mood_atmosphere: "luxury automotive detail photography"
+        },
+        photographic_characteristics: {
+          lens: "85mm f/2.8",
+          aperture: "f/6.3",
+          shutter_speed: "1/160s",
+          iso: "100",
+          white_balance: "5600K daylight"
+        },
+        style_medium: "luxury automotive photography",
+        context: "premium automotive brand marketing"
+      }
     }
   }
 };

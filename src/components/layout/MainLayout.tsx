@@ -231,20 +231,20 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     <div className="min-h-screen">
       {/* Header */}
       <header className="sticky top-0 w-full z-50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm transition-all duration-200">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+        <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
+          <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
             {/* Logo */}
             <Link 
               to="/" 
-              className="flex items-center gap-2.5 font-bold text-lg hover:opacity-80 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg px-2 -ml-2 group"
+              className="flex items-center gap-2 sm:gap-2.5 font-bold text-base sm:text-lg hover:opacity-80 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg px-1 sm:px-2 -ml-1 sm:-ml-2 group shrink-0"
               aria-label="ProLighting Home"
             >
               <div className="relative">
-                <Lightbulb className="text-primary w-6 h-6 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
+                <Lightbulb className="text-primary w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
               </div>
               <span className="hidden sm:inline bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">ProLighting</span>
-              <span className="sm:hidden bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">ProLight</span>
+              <span className="sm:hidden bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-sm">ProLight</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -507,7 +507,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button onClick={() => navigate('/sign-in')} size="sm" className="hidden sm:flex">
+                <Button onClick={() => navigate('/sign-in')} size="sm" className="hidden sm:flex text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">
                   Sign In
                 </Button>
               )}
@@ -516,7 +516,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden"
+                className="lg:hidden h-8 w-8 sm:h-9 sm:w-9"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileMenuOpen}
@@ -534,7 +534,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         setMobileMenuOpen(open);
         if (!open) setSearchQuery('');
       }}>
-        <SheetContent side="right" className="w-[85vw] sm:w-[420px] overflow-y-auto">
+        <SheetContent side="right" className="w-[90vw] sm:w-[85vw] md:w-[420px] overflow-y-auto p-4 sm:p-6">
           <SheetHeader className="pb-4 border-b">
             <SheetTitle className="flex items-center gap-2.5">
               <div className="relative">
@@ -686,7 +686,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
       {/* Main Content */}
       <main 
-        className="min-h-[calc(100vh-4rem)]" 
+        className="min-h-[calc(100vh-3.5rem)] sm:min-h-[calc(100vh-4rem)]" 
         role="main"
         id="main-content"
         aria-label="Main content"

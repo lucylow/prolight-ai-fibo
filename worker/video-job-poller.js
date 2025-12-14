@@ -8,7 +8,7 @@
  *   node worker/video-job-poller.js
  * 
  * Or set up as a cron job:
- *   */10 * * * * cd /path/to/project && node worker/video-job-poller.js
+ *   Every 10 minutes: cd /path/to/project && node worker/video-job-poller.js
  * 
  * Environment variables required:
  *   - BRIA_API_TOKEN

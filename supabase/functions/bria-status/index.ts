@@ -28,15 +28,15 @@ interface BriaStatusResponse {
     prompt?: string;
     refined_prompt?: string;
   } | null;
-  status_payload?: any;
-  error?: any;
+  status_payload?: Record<string, unknown>;
+  error?: Record<string, unknown>;
   last_checked?: string;
 }
 
 /**
  * Normalize Bria status response into canonical format
  */
-function normalizeBriaStatus(request_id: string, briaResponseData: any): BriaStatusResponse {
+function normalizeBriaStatus(request_id: string, briaResponseData: BriaResponseData | Record<string, unknown>): BriaStatusResponse {
   const statusRaw = (briaResponseData?.status || briaResponseData?.state || '').toString().toUpperCase();
   
   let status: 'IN_PROGRESS' | 'COMPLETED' | 'ERROR' | 'UNKNOWN' = 'UNKNOWN';
@@ -47,12 +47,12 @@ function normalizeBriaStatus(request_id: string, briaResponseData: any): BriaSta
   } else if (statusRaw.includes('ERROR') || statusRaw.includes('FAILED')) {
     status = 'ERROR';
   } else {
-    status = (statusRaw || 'UNKNOWN') as any;
+    status = (statusRaw || 'UNKNOWN') as 'IN_PROGRESS' | 'COMPLETED' | 'ERROR' | 'UNKNOWN';
   }
 
   // Extract result fields
   const payloadResult = briaResponseData?.result || briaResponseData?.outputs || briaResponseData?.output || briaResponseData;
-  const result: any = {};
+  const result: Record<string, unknown> = {};
   
   if (payloadResult) {
     if (payloadResult.image_url) result.image_url = payloadResult.image_url;
@@ -126,7 +126,7 @@ async function fetchStatusFromBria(request_id: string): Promise<BriaStatusRespon
  * Upsert status in database
  */
 async function upsertStatus(
-  supabase: any,
+  supabase: SupabaseClient,
   normalized: BriaStatusResponse,
   userId?: string,
   endpointType?: string
