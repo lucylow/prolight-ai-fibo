@@ -84,6 +84,7 @@ export default function VideoEditor() {
         },
         (error) => {
           console.error("SSE connection error:", error);
+          toast.warning("SSE connection lost, falling back to polling...");
           // Fallback to polling if SSE fails
           if (requestId) {
             pollJobStatus(requestId);
@@ -117,9 +118,10 @@ export default function VideoEditor() {
           setResult({ url: status.result.url });
           clearInterval(interval);
           toast.success("Video processing completed!");
-        } else if (status.status === "failed" || status.status === "cancelled") {
+        } else if (status.status === "failed" || status.status === "cancelled" || status.status === "error") {
           clearInterval(interval);
-          toast.error(`Job ${status.status}`);
+          toast.error(`Job ${status.status}. Please try again.`);
+          setJobStatus(status.status);
         }
       } catch (error) {
         console.error("Failed to poll job status:", error);

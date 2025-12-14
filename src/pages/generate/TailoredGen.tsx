@@ -167,16 +167,75 @@ export default function TailoredGen() {
 
         <Button
           onClick={generate}
-          disabled={isGenerating}
+          disabled={isGenerating || isStatusLoading}
         >
           {isGenerating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Generate with Brand Model
         </Button>
       </div>
 
+      {jobId && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Generation Progress</CardTitle>
+              {statusError && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={retryStatus}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Retry Status Check
+                </Button>
+              )}
+            </div>
+            <CardDescription>
+              Request ID: {jobId}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isStatusLoading && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span>Processing...</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+                <Progress value={progress} className="h-2" />
+                <p className="text-xs text-muted-foreground">
+                  Elapsed: {Math.floor(elapsedTime / 1000)}s
+                </p>
+              </div>
+            )}
+            <JobStatusPanel requestId={jobId} status={status} />
+          </CardContent>
+        </Card>
+      )}
+
       {images.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-xl font-semibold">Generated Images</h2>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Generated Images ({images.length})</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                images.forEach((img, index) => {
+                  const url = img.url || img.image_url;
+                  if (url) {
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `tailored-${index + 1}.jpg`;
+                    link.click();
+                  }
+                });
+                toast.success(`Downloaded ${images.length} image${images.length > 1 ? 's' : ''}`);
+              }}
+            >
+              Download All
+            </Button>
+          </div>
           <AssetGrid assets={images} />
         </div>
       )}

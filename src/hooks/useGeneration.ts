@@ -124,7 +124,13 @@ export const useGeneration = () => {
           image_url: mockResponse.image_url,
           image_id: mockResponse.generation_id,
           fibo_json: undefined,
-          lightingAnalysis: mockResponse.analysis,
+          lightingAnalysis: mockResponse.analysis as {
+            keyFillRatio: number;
+            lightingStyle: string;
+            totalExposure: number;
+            contrastScore: number;
+            professionalRating: number;
+          },
           generation_metadata: {
             timestamp: mockResponse.timestamp,
             duration_seconds: mockResponse.duration_seconds,
@@ -147,7 +153,7 @@ export const useGeneration = () => {
       }
 
       // Call the edge function with improved error handling
-      const data = await generateLighting(sceneRequest, {
+      const data = await generateLightingAPI(sceneRequest, {
         showToast: false, // We'll show toast after setting state
       });
 
@@ -157,7 +163,13 @@ export const useGeneration = () => {
         image_url: data.image_url,
         image_id: data.image_id,
         fibo_json: data.fibo_json,
-        lightingAnalysis: data.lighting_analysis,
+        lightingAnalysis: data.lighting_analysis as {
+          keyFillRatio: number;
+          lightingStyle: string;
+          totalExposure: number;
+          contrastScore: number;
+          professionalRating: number;
+        },
         generation_metadata: data.generation_metadata
       });
 
@@ -211,7 +223,13 @@ export const useGeneration = () => {
           image_url: mockResponse.image_url,
           image_id: mockResponse.generation_id,
           fibo_json: undefined,
-          lightingAnalysis: mockResponse.analysis,
+          lightingAnalysis: mockResponse.analysis as {
+            keyFillRatio: number;
+            lightingStyle: string;
+            totalExposure: number;
+            contrastScore: number;
+            professionalRating: number;
+          },
           generation_metadata: {
             timestamp: mockResponse.timestamp,
             duration_seconds: mockResponse.duration_seconds,
@@ -244,7 +262,13 @@ export const useGeneration = () => {
         image_url: data.image_url,
         image_id: data.image_id,
         fibo_json: data.fibo_json,
-        lightingAnalysis: data.lighting_analysis,
+        lightingAnalysis: data.lighting_analysis as {
+          keyFillRatio: number;
+          lightingStyle: string;
+          totalExposure: number;
+          contrastScore: number;
+          professionalRating: number;
+        },
         generation_metadata: data.generation_metadata
       });
 
@@ -275,7 +299,12 @@ export const useGeneration = () => {
       if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
         console.info('Using mock data for analysis (VITE_USE_MOCK_DATA enabled)');
         const { getMockLightingAnalysis } = await import('@/services/mockData');
-        return getMockLightingAnalysis(lightingSetup as unknown as Record<string, unknown>);
+        return getMockLightingAnalysis({
+          key: lightingSetup.key,
+          fill: lightingSetup.fill,
+          rim: lightingSetup.rim,
+          ambient: lightingSetup.ambient,
+        } as unknown as Record<string, unknown>);
       }
 
       // Convert LightingSetup to API format
