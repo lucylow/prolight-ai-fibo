@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -37,6 +38,8 @@ import UseCasesPage from "./pages/marketing/UseCases";
 import MarketingPricingPage from "./pages/marketing/Pricing";
 import DocsPage from "./pages/marketing/Docs";
 import SignIn from "./pages/SignIn";
+import SignOut from "./pages/SignOut";
+import PaymentPage from "./pages/PaymentPage";
 import Dashboard from "./pages/Dashboard";
 import AccountSettings from "./pages/AccountSettings";
 import Teams from "./pages/Teams";
@@ -54,6 +57,112 @@ const queryClient = new QueryClient({
   },
 });
 
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 8 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      exit={{ opacity: 0, y: -8 }} 
+      transition={{ duration: 0.22 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageWrapper><Index /></PageWrapper>} />
+        <Route path="/sign-in" element={<PageWrapper><SignIn /></PageWrapper>} />
+        <Route path="/signout" element={<PageWrapper><SignOut /></PageWrapper>} />
+        <Route path="/studio" element={<PageWrapper><Studio /></PageWrapper>} />
+        <Route path="/presets" element={<PageWrapper><Presets /></PageWrapper>} />
+        <Route path="/natural-language" element={<PageWrapper><NaturalLanguage /></PageWrapper>} />
+        <Route path="/history" element={<PageWrapper><History /></PageWrapper>} />
+        <Route path="/pricing" element={<PageWrapper><MarketingPricingPage /></PageWrapper>} />
+        <Route path="/pricing/checkout" element={<PageWrapper><Pricing /></PageWrapper>} />
+        <Route 
+          path="/payment" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><PaymentPage /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><Dashboard /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/account" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><AccountSettings /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/billing" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><Billing /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/invoices" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><Invoices /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/teams" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><Teams /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <PageWrapper><Admin /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/admin/refunds" element={<PageWrapper><AdminRefunds /></PageWrapper>} />
+        <Route path="/customer-portal" element={<PageWrapper><CustomerPortal /></PageWrapper>} />
+        <Route path="/success" element={<PageWrapper><Success /></PageWrapper>} />
+        <Route path="/cancel" element={<PageWrapper><Cancel /></PageWrapper>} />
+        <Route path="/legal" element={<PageWrapper><LegalIndex /></PageWrapper>} />
+        <Route path="/legal/privacy" element={<PageWrapper><PrivacyPolicy /></PageWrapper>} />
+        <Route path="/legal/terms" element={<PageWrapper><TermsOfService /></PageWrapper>} />
+        <Route path="/legal/cookies" element={<PageWrapper><CookiePolicy /></PageWrapper>} />
+        <Route path="/company/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
+        <Route path="/company/blog" element={<PageWrapper><BlogPage /></PageWrapper>} />
+        <Route path="/company/blog/:slug" element={<PageWrapper><PostView /></PageWrapper>} />
+        <Route path="/company/careers" element={<PageWrapper><CareersPage /></PageWrapper>} />
+        <Route path="/company/contact" element={<PageWrapper><ContactPage /></PageWrapper>} />
+        <Route path="/product" element={<PageWrapper><ProductPage /></PageWrapper>} />
+        <Route path="/features" element={<PageWrapper><FeaturesPage /></PageWrapper>} />
+        <Route path="/use-cases" element={<PageWrapper><UseCasesPage /></PageWrapper>} />
+        <Route path="/docs" element={<PageWrapper><DocsPage /></PageWrapper>} />
+        <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -66,82 +175,7 @@ const App = () => (
             <BrowserRouter>
               <CookieConsent />
               <MainLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/sign-in" element={<SignIn />} />
-                  <Route path="/studio" element={<Studio />} />
-                  <Route path="/presets" element={<Presets />} />
-                  <Route path="/natural-language" element={<NaturalLanguage />} />
-                  <Route path="/history" element={<History />} />
-                  <Route path="/pricing" element={<MarketingPricingPage />} />
-                  <Route path="/pricing/checkout" element={<Pricing />} />
-                  <Route 
-                    path="/dashboard" 
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/account" 
-                    element={
-                      <ProtectedRoute>
-                        <AccountSettings />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/billing" 
-                    element={
-                      <ProtectedRoute>
-                        <Billing />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/invoices" 
-                    element={
-                      <ProtectedRoute>
-                        <Invoices />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/teams" 
-                    element={
-                      <ProtectedRoute>
-                        <Teams />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/admin" 
-                    element={
-                      <ProtectedRoute roles={["admin"]}>
-                        <Admin />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route path="/admin/refunds" element={<AdminRefunds />} />
-                  <Route path="/customer-portal" element={<CustomerPortal />} />
-                  <Route path="/success" element={<Success />} />
-                  <Route path="/cancel" element={<Cancel />} />
-                  <Route path="/legal" element={<LegalIndex />} />
-                  <Route path="/legal/privacy" element={<PrivacyPolicy />} />
-                  <Route path="/legal/terms" element={<TermsOfService />} />
-                  <Route path="/legal/cookies" element={<CookiePolicy />} />
-                  <Route path="/company/about" element={<AboutPage />} />
-                  <Route path="/company/blog" element={<BlogPage />} />
-                  <Route path="/company/blog/:slug" element={<PostView />} />
-                  <Route path="/company/careers" element={<CareersPage />} />
-                  <Route path="/company/contact" element={<ContactPage />} />
-                  <Route path="/product" element={<ProductPage />} />
-                  <Route path="/features" element={<FeaturesPage />} />
-                  <Route path="/use-cases" element={<UseCasesPage />} />
-                  <Route path="/docs" element={<DocsPage />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <AnimatedRoutes />
               </MainLayout>
             </BrowserRouter>
           </TooltipProvider>

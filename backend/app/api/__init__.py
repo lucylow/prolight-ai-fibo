@@ -11,6 +11,11 @@ from app.api import (
     stripe_checkout,
     billing,
     admin_refunds,
+    contact,
+    careers,
+    s3,
+    auth,
+    payments,
 )
 
 __all__ = [
@@ -22,4 +27,9 @@ __all__ = [
     "stripe_checkout",
     "billing",
     "admin_refunds",
+    "contact",
+    "careers",
+    "s3",
+    "auth",
+    "payments",
 ]

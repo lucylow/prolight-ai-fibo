@@ -125,7 +125,7 @@ async def root():
 # ============================================================================
 
 # Import route modules
-from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3
+from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments
 
 # Include routers
 app.include_router(generate.router, prefix=settings.API_PREFIX, tags=["Generate"])
@@ -139,6 +139,8 @@ app.include_router(admin_refunds.router)
 app.include_router(contact.router, prefix=settings.API_PREFIX, tags=["Contact"])
 app.include_router(careers.router, prefix=settings.API_PREFIX, tags=["Careers"])
 app.include_router(s3.router, prefix=settings.API_PREFIX, tags=["S3"])
+app.include_router(auth.router, tags=["Auth"])
+app.include_router(payments.router, tags=["Payments"])
 
 
 # ============================================================================
