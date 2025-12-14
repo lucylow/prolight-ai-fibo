@@ -16,8 +16,15 @@ export default function PaymentPage() {
     try {
       const res = await api.post("/payments/stub-charge", { token, amount });
       setMessage("Payment successful: " + res.data.id);
-    } catch (err: any) {
-      setMessage("Payment failed: " + (err?.response?.data?.detail || err.message));
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' 
+        ? ('response' in err 
+          ? (err.response as { data?: { detail?: string } })?.data?.detail 
+          : 'message' in err 
+            ? String(err.message) 
+            : undefined)
+        : undefined;
+      setMessage("Payment failed: " + (errorMessage || "Unknown error"));
     } finally {
       setBusy(false);
     }

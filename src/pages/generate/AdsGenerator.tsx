@@ -17,7 +17,7 @@ export default function AdsGenerator() {
   const [formats, setFormats] = useState<string[]>(["1080x1080", "1200x628", "story"]);
   const [prompt, setPrompt] = useState("");
   const [jobId, setJobId] = useState<string>();
-  const [assets, setAssets] = useState<any[]>([]);
+  const [assets, setAssets] = useState<Array<{ url?: string; image_url?: string }>>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const { status } = useStatus(jobId);
 

@@ -2,7 +2,13 @@ import React, { Suspense } from "react";
 import { useParams } from "react-router-dom";
 import { SEO } from "@/components/SEO";
 
-const mdxFiles = import.meta.glob("../../content/posts/*.mdx", { eager: true }) as Record<string, any>;
+interface MDXModule {
+  default?: React.ComponentType;
+  frontmatter?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+}
+
+const mdxFiles = import.meta.glob("../../content/posts/*.mdx", { eager: true }) as Record<string, MDXModule>;
 
 export default function PostView() {
   const { slug } = useParams<{ slug: string }>();

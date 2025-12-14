@@ -12,7 +12,7 @@ import { Loader2 } from "lucide-react";
 export default function TextToImage() {
   const [prompt, setPrompt] = useState("");
   const [structuredPrompt, setStructuredPrompt] = useState<string>("");
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<Array<{ url?: string; image_url?: string }>>([]);
   const [modelVersion, setModelVersion] = useState<"v1" | "v2">("v2");
   const [seed, setSeed] = useState<number | undefined>(undefined);
   const [isGenerating, setIsGenerating] = useState(false);

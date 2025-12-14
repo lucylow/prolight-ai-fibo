@@ -13,7 +13,7 @@ export default function ImageEditor() {
   const [imageUrl, setImageUrl] = useState("");
   const [assetId, setAssetId] = useState("");
   const [operation, setOperation] = useState("remove_background");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Array<{ url?: string; image_url?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   async function onboard() {

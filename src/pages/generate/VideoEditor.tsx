@@ -17,7 +17,7 @@ export default function VideoEditor() {
   const [operation, setOperation] = useState("increase_resolution");
   const [targetResolution, setTargetResolution] = useState("8k");
   const [reqId, setReqId] = useState<string>();
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Array<{ url?: string; video_url?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const { status } = useStatus(reqId);
 

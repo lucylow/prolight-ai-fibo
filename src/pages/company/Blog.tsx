@@ -3,14 +3,20 @@ import { SEO } from "@/components/SEO";
 import { Link } from "react-router-dom";
 
 // Vite: import all .mdx files from content/posts
-const mdxFiles = import.meta.glob("../../content/posts/*.mdx", { eager: true }) as Record<string, any>;
+interface MDXModule {
+  default?: React.ComponentType;
+  frontmatter?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
+}
+
+const mdxFiles = import.meta.glob("../../content/posts/*.mdx", { eager: true }) as Record<string, MDXModule>;
 
 type PostMeta = { 
   title: string; 
   date: string; 
   description?: string; 
   slug: string;
-  mod: any;
+  mod: { frontmatter?: Record<string, unknown>; meta?: Record<string, unknown>; default?: React.ComponentType };
 };
 
 export default function BlogPage() {

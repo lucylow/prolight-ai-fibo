@@ -27,7 +27,7 @@ export function lightToFibo(light: Light) {
 export function toFiboPrompt(
   sceneTitle: string,
   lights: Light[],
-  cameraSettings: any,
+  cameraSettings: Record<string, unknown>,
   mood?: string
 ) {
   const fiboLights = lights.map(lightToFibo);

@@ -3,7 +3,7 @@
 // Source: adapted approximation of black-body to RGB for UI preview.
 export function kelvinToRgb(kelvin: number): [number, number, number] {
   // clamp range
-  let K = Math.max(1000, Math.min(40000, kelvin)) / 100;
+  const K = Math.max(1000, Math.min(40000, kelvin)) / 100;
 
   let red: number, green: number, blue: number;
 

@@ -28,8 +28,11 @@ export default function ContactPage() {
       toast.success("Message sent — we'll reply soon.");
       setForm({ name: "", email: "", message: "" });
       setRecaptchaToken(null);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to send message.");
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? (err.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
+      toast.error(errorMessage || "Failed to send message.");
     } finally { 
       setLoading(false); 
     }

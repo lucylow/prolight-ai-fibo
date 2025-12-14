@@ -16,9 +16,21 @@ export function rgbToHex(rgb: number[]) {
  * lights: current lights array
  * patches: { id: { intensity?: number, kelvin?: number } }
  */
+interface LightWithId {
+  id: string;
+  intensity: number;
+  kelvin: number;
+  [key: string]: unknown;
+}
+
+interface Patch {
+  intensity?: number;
+  kelvin?: number;
+}
+
 export function applyPatchesToLights(
-  lights: any[],
-  patches: Record<string, any>
+  lights: LightWithId[],
+  patches: Record<string, Patch>
 ) {
   return lights.map((l) => {
     const p = patches[l.id] ?? {};

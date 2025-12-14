@@ -16,7 +16,7 @@ export default function ProductEditor() {
   const [background, setBackground] = useState("white");
   const [relight, setRelight] = useState(true);
   const [outputs, setOutputs] = useState<string[]>(["beauty"]);
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<Array<{ url?: string; image_url?: string }>>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   async function onboard() {

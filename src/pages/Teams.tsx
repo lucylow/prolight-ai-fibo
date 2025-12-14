@@ -215,7 +215,7 @@ const Teams = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="role">Role</Label>
-                      <Select value={inviteRole} onValueChange={(value: any) => setInviteRole(value)}>
+                      <Select value={inviteRole} onValueChange={(value: string) => setInviteRole(value as "viewer" | "editor" | "admin")}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>

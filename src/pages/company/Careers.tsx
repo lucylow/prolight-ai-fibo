@@ -53,8 +53,11 @@ export default function CareersPage() {
       });
       setApp(prev => ({ ...prev, resumeUrl: presign.public_url }));
       toast.success("Resume uploaded successfully");
-    } catch (err: any) {
-      toast.error("Failed to upload resume: " + (err.message || "Unknown error"));
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'message' in err 
+        ? String(err.message) 
+        : "Unknown error";
+      toast.error("Failed to upload resume: " + errorMessage);
     } finally {
       setUploading(false);
     }
@@ -79,8 +82,11 @@ export default function CareersPage() {
       setRecaptchaToken(null);
       setResumeFile(null);
       setUploadProgress(0);
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || "Failed to submit application.");
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'response' in err 
+        ? (err.response as { data?: { detail?: string } })?.data?.detail 
+        : undefined;
+      toast.error(errorMessage || "Failed to submit application.");
     } finally {
       setLoading(false);
     }

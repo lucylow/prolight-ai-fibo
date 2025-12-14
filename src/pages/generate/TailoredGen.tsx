@@ -13,7 +13,7 @@ export default function TailoredGen() {
   const [modelId, setModelId] = useState("brand-v1");
   const [prompt, setPrompt] = useState("");
   const [structuredPrompt, setStructuredPrompt] = useState<string>("");
-  const [images, setImages] = useState<any[]>([]);
+  const [images, setImages] = useState<Array<{ url?: string; image_url?: string }>>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   async function generate() {
