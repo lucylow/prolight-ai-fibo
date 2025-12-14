@@ -7,6 +7,7 @@ import LightingCanvas from '@/components/LightingCanvas';
 import FiboBadge from '@/components/hero/FiboBadge';
 import StatsCounter from '@/components/hero/StatsCounter';
 import AnimatedBackground from '@/components/hero/AnimatedBackground';
+import Chatbot from '@/components/Chatbot';
 
 const Index = () => {
   const [keyIntensity, setKeyIntensity] = useState(80);
@@ -401,6 +402,9 @@ const Index = () => {
           </span>
         </div>
       </footer>
+
+      {/* Chatbot */}
+      <Chatbot />
     </div>
   );
 };
