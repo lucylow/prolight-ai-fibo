@@ -49,6 +49,7 @@ import VideoEditor from "./pages/generate/VideoEditor";
 import BriaImageGeneration from "./pages/bria/ImageGeneration";
 import BriaTailoredModels from "./pages/bria/TailoredModels";
 import BriaAdsGeneration from "./pages/bria/AdsGeneration";
+import BriaAdsGenerationV1 from "./pages/bria/AdsGenerationV1";
 import BriaProductImagery from "./pages/bria/ProductImagery";
 import BriaImageEditing from "./pages/bria/ImageEditing";
 import BriaVideoEditing from "./pages/bria/VideoEditing";

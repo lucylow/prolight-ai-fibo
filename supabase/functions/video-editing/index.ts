@@ -36,8 +36,30 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// SSE connections map: request_id -> Set<Response>
-const sseConnections = new Map<string, Set<Response>>();
+// SSE connections map: request_id -> Set<ReadableStreamDefaultController>
+const sseConnections = new Map<string, Set<ReadableStreamDefaultController>>();
+
+/**
+ * Broadcast SSE update to all connected clients for a job
+ */
+function broadcastJobUpdate(requestId: string, payload: unknown) {
+  const connections = sseConnections.get(requestId);
+  if (connections && connections.size > 0) {
+    const encoder = new TextEncoder();
+    const message = `data: ${JSON.stringify(payload)}\n\n`;
+    const encoded = encoder.encode(message);
+    
+    for (const controller of connections) {
+      try {
+        controller.enqueue(encoded);
+      } catch (error) {
+        console.error('Failed to send SSE update:', error);
+        // Remove dead connection
+        connections.delete(controller);
+      }
+    }
+  }
+}
 
 /**
  * Generate S3 presigned URLs using AWS SDK v3
@@ -171,7 +193,7 @@ async function storeJob(
 }
 
 /**
- * Update job status
+ * Update job status and broadcast to SSE clients
  */
 async function updateJobStatus(
   requestId: string,
@@ -191,7 +213,16 @@ async function updateJobStatus(
 
   if (error) {
     console.error('Failed to update job:', error);
+    return;
   }
+
+  // Broadcast update to SSE clients
+  broadcastJobUpdate(requestId, {
+    request_id: requestId,
+    status,
+    result,
+    payload: statusPayload,
+  });
 }
 
 serve(async (req) => {
@@ -353,16 +384,21 @@ serve(async (req) => {
           if (!sseConnections.has(requestId)) {
             sseConnections.set(requestId, new Set());
           }
-          sseConnections.get(requestId)!.add(controller as unknown as Response);
+          sseConnections.get(requestId)!.add(controller);
 
           // Cleanup on close
           req.signal.addEventListener('abort', () => {
             const conns = sseConnections.get(requestId);
             if (conns) {
-              conns.delete(controller as unknown as Response);
+              conns.delete(controller);
               if (conns.size === 0) {
                 sseConnections.delete(requestId);
               }
+            }
+            try {
+              controller.close();
+            } catch {
+              // Already closed
             }
           });
         },
@@ -376,6 +412,73 @@ serve(async (req) => {
           'Connection': 'keep-alive',
         },
       });
+    }
+
+    // POST /api/video/poll - Background polling endpoint (can be called by cron)
+    if (path.includes('/poll') && req.method === 'POST') {
+      try {
+        // Get all pending jobs
+        const { data: jobs, error } = await supabase
+          .from('video_jobs')
+          .select('*')
+          .in('status', ['submitted', 'running', 'queued']);
+
+        if (error) {
+          throw error;
+        }
+
+        if (!jobs || jobs.length === 0) {
+          return new Response(
+            JSON.stringify({ message: 'No pending jobs', count: 0 }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        const results = [];
+        for (const job of jobs) {
+          try {
+            const resp = await fetch(job.status_url, {
+              headers: { 'api_token': BRIA_API_TOKEN || '' },
+            });
+
+            if (!resp.ok) {
+              console.warn(`Failed to poll job ${job.request_id}: ${resp.status}`);
+              continue;
+            }
+
+            const payload = await resp.json();
+            const incomingStatus = (payload?.status || payload?.state || '').toString().toLowerCase();
+            
+            let normalized = job.status;
+            if (['succeeded', 'completed', 'done', 'success'].includes(incomingStatus)) {
+              normalized = 'succeeded';
+            } else if (['failed', 'error', 'cancelled'].includes(incomingStatus)) {
+              normalized = 'failed';
+            } else {
+              normalized = incomingStatus || 'running';
+            }
+
+            const resultUrl = payload?.result?.url || payload?.output?.url || payload?.artifact_url || null;
+            const result = resultUrl ? { url: resultUrl } : null;
+
+            await updateJobStatus(job.request_id, normalized, result, payload);
+            results.push({ request_id: job.request_id, status: normalized });
+          } catch (err) {
+            console.error(`Error polling job ${job.request_id}:`, err);
+          }
+        }
+
+        return new Response(
+          JSON.stringify({ message: 'Polling complete', count: results.length, results }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      } catch (error) {
+        console.error('Polling error:', error);
+        return new Response(
+          JSON.stringify({ error: error instanceof Error ? error.message : 'Polling failed' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     return new Response(
@@ -393,19 +496,71 @@ serve(async (req) => {
 });
 
 /**
- * Helper function to broadcast SSE updates
+ * Background polling endpoint (can be called by cron or scheduled function)
+ * POST /api/video/poll - polls all pending jobs
  */
-export function broadcastJobUpdate(requestId: string, payload: unknown) {
-  const connections = sseConnections.get(requestId);
-  if (connections) {
-    const message = `data: ${JSON.stringify(payload)}\n\n`;
-    for (const conn of connections) {
+if (path.includes('/poll') && req.method === 'POST') {
+  try {
+    // Get all pending jobs
+    const { data: jobs, error } = await supabase
+      .from('video_jobs')
+      .select('*')
+      .in('status', ['submitted', 'running', 'queued']);
+
+    if (error) {
+      throw error;
+    }
+
+    if (!jobs || jobs.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No pending jobs', count: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const results = [];
+    for (const job of jobs) {
       try {
-        // Send update to connection
-        // Note: This is simplified - actual implementation depends on connection type
-      } catch (error) {
-        console.error('Failed to send SSE update:', error);
+        const resp = await fetch(job.status_url, {
+          headers: { 'api_token': BRIA_API_TOKEN || '' },
+        });
+
+        if (!resp.ok) {
+          console.warn(`Failed to poll job ${job.request_id}: ${resp.status}`);
+          continue;
+        }
+
+        const payload = await resp.json();
+        const incomingStatus = (payload?.status || payload?.state || '').toString().toLowerCase();
+        
+        let normalized = job.status;
+        if (['succeeded', 'completed', 'done', 'success'].includes(incomingStatus)) {
+          normalized = 'succeeded';
+        } else if (['failed', 'error', 'cancelled'].includes(incomingStatus)) {
+          normalized = 'failed';
+        } else {
+          normalized = incomingStatus || 'running';
+        }
+
+        const resultUrl = payload?.result?.url || payload?.output?.url || payload?.artifact_url || null;
+        const result = resultUrl ? { url: resultUrl } : null;
+
+        await updateJobStatus(job.request_id, normalized, result, payload);
+        results.push({ request_id: job.request_id, status: normalized });
+      } catch (err) {
+        console.error(`Error polling job ${job.request_id}:`, err);
       }
     }
+
+    return new Response(
+      JSON.stringify({ message: 'Polling complete', count: results.length, results }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Polling error:', error);
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Polling failed' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 }
