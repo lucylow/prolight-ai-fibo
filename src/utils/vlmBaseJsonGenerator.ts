@@ -244,7 +244,7 @@ export async function callVLMForBaseJson(
 /**
  * Validate base JSON structure
  */
-export function validateBaseJson(json: any): json is FIBOBaseJson {
+export function validateBaseJson(json: unknown): json is FIBOBaseJson {
   if (!json || typeof json !== "object") {
     return false;
   }

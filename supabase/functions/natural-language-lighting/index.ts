@@ -448,7 +448,7 @@ function validateAndNormalizeLighting(lightingJson: Record<string, unknown>): No
     throw new Error('Invalid lighting JSON: must be an object');
   }
 
-  const setup = lightingJson.lighting_setup || {};
+  const setup = (lightingJson.lighting_setup || {}) as Record<string, unknown>;
   
   if (typeof setup !== 'object' || setup === null) {
     throw new Error('Invalid lighting_setup: must be an object');
@@ -556,7 +556,7 @@ function getDefaultLighting(description: string): NormalizedLighting {
         key: { direction: "45 degrees left and above", intensity: 0.85, colorTemperature: 5600, softness: 0.5, distance: 1.5, enabled: true },
         fill: { direction: "30 degrees right", intensity: 0.25, colorTemperature: 5000, softness: 0.7, distance: 2.5, enabled: true },
         rim: { direction: "behind left", intensity: 0.5, colorTemperature: 3200, softness: 0.3, distance: 1.0, enabled: true },
-        ambient: { intensity: 0.08, colorTemperature: 5000, enabled: true, direction: "omnidirectional" }
+        ambient: { intensity: 0.08, colorTemperature: 5000, softness: 1.0, distance: 0, enabled: true, direction: "omnidirectional" }
       },
       lighting_style: "rembrandt",
       mood_description: "classic Rembrandt with triangle highlight",

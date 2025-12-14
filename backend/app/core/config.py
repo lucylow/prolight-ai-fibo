@@ -66,6 +66,12 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "dev-secret-change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
     
+    # MCP (Model Context Protocol) Configuration
+    ANTHROPIC_API_KEY: Optional[str] = None
+    BRIA_MCP_URL: str = "https://mcp.prod.bria-api.com/mcp/sse"
+    BRIA_AUTH_TOKEN: Optional[str] = None  # OAuth-based bearer token for MCP
+    PROLIGHT_MAX_COST_USD: float = 1.00  # Maximum cost per agent run
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

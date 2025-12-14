@@ -229,6 +229,7 @@ function AnimatedRoutes() {
         <Route path="/bria/video-editing" element={<PageWrapper><BriaVideoEditing /></PageWrapper>} />
         <Route path="/bria/v1-generator" element={<PageWrapper><BriaV1Generator /></PageWrapper>} />
         <Route path="/demo/free-apis" element={<PageWrapper><FreeApisDemo /></PageWrapper>} />
+        <Route path="/agentic-workflows" element={<PageWrapper><AgenticWorkflow /></PageWrapper>} />
         <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
       </Routes>
     </AnimatePresence>

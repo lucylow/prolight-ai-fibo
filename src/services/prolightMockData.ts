@@ -6,12 +6,12 @@
 
 export interface ProLightAPIResponse {
   success: boolean;
-  data: any;
+  data: unknown;
   request_id: string;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   mock: boolean;
   timing: number;
-  error?: any;
+  error?: unknown;
 }
 
 // ============================================================================
@@ -503,7 +503,7 @@ export const mockImageEditing = async (request: ImageEditingRequest): Promise<Pr
 
 export const mockStatusService = async (request_id: string): Promise<ProLightAPIResponse> => {
   const statuses = ['pending', 'processing', 'completed'] as const;
-  const status = statuses[Math.floor(Math.random() * statuses.length)] as any;
+  const status = statuses[Math.floor(Math.random() * statuses.length)] as 'pending' | 'processing' | 'completed';
   
   return {
     success: true,
@@ -529,52 +529,77 @@ export class ProLightAgenticWorkflow {
   async completeProductCampaign(productDescription: string) {
     console.log(`🎬 Starting agentic workflow for: ${productDescription}`);
     
-    const workflowSteps = [
-      // 1. Generate hero shots
-      () => mockTailoredGeneration({
+    try {
+      // Step 1: Generate hero shots
+      console.log('📸 Step 1: Generating hero shots...');
+      const heroResults = await mockTailoredGeneration({
         model_id: "prolight-product-v1",
         structured_prompt: FIBO_MOCK_DATA.productShots.lamp.structured_prompt,
         num_variations: 6
-      }),
-      
-      // 2. Onboard to asset library
-      (heroResults: ProLightAPIResponse) => mockImageOnboarding({
+      });
+      await this.mockDelay(500, 1500);
+
+      // Step 2: Onboard to asset library (uses hero results)
+      console.log('📚 Step 2: Onboarding images to asset library...');
+      const onboardingResults = await mockImageOnboarding({
         images: (heroResults.data as { images: Array<{ url: string }> }).images.map((i) => i.url),
-        metadata: { product_id: `prod_${Date.now()}`, category: "lighting", tags: ["hero", "studio"] }
-      }),
-      
-      // 3. Generate ad variants
-      () => mockAdsGeneration({
+        metadata: { 
+          product_id: `prod_${Date.now()}`, 
+          category: "lighting", 
+          tags: ["hero", "studio"],
+          product_description: productDescription
+        }
+      });
+      await this.mockDelay(500, 1500);
+
+      // Step 3: Generate ad variants (independent, uses product description)
+      console.log('📢 Step 3: Generating ad variants...');
+      const adsResults = await mockAdsGeneration({
         product_name: productDescription,
         campaign_type: 'social',
         formats: ['facebook', 'instagram'],
         aspect_ratios: ['1:1', '4:5'],
         copy_variations: 4
-      }),
-      
-      // 4. Edit product shots
-      (heroResults: ProLightAPIResponse) => mockProductShotEditing({
+      });
+      await this.mockDelay(500, 1500);
+
+      // Step 4: Edit product shots (uses hero results from step 1)
+      console.log('✨ Step 4: Editing product shots...');
+      const editingResults = await mockProductShotEditing({
         image_url: (heroResults.data as { images: Array<{ url: string }> }).images[0].url,
         lighting_setup: "3-point studio",
         background: "white seamless"
-      })
-    ];
-
-    const results: ProLightAPIResponse[] = [];
-    
-    for (const step of workflowSteps) {
-      const result = await step(results[results.length - 1]);
-      results.push(result);
+      });
       await this.mockDelay(500, 1500);
-    }
 
-    return {
-      success: true,
-      workflow: 'complete_product_campaign',
-      steps_completed: results.length,
-      final_assets: results.flatMap(r => r.data),
-      total_time: 12500
-    };
+      const results = [heroResults, onboardingResults, adsResults, editingResults];
+
+      console.log(`✅ Agentic workflow completed successfully! ${results.length} steps finished.`);
+
+      return {
+        success: true,
+        workflow: 'complete_product_campaign',
+        steps_completed: results.length,
+        final_assets: results.flatMap(r => r.data),
+        total_time: 12500,
+        step_results: {
+          hero_shots: heroResults,
+          onboarding: onboardingResults,
+          ad_variants: adsResults,
+          edited_shots: editingResults
+        }
+      };
+    } catch (error) {
+      console.error('❌ Agentic workflow failed:', error);
+      return {
+        success: false,
+        workflow: 'complete_product_campaign',
+        steps_completed: 0,
+        final_assets: [],
+        total_time: 0,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   }
 }
 
