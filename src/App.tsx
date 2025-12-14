@@ -163,6 +163,42 @@ function AnimatedRoutes() {
   );
 }
 
+// Deployment verification banner - visible on all pages
+function DeploymentBanner() {
+  const buildTime = typeof __BUILD_TIME__ !== 'undefined' && __BUILD_TIME__ 
+    ? new Date(__BUILD_TIME__).toISOString() 
+    : 'dev mode';
+  const commitHash = typeof __COMMIT_HASH__ !== 'undefined' && __COMMIT_HASH__ 
+    ? __COMMIT_HASH__ 
+    : 'local';
+  
+  return (
+    <div 
+      style={{ 
+        position: "fixed",
+        bottom: 0,
+        right: 0,
+        background: "red",
+        color: "white",
+        zIndex: 9999,
+        padding: "8px 12px",
+        fontSize: "12px",
+        fontFamily: "monospace",
+        borderRadius: "4px 0 0 0",
+        boxShadow: "0 -2px 8px rgba(0,0,0,0.3)",
+        maxWidth: "400px",
+        lineHeight: "1.4"
+      }}
+    >
+      <div style={{ fontWeight: "bold", marginBottom: "4px" }}>
+        🔴 DEPLOY CHECK
+      </div>
+      <div>Time: {buildTime}</div>
+      <div>Commit: {commitHash}</div>
+    </div>
+  );
+}
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -174,6 +210,7 @@ const App = () => (
             <ToastContainer position="top-right" autoClose={3000} />
             <BrowserRouter>
               <CookieConsent />
+              <DeploymentBanner />
               <MainLayout>
                 <AnimatedRoutes />
               </MainLayout>
