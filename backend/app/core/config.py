@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     # FIBO Configuration
     FIBO_API_URL: str = "https://api.bria.ai/v1/models/fibo"
     FIBO_API_KEY: Optional[str] = None
+    BRIA_API_TOKEN: Optional[str] = None  # For Bria Product Shot Editing APIs
+    BRIA_API_KEY: Optional[str] = None  # Alternative name
     USE_MOCK_FIBO: bool = True
     
     # Gemini Configuration (for natural language processing)

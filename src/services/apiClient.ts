@@ -12,7 +12,21 @@ import type {
   LightingAnalysis,
   HealthResponse,
   LightingPreset,
+  HistoryItem,
 } from '@/types/fibo';
+import {
+  getMockGenerationResponse,
+  getMockPresetListResponse,
+  getMockPreset,
+  getMockHistoryResponse,
+  getMockGenerationDetail,
+  getMockBatchJobResponse,
+  getMockLightingAnalysis,
+  getMockStyleRecommendations,
+  getMockCategories,
+  getMockHistoryStats,
+  shouldUseMockData,
+} from './mockData';
 
 /**
  * Custom API Error class with error codes and details
@@ -76,15 +90,45 @@ class APIClient {
   }
 
   private async checkHealth(): Promise<void> {
+    // Check if mock data is explicitly enabled
+    if (shouldUseMockData()) {
+      this.useMock = true;
+      console.info('Mock data mode enabled');
+      return;
+    }
+
     try {
-      const response = await fetch(`${this.baseUrl}/health`);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout for health check
+      
+      const response = await fetch(`${this.baseUrl}/health`, {
+        signal: controller.signal,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
         this.useMock = true;
-        console.warn('Backend not available, using mock data');
+        console.warn('Backend health check failed, using mock data');
+      } else {
+        this.useMock = false;
+        console.info('Backend is available');
       }
     } catch (error) {
       this.useMock = true;
-      console.warn('Backend connection failed, using mock data', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.warn('Backend connection failed, using mock data:', errorMessage);
+      
+      // Store the failure in localStorage to avoid repeated checks
+      try {
+        localStorage.setItem('api_health_failed', Date.now().toString());
+      } catch {
+        // Ignore localStorage errors
+      }
     }
   }
 
@@ -243,14 +287,21 @@ class APIClient {
   // ============================================================================
 
   async generate(request: GenerateRequest): Promise<GenerationResponse> {
-    if (this.useMock) {
-      return this.mockGenerate(request);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for generate');
+      return getMockGenerationResponse(request);
     }
 
-    return this.request<GenerationResponse>('/generate', {
-      method: 'POST',
-      body: JSON.stringify(request),
-    });
+    try {
+      return await this.request<GenerationResponse>('/generate', {
+        method: 'POST',
+        body: JSON.stringify(request),
+      });
+    } catch (error) {
+      // Fallback to mock data on error
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockGenerationResponse(request);
+    }
   }
 
   async generateFromNaturalLanguage(
@@ -259,25 +310,35 @@ class APIClient {
     subject?: string,
     styleIntent?: string
   ): Promise<GenerationResponse> {
-    if (this.useMock) {
-      return this.mockGenerate({
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for generateFromNaturalLanguage');
+      return getMockGenerationResponse({
         scene_description: sceneDescription,
         lighting_setup: {},
         use_mock: true,
       });
     }
 
-    const params = new URLSearchParams({
-      scene_description: sceneDescription,
-      lighting_description: lightingDescription,
-      subject: subject || 'professional subject',
-      style_intent: styleIntent || 'professional',
-    });
+    try {
+      const params = new URLSearchParams({
+        scene_description: sceneDescription,
+        lighting_description: lightingDescription,
+        subject: subject || 'professional subject',
+        style_intent: styleIntent || 'professional',
+      });
 
-    return this.request<GenerationResponse>(
-      `/generate/natural-language?${params}`,
-      { method: 'POST' }
-    );
+      return await this.request<GenerationResponse>(
+        `/generate/natural-language?${params}`,
+        { method: 'POST' }
+      );
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockGenerationResponse({
+        scene_description: sceneDescription,
+        lighting_setup: {},
+        use_mock: true,
+      });
+    }
   }
 
   async generateFromPreset(
@@ -285,26 +346,36 @@ class APIClient {
     sceneDescription: string,
     customSettings?: Record<string, unknown>
   ): Promise<GenerationResponse> {
-    if (this.useMock) {
-      return this.mockGenerate({
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for generateFromPreset');
+      return getMockGenerationResponse({
         scene_description: sceneDescription,
         lighting_setup: {},
         use_mock: true,
       });
     }
 
-    const params = new URLSearchParams({
-      preset_id: presetId,
-      scene_description: sceneDescription,
-    });
+    try {
+      const params = new URLSearchParams({
+        preset_id: presetId,
+        scene_description: sceneDescription,
+      });
 
-    return this.request<GenerationResponse>(
-      `/generate/from-preset?${params}`,
-      {
-        method: 'POST',
-        body: JSON.stringify(customSettings || {}),
-      }
-    );
+      return await this.request<GenerationResponse>(
+        `/generate/from-preset?${params}`,
+        {
+          method: 'POST',
+          body: JSON.stringify(customSettings || {}),
+        }
+      );
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockGenerationResponse({
+        scene_description: sceneDescription,
+        lighting_setup: {},
+        use_mock: true,
+      });
+    }
   }
 
   // ============================================================================
@@ -316,47 +387,90 @@ class APIClient {
     page: number = 1,
     pageSize: number = 10
   ): Promise<PresetListResponse> {
-    if (this.useMock) {
-      return this.mockListPresets(category);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for listPresets');
+      return getMockPresetListResponse(category);
     }
 
-    const params = new URLSearchParams({
-      page: page.toString(),
-      page_size: pageSize.toString(),
-    });
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: pageSize.toString(),
+      });
 
-    if (category) {
-      params.append('category', category);
+      if (category) {
+        params.append('category', category);
+      }
+
+      return await this.request<PresetListResponse>(`/presets?${params}`);
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockPresetListResponse(category);
     }
-
-    return this.request<PresetListResponse>(`/presets?${params}`);
   }
 
   async getPreset(presetId: string): Promise<LightingPreset> {
-    if (this.useMock) {
-      return this.mockGetPreset(presetId);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for getPreset');
+      return getMockPreset(presetId);
     }
 
-    return this.request<LightingPreset>(`/presets/${presetId}`);
+    try {
+      return await this.request<LightingPreset>(`/presets/${presetId}`);
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockPreset(presetId);
+    }
   }
 
   async listCategories() {
-    if (this.useMock) {
-      return this.mockListCategories();
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for listCategories');
+      return getMockCategories();
     }
 
-    return this.request('/presets/categories');
+    try {
+      return await this.request('/presets/categories');
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockCategories();
+    }
   }
 
   async searchPresets(query: string, page: number = 1, pageSize: number = 10): Promise<PresetListResponse> {
-    if (this.useMock) {
-      return this.mockSearchPresets(query);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for searchPresets');
+      // Filter mock presets by query
+      const allPresets = getMockPresetListResponse();
+      const filtered = allPresets.presets.filter(p => 
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.description.toLowerCase().includes(query.toLowerCase())
+      );
+      return {
+        ...allPresets,
+        presets: filtered,
+        total: filtered.length,
+      };
     }
 
-    return this.request<PresetListResponse>('/presets/search', {
-      method: 'POST',
-      body: JSON.stringify({ query, page, page_size: pageSize }),
-    });
+    try {
+      return await this.request<PresetListResponse>('/presets/search', {
+        method: 'POST',
+        body: JSON.stringify({ query, page, page_size: pageSize }),
+      });
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      const allPresets = getMockPresetListResponse();
+      const filtered = allPresets.presets.filter(p => 
+        p.name.toLowerCase().includes(query.toLowerCase()) ||
+        p.description.toLowerCase().includes(query.toLowerCase())
+      );
+      return {
+        ...allPresets,
+        presets: filtered,
+        total: filtered.length,
+      };
+    }
   }
 
   // ============================================================================
@@ -368,28 +482,40 @@ class APIClient {
     pageSize: number = 10,
     presetFilter?: string
   ): Promise<HistoryResponse> {
-    if (this.useMock) {
-      return this.mockGetHistory();
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for getHistory');
+      return getMockHistoryResponse(page, pageSize);
     }
 
-    const params = new URLSearchParams({
-      page: page.toString(),
-      page_size: pageSize.toString(),
-    });
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: pageSize.toString(),
+      });
 
-    if (presetFilter) {
-      params.append('preset_filter', presetFilter);
+      if (presetFilter) {
+        params.append('preset_filter', presetFilter);
+      }
+
+      return await this.request<HistoryResponse>(`/history?${params}`);
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockHistoryResponse(page, pageSize);
     }
-
-    return this.request<HistoryResponse>(`/history?${params}`);
   }
 
   async getGenerationDetail(generationId: string): Promise<HistoryItem> {
-    if (this.useMock) {
-      return this.mockGetGenerationDetail(generationId);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for getGenerationDetail');
+      return getMockGenerationDetail(generationId);
     }
 
-    return this.request<HistoryItem>(`/history/${generationId}`);
+    try {
+      return await this.request<HistoryItem>(`/history/${generationId}`);
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockGenerationDetail(generationId);
+    }
   }
 
   async deleteGeneration(generationId: string): Promise<{ status: string; message: string }> {
@@ -414,16 +540,22 @@ class APIClient {
     average_cost_per_generation: number;
     preset_distribution: Record<string, number>;
   }> {
-    if (this.useMock) {
-      return this.mockGetHistoryStats();
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for getHistoryStats');
+      return getMockHistoryStats();
     }
 
-    return this.request<{
-      total_generations: number;
-      total_cost_credits: number;
-      average_cost_per_generation: number;
-      preset_distribution: Record<string, number>;
-    }>('/history/stats');
+    try {
+      return await this.request<{
+        total_generations: number;
+        total_cost_credits: number;
+        average_cost_per_generation: number;
+        preset_distribution: Record<string, number>;
+      }>('/history/stats');
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockHistoryStats();
+    }
   }
 
   // ============================================================================
@@ -435,8 +567,9 @@ class APIClient {
     presetName?: string,
     totalCount?: number
   ): Promise<BatchJobResponse> {
-    if (this.useMock) {
-      return this.mockBatchGenerate(items);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for batchGenerate');
+      return getMockBatchJobResponse(items, 'processing');
     }
 
     return this.request<BatchJobResponse>('/batch/generate', {
@@ -450,11 +583,17 @@ class APIClient {
   }
 
   async getBatchStatus(batchId: string): Promise<BatchJobResponse> {
-    if (this.useMock) {
-      return this.mockGetBatchStatus(batchId);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for getBatchStatus');
+      return getMockBatchJobResponse([{}], 'completed');
     }
 
-    return this.request<BatchJobResponse>(`/batch/${batchId}`);
+    try {
+      return await this.request<BatchJobResponse>(`/batch/${batchId}`);
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockBatchJobResponse([{}], 'completed');
+    }
   }
 
   async generateProductVariations(
@@ -463,58 +602,93 @@ class APIClient {
     numLightingSetups: number = 3,
     presetId?: string
   ) {
-    if (this.useMock) {
-      return this.mockGenerateProductVariations(productDescription);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for generateProductVariations');
+      const items = Array.from({ length: numAngles * numLightingSetups }, () => ({}));
+      return getMockBatchJobResponse(items, 'processing');
     }
 
-    const params = new URLSearchParams({
-      product_description: productDescription,
-      num_angles: numAngles.toString(),
-      num_lighting_setups: numLightingSetups.toString(),
-    });
+    try {
+      const params = new URLSearchParams({
+        product_description: productDescription,
+        num_angles: numAngles.toString(),
+        num_lighting_setups: numLightingSetups.toString(),
+      });
 
-    if (presetId) {
-      params.append('preset_id', presetId);
+      if (presetId) {
+        params.append('preset_id', presetId);
+      }
+
+      return await this.request(`/batch/product-variations?${params}`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      const items = Array.from({ length: numAngles * numLightingSetups }, () => ({}));
+      return getMockBatchJobResponse(items, 'processing');
     }
-
-    return this.request(`/batch/product-variations?${params}`, {
-      method: 'POST',
-    });
   }
 
   async exportBatch(batchId: string, format: string = 'zip') {
-    if (this.useMock) {
-      return this.mockExportBatch(batchId);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for exportBatch');
+      return {
+        batch_id: batchId,
+        format,
+        items: 5,
+        download_url: `https://storage.example.com/exports/${batchId}.${format}`,
+        expires_in_hours: 24,
+      };
     }
 
-    const params = new URLSearchParams({ format });
-    return this.request(`/batch/${batchId}/export?${params}`);
+    try {
+      const params = new URLSearchParams({ format });
+      return await this.request(`/batch/${batchId}/export?${params}`);
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return {
+        batch_id: batchId,
+        format,
+        items: 5,
+        download_url: `https://storage.example.com/exports/${batchId}.${format}`,
+        expires_in_hours: 24,
+      };
+    }
   }
 
   // ============================================================================
   // Analysis Endpoints
   // ============================================================================
 
-  async analyzeLighting(lightingSetup: Record<string, unknown>): Promise<LightingAnalysis> {
-    if (this.useMock) {
-      return this.mockAnalyzeLighting(lightingSetup);
-    }
-
-    return this.request<LightingAnalysis>('/analyze/lighting', {
-      method: 'POST',
-      body: JSON.stringify({ lighting_setup: lightingSetup }),
-    });
-  }
-
   async compareLightingSetups(setup1: Record<string, unknown>, setup2: Record<string, unknown>) {
-    if (this.useMock) {
-      return this.mockCompareLightingSetups(setup1, setup2);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for compareLightingSetups');
+      const analysis1 = getMockLightingAnalysis(setup1);
+      const analysis2 = getMockLightingAnalysis(setup2);
+      return {
+        setup_1: analysis1,
+        setup_2: analysis2,
+        winner: analysis1.professional_rating > analysis2.professional_rating ? 'setup_1' : 'setup_2',
+        rating_difference: Math.abs(analysis1.professional_rating - analysis2.professional_rating),
+      };
     }
 
-    return this.request('/analyze/compare', {
-      method: 'POST',
-      body: JSON.stringify({ setup_1: setup1, setup_2: setup2 }),
-    });
+    try {
+      return await this.request('/analyze/compare', {
+        method: 'POST',
+        body: JSON.stringify({ setup_1: setup1, setup_2: setup2 }),
+      });
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      const analysis1 = getMockLightingAnalysis(setup1);
+      const analysis2 = getMockLightingAnalysis(setup2);
+      return {
+        setup_1: analysis1,
+        setup_2: analysis2,
+        winner: analysis1.professional_rating > analysis2.professional_rating ? 'setup_1' : 'setup_2',
+        rating_difference: Math.abs(analysis1.professional_rating - analysis2.professional_rating),
+      };
+    }
   }
 
   async getStyleRecommendations(lightingStyle: string): Promise<{
@@ -522,15 +696,21 @@ class APIClient {
     key_to_fill_ratio: string;
     tips: string[];
   }> {
-    if (this.useMock) {
-      return this.mockGetStyleRecommendations(lightingStyle);
+    if (this.useMock || shouldUseMockData()) {
+      console.info('Using mock data for getStyleRecommendations');
+      return getMockStyleRecommendations(lightingStyle);
     }
 
-    return this.request<{
-      description: string;
-      key_to_fill_ratio: string;
-      tips: string[];
-    }>(`/analyze/recommendations/${lightingStyle}`);
+    try {
+      return await this.request<{
+        description: string;
+        key_to_fill_ratio: string;
+        tips: string[];
+      }>(`/analyze/recommendations/${lightingStyle}`);
+    } catch (error) {
+      console.warn('API call failed, falling back to mock data:', error);
+      return getMockStyleRecommendations(lightingStyle);
+    }
   }
 
   // ============================================================================
@@ -549,195 +729,6 @@ class APIClient {
     }
   }
 
-  // ============================================================================
-  // Mock Data Methods
-  // ============================================================================
-
-  private mockGenerate(request: GenerateRequest): GenerationResponse {
-    return {
-      generation_id: `gen_${Date.now()}`,
-      status: 'success',
-      image_url: 'https://via.placeholder.com/2048x2048?text=ProLight+AI',
-      duration_seconds: 3.5,
-      cost_credits: 0.04,
-      analysis: {
-        key_to_fill_ratio: 2.5,
-        color_temperature_consistency: 0.95,
-        professional_rating: 8.5,
-        mood_assessment: 'professional, confident',
-        recommendations: ['Consider increasing fill light for softer shadows'],
-      },
-      timestamp: new Date().toISOString(),
-    };
-  }
-
-  private mockListPresets(category?: string): PresetListResponse {
-    const defaultMainLight = {
-      type: 'area' as const,
-      direction: '45 degrees camera-right',
-      position: [1, 1, 1] as [number, number, number],
-      intensity: 0.8,
-      colorTemperature: 5600,
-      softness: 0.5,
-      enabled: true,
-      distance: 1.5,
-    };
-
-    const presets: LightingPreset[] = [
-      {
-        presetId: 'butterfly_classic',
-        name: 'Butterfly Classic',
-        category: 'portrait',
-        description: 'Soft, flattering beauty lighting',
-        lighting_config: {
-          mainLight: { ...defaultMainLight, direction: 'above camera' },
-          lightingStyle: 'butterfly',
-        },
-        ideal_for: ['beauty', 'commercial', 'headshots'],
-      },
-      {
-        presetId: 'rembrandt_classic',
-        name: 'Rembrandt Classic',
-        category: 'portrait',
-        description: 'Dramatic side lighting',
-        lighting_config: {
-          mainLight: { ...defaultMainLight, direction: '45 degrees side' },
-          lightingStyle: 'rembrandt',
-        },
-        ideal_for: ['dramatic', 'editorial'],
-      },
-    ];
-
-    return {
-      presets: category ? presets.filter((p) => p.category === category) : presets,
-      total: presets.length,
-      page: 1,
-      page_size: 10,
-    };
-  }
-
-  private mockGetPreset(presetId: string) {
-    return {
-      presetId,
-      name: 'Sample Preset',
-      category: 'portrait',
-      description: 'A sample lighting preset',
-      lighting_config: {},
-      ideal_for: ['portraits'],
-    };
-  }
-
-  private mockListCategories() {
-    return {
-      categories: ['portrait', 'product', 'environmental'],
-      total: 3,
-    };
-  }
-
-  private mockSearchPresets(query: string) {
-    return {
-      presets: [],
-      total: 0,
-      page: 1,
-      page_size: 10,
-    };
-  }
-
-  private mockGetHistory() {
-    return {
-      items: [],
-      total: 0,
-      page: 1,
-      page_size: 10,
-    };
-  }
-
-  private mockGetGenerationDetail(generationId: string) {
-    return {
-      generation_id: generationId,
-      timestamp: new Date().toISOString(),
-      scene_description: 'Sample scene',
-      image_url: 'https://via.placeholder.com/2048x2048',
-      cost_credits: 0.04,
-    };
-  }
-
-  private mockGetHistoryStats() {
-    return {
-      total_generations: 0,
-      total_cost_credits: 0,
-      average_cost_per_generation: 0,
-      preset_distribution: {},
-    };
-  }
-
-  private mockBatchGenerate(items: Array<Record<string, unknown>>) {
-    return {
-      batch_id: `batch_${Date.now()}`,
-      status: 'processing',
-      items_total: items.length,
-      items_completed: 0,
-      total_cost: 0,
-      created_at: new Date().toISOString(),
-    };
-  }
-
-  private mockGetBatchStatus(batchId: string) {
-    return {
-      batch_id: batchId,
-      status: 'completed',
-      items_total: 5,
-      items_completed: 5,
-      total_cost: 0.2,
-      created_at: new Date().toISOString(),
-    };
-  }
-
-  private mockGenerateProductVariations(productDescription: string) {
-    return {
-      batch_id: `batch_product_${Date.now()}`,
-      status: 'processing',
-      total_items: 12,
-      product: productDescription,
-    };
-  }
-
-  private mockExportBatch(batchId: string) {
-    return {
-      batch_id: batchId,
-      format: 'zip',
-      items: 5,
-      download_url: 'https://storage.example.com/exports/batch.zip',
-      expires_in_hours: 24,
-    };
-  }
-
-  private mockAnalyzeLighting(lightingSetup: Record<string, unknown>) {
-    return {
-      key_to_fill_ratio: 2.5,
-      color_temperature_consistency: 0.95,
-      professional_rating: 8.5,
-      mood_assessment: 'professional',
-      recommendations: [],
-    };
-  }
-
-  private mockCompareLightingSetups(setup1: Record<string, unknown>, setup2: Record<string, unknown>) {
-    return {
-      setup_1: this.mockAnalyzeLighting(setup1),
-      setup_2: this.mockAnalyzeLighting(setup2),
-      winner: 'setup_1',
-      rating_difference: 0.5,
-    };
-  }
-
-  private mockGetStyleRecommendations(lightingStyle: string) {
-    return {
-      description: `Recommendations for ${lightingStyle} lighting`,
-      key_to_fill_ratio: '2:1 to 3:1',
-      tips: ['Tip 1', 'Tip 2', 'Tip 3'],
-    };
-  }
 }
 
 export const apiClient = new APIClient();

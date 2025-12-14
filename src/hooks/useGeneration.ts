@@ -1,8 +1,19 @@
 import { useState } from 'react';
 import { useLightingStore } from '@/stores/lightingStore';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { getMockGenerationResponse } from '@/services/mockData';
+import type { GenerateRequest } from '@/types/fibo';
+import {
+  generateLighting,
+  generateFromNaturalLanguage,
+  analyzeLighting,
+  EdgeFunctionErrorClass,
+  type GenerateLightingRequest,
+  type NaturalLanguageLightingRequest,
+  type AnalyzeLightingRequest,
+} from '@/services/supabaseEdgeClient';
 
+// Backward compatibility: export GenerationError type
 export interface GenerationError {
   message: string;
   code?: string;
@@ -10,80 +21,31 @@ export interface GenerationError {
   details?: Record<string, unknown>;
 }
 
-const getErrorMessage = (error: unknown): GenerationError => {
-  if (error && typeof error === 'object' && 'error' in error) {
-    const errorData = (error as { error: Record<string, unknown> }).error;
+// Convert EdgeFunctionErrorClass to GenerationError for backward compatibility
+const toGenerationError = (error: unknown): GenerationError => {
+  if (error instanceof EdgeFunctionErrorClass) {
     return {
-      message: (typeof errorData.message === 'string' ? errorData.message : typeof errorData.error === 'string' ? errorData.error : 'Generation failed'),
-      code: (typeof errorData.errorCode === 'string' ? errorData.errorCode : typeof errorData.code === 'string' ? errorData.code : undefined),
-      retryable: ['AI_RATE_LIMIT', 'AI_SERVER_ERROR', 'AI_TIMEOUT', 'AI_NETWORK_ERROR', 'NETWORK_ERROR', 'TIMEOUT_ERROR'].includes(
-        (typeof errorData.errorCode === 'string' ? errorData.errorCode : typeof errorData.code === 'string' ? errorData.code : '') || ''
-      ),
-      details: errorData.details as Record<string, unknown> | undefined
+      message: error.message,
+      code: error.code,
+      retryable: error.isRetryable(),
+      details: error.details,
     };
   }
   
   if (error && typeof error === 'object' && 'message' in error) {
-    const errorMessage = error.message;
-    const message = typeof errorMessage === 'string' ? errorMessage : String(errorMessage);
-    let code = 'UNKNOWN_ERROR';
-    let retryable = false;
-
-    const messageLower = message.toLowerCase();
-    if (messageLower.includes('rate limit')) {
-      code = 'RATE_LIMIT';
-      retryable = true;
-    } else if (messageLower.includes('timeout')) {
-      code = 'TIMEOUT';
-      retryable = true;
-    } else if (messageLower.includes('network')) {
-      code = 'NETWORK_ERROR';
-      retryable = true;
-    } else if (messageLower.includes('payment')) {
-      code = 'PAYMENT_REQUIRED';
-    } else if (messageLower.includes('authentication') || messageLower.includes('auth')) {
-      code = 'AUTH_ERROR';
-    }
-
-    return { message, code, retryable };
+    const err = error as { message: string; code?: string };
+    return {
+      message: err.message,
+      code: err.code || 'UNKNOWN_ERROR',
+      retryable: false,
+    };
   }
 
   return {
     message: typeof error === 'string' ? error : 'An unexpected error occurred',
     code: 'UNKNOWN_ERROR',
-    retryable: false
+    retryable: false,
   };
-};
-
-const getUserFriendlyMessage = (error: GenerationError): string => {
-  switch (error.code) {
-    case 'AI_RATE_LIMIT':
-    case 'RATE_LIMIT':
-      return 'Too many requests. Please wait a moment and try again.';
-    case 'AI_TIMEOUT':
-    case 'TIMEOUT':
-      return 'The request took too long. Please try again.';
-    case 'AI_NETWORK_ERROR':
-    case 'NETWORK_ERROR':
-      return 'Network error. Please check your connection and try again.';
-    case 'AI_PAYMENT_REQUIRED':
-    case 'PAYMENT_REQUIRED':
-      return 'Payment required. Please add credits to your workspace.';
-    case 'AI_AUTH_ERROR':
-    case 'AUTH_ERROR':
-      return 'Authentication failed. Please check your configuration.';
-    case 'CONFIG_ERROR':
-      return 'Configuration error. Please check that LOVABLE_API_KEY is set in your project secrets.';
-    case 'AI_NO_IMAGE':
-      return 'The AI service did not generate an image. Please try again with a different prompt.';
-    case 'AI_INVALID_RESPONSE':
-    case 'AI_INCOMPLETE_RESPONSE':
-      return 'The AI service returned an invalid response. Please try again.';
-    case 'AI_SERVER_ERROR':
-      return 'The AI service is temporarily unavailable. Please try again later.';
-    default:
-      return error.message || 'An unexpected error occurred.';
-  }
 };
 
 export const useGeneration = () => {
@@ -97,10 +59,10 @@ export const useGeneration = () => {
     setLoading(true);
 
     try {
-      const sceneRequest = {
+      const sceneRequest: GenerateLightingRequest = {
         subjectDescription: sceneSettings.subjectDescription,
         environment: sceneSettings.environment,
-        lightingSetup,
+        lightingSetup: lightingSetup as GenerateLightingRequest['lightingSetup'],
         cameraSettings,
         stylePreset: sceneSettings.stylePreset,
         enhanceHDR: sceneSettings.enhanceHDR,
@@ -108,35 +70,45 @@ export const useGeneration = () => {
 
       console.log('Generating from setup:', sceneRequest);
 
-      const { data, error: fnError } = await supabase.functions.invoke('generate-lighting', {
-        body: sceneRequest
-      });
-
-      if (fnError) {
-        const genError = getErrorMessage({ error: { message: fnError.message, code: fnError.name } });
-        setError(genError);
-        toast.error(getUserFriendlyMessage(genError));
-        throw genError;
-      }
-
-      if (data?.error) {
-        const genError = getErrorMessage(data);
-        setError(genError);
-        toast.error(getUserFriendlyMessage(genError));
-        throw genError;
-      }
-
-      // Validate response has required fields
-      if (!data?.image_url && !data?.image_id) {
-        const genError: GenerationError = {
-          message: 'Invalid response from generation service',
-          code: 'INVALID_RESPONSE',
-          retryable: true
+      // Use mock data if explicitly enabled
+      if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+        console.info('Using mock data (VITE_USE_MOCK_DATA enabled)');
+        const mockRequest: GenerateRequest = {
+          scene_description: sceneSettings.subjectDescription || sceneSettings.environment || 'Professional product photography',
+          lighting_setup: lightingSetup as Record<string, unknown>,
+          use_mock: true,
         };
-        setError(genError);
-        toast.error('Invalid response received. Please try again.');
-        throw genError;
+        const mockResponse = getMockGenerationResponse(mockRequest);
+        setGenerationResult({
+          image_url: mockResponse.image_url,
+          image_id: mockResponse.generation_id,
+          fibo_json: undefined,
+          lightingAnalysis: mockResponse.analysis,
+          generation_metadata: {
+            timestamp: mockResponse.timestamp,
+            duration_seconds: mockResponse.duration_seconds,
+            cost_credits: mockResponse.cost_credits,
+          }
+        });
+        setError(null);
+        toast.success('Mock image generated successfully!');
+        return {
+          image_url: mockResponse.image_url,
+          image_id: mockResponse.generation_id,
+          fibo_json: undefined,
+          lighting_analysis: mockResponse.analysis,
+          generation_metadata: {
+            timestamp: mockResponse.timestamp,
+            duration_seconds: mockResponse.duration_seconds,
+            cost_credits: mockResponse.cost_credits,
+          }
+        };
       }
+
+      // Call the edge function with improved error handling
+      const data = await generateLighting(sceneRequest, {
+        showToast: false, // We'll show toast after setting state
+      });
 
       console.log('Generation result:', data);
 
@@ -152,9 +124,16 @@ export const useGeneration = () => {
       toast.success('Image generated successfully!');
       return data;
     } catch (err) {
-      const genError = getErrorMessage(err);
+      const genError = toGenerationError(err);
       setError(genError);
-      toast.error(getUserFriendlyMessage(genError));
+      
+      // Show error toast (already shown by edge client, but show again if needed)
+      if (err instanceof EdgeFunctionErrorClass) {
+        toast.error(err.getUserMessage());
+      } else {
+        toast.error(genError.message || 'An unexpected error occurred');
+      }
+      
       throw genError;
     } finally {
       setIsGenerating(false);
@@ -177,12 +156,67 @@ export const useGeneration = () => {
 
       console.log('Generating from NL:', nlRequest);
 
-      const { data, error: fnError } = await supabase.functions.invoke('natural-language-lighting', {
-        body: nlRequest
-      });
+      let data;
+      let fnError;
 
+      try {
+        const result = await supabase.functions.invoke('natural-language-lighting', {
+          body: nlRequest
+        });
+        data = result.data;
+        fnError = result.error;
+      } catch (invokeError) {
+        console.warn('Supabase function invocation failed, using mock data:', invokeError);
+        fnError = invokeError as Error;
+      }
+
+      // If there's an error, try to use mock data as fallback
       if (fnError) {
-        const genError = getErrorMessage({ error: { message: fnError.message, code: fnError.name } });
+        const errorMessage = fnError instanceof Error ? fnError.message : String(fnError);
+        const isNetworkError = errorMessage.includes('network') || 
+                              errorMessage.includes('fetch') || 
+                              errorMessage.includes('Failed to fetch');
+        
+        // Use mock data for network errors or if explicitly enabled
+        if (isNetworkError || import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+          console.info('Falling back to mock data due to error:', errorMessage);
+          toast.warning('Using mock data due to connection issue. Some features may be limited.');
+          
+          const mockRequest: GenerateRequest = {
+            scene_description: sceneDescription,
+            lighting_setup: {},
+            use_mock: true,
+          };
+          const mockResponse = getMockGenerationResponse(mockRequest);
+          setGenerationResult({
+            image_url: mockResponse.image_url,
+            image_id: mockResponse.generation_id,
+            fibo_json: undefined,
+            lightingAnalysis: mockResponse.analysis,
+            generation_metadata: {
+              timestamp: mockResponse.timestamp,
+              duration_seconds: mockResponse.duration_seconds,
+              cost_credits: mockResponse.cost_credits,
+            }
+          });
+          
+          setError(null);
+          toast.success('Mock image generated from description!');
+          return {
+            image_url: mockResponse.image_url,
+            image_id: mockResponse.generation_id,
+            fibo_json: undefined,
+            lighting_analysis: mockResponse.analysis,
+            generation_metadata: {
+              timestamp: mockResponse.timestamp,
+              duration_seconds: mockResponse.duration_seconds,
+              cost_credits: mockResponse.cost_credits,
+            }
+          };
+        }
+        
+        // For non-network errors, throw normally
+        const genError = getErrorMessage({ error: { message: errorMessage, code: fnError.name || 'FUNCTION_ERROR' } });
         setError(genError);
         toast.error(getUserFriendlyMessage(genError));
         throw genError;
@@ -197,14 +231,41 @@ export const useGeneration = () => {
 
       // Validate response has required fields
       if (!data?.image_url && !data?.image_id) {
-        const genError: GenerationError = {
-          message: 'Invalid response from generation service',
-          code: 'INVALID_RESPONSE',
-          retryable: true
+        // Try mock data fallback if response is invalid
+        console.warn('Invalid response, falling back to mock data');
+        toast.warning('Invalid response received. Using mock data.');
+        
+        const mockRequest: GenerateRequest = {
+          scene_description: sceneDescription,
+          lighting_setup: {},
+          use_mock: true,
         };
-        setError(genError);
-        toast.error('Invalid response received. Please try again.');
-        throw genError;
+        const mockResponse = getMockGenerationResponse(mockRequest);
+        setGenerationResult({
+          image_url: mockResponse.image_url,
+          image_id: mockResponse.generation_id,
+          fibo_json: undefined,
+          lightingAnalysis: mockResponse.analysis,
+          generation_metadata: {
+            timestamp: mockResponse.timestamp,
+            duration_seconds: mockResponse.duration_seconds,
+            cost_credits: mockResponse.cost_credits,
+          }
+        });
+        
+        setError(null);
+        toast.success('Mock image generated from description!');
+        return {
+          image_url: mockResponse.image_url,
+          image_id: mockResponse.generation_id,
+          fibo_json: undefined,
+          lighting_analysis: mockResponse.analysis,
+          generation_metadata: {
+            timestamp: mockResponse.timestamp,
+            duration_seconds: mockResponse.duration_seconds,
+            cost_credits: mockResponse.cost_credits,
+          }
+        };
       }
 
       console.log('NL Generation result:', data);
@@ -233,27 +294,40 @@ export const useGeneration = () => {
 
   const analyzeLighting = async () => {
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('analyze-lighting', {
-        body: lightingSetup
+      // Use mock data if explicitly enabled
+      if (import.meta.env.VITE_USE_MOCK_DATA === 'true') {
+        console.info('Using mock data for analysis (VITE_USE_MOCK_DATA enabled)');
+        const { getMockLightingAnalysis } = await import('@/services/mockData');
+        return getMockLightingAnalysis(lightingSetup as Record<string, unknown>);
+      }
+
+      const request: AnalyzeLightingRequest = {
+        lightingSetup: lightingSetup as AnalyzeLightingRequest['lightingSetup'],
+        styleContext: sceneSettings.stylePreset,
+      };
+
+      const data = await analyzeLightingAPI(request, {
+        showToast: true,
       });
-
-      if (fnError) {
-        const genError = getErrorMessage({ error: { message: fnError.message, code: fnError.name } });
-        toast.error(getUserFriendlyMessage(genError));
-        throw genError;
-      }
-
-      if (data?.error) {
-        const genError = getErrorMessage(data);
-        toast.error(getUserFriendlyMessage(genError));
-        throw genError;
-      }
 
       console.log('Analysis result:', data);
       return data;
     } catch (err) {
-      const genError = getErrorMessage(err);
-      toast.error(getUserFriendlyMessage(genError));
+      const genError = toGenerationError(err);
+      
+      // For retryable errors, try mock data as fallback
+      if (genError.retryable) {
+        try {
+          const { getMockLightingAnalysis } = await import('@/services/mockData');
+          const mockAnalysis = getMockLightingAnalysis(lightingSetup as Record<string, unknown>);
+          toast.warning('Using mock analysis data as fallback.');
+          return mockAnalysis;
+        } catch {
+          // If mock data fails, continue to throw original error
+        }
+      }
+      
+      // Error toast already shown by edge client
       throw genError;
     }
   };

@@ -1,3 +1,4 @@
+import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
@@ -130,15 +131,8 @@ const handleInitializationError = (error: unknown, rootElement: HTMLElement): vo
   if (retryButton) {
     retryButton.addEventListener("click", () => {
       try {
-        // Attempt to reinitialize
-        const newRoot = createRoot(rootElement);
-        newRoot.render(
-          React.createElement(NextThemeProvider, {
-            attribute: "class",
-            defaultTheme: "system",
-            enableSystem: true
-          }, React.createElement(App))
-        );
+        // Attempt to reinitialize - reload page instead of trying to recreate React
+        window.location.reload();
       } catch (retryError) {
         console.error("Retry failed:", retryError);
         window.location.reload();

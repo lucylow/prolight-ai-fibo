@@ -130,6 +130,24 @@ class BriaClient {
     });
   }
 
+  /**
+   * Edit image using BRIA API v2 endpoints
+   * Supports direct image URLs/base64 (no onboarding required)
+   */
+  async editImageV2(params: {
+    operation: string;
+    image: string; // base64 or URL
+    mask?: string; // base64 or URL
+    prompt?: string;
+    negativePrompt?: string;
+    [key: string]: unknown;
+  }): Promise<BriaResponse> {
+    return this.request('/image-edit', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
   async productShotEdit(request: ProductShotRequest): Promise<BriaResponse> {
     return this.request('/product-shot', {
       method: 'POST',

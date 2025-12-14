@@ -153,3 +153,57 @@ export async function downloadAdsImage(sceneUrl: string): Promise<Blob> {
   });
   return data;
 }
+
+/* ---------- IMAGE GENERATION v2 ---------- */
+export interface TextToImageV2Request {
+  prompt?: string;
+  images?: string[];
+  structured_prompt?: string | object;
+  negative_prompt?: string;
+  aspect_ratio?: '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9';
+  guidance_scale?: number;
+  steps_num?: number;
+  seed?: number;
+  sync?: boolean;
+  model_version?: string;
+  ip_signal?: boolean;
+  prompt_content_moderation?: boolean;
+  visual_input_content_moderation?: boolean;
+  visual_output_content_moderation?: boolean;
+}
+
+export interface ImageToImageV2Request {
+  images: string[];
+  prompt?: string;
+  structured_prompt?: string | object;
+  negative_prompt?: string;
+  strength?: number;
+  guidance_scale?: number;
+  steps_num?: number;
+  seed?: number;
+  aspect_ratio?: string;
+  sync?: boolean;
+}
+
+export interface BriaV2Response {
+  result?: {
+    image_url?: string;
+    images?: Array<{ url: string; seed: number }>;
+    seed?: number;
+    structured_prompt?: string | object;
+  };
+  request_id: string;
+  status_url?: string;
+  warning?: string;
+  status?: string;
+}
+
+export async function textToImageV2(payload: TextToImageV2Request): Promise<BriaV2Response> {
+  const { data } = await bria.post("/image-generate-v2", payload);
+  return data;
+}
+
+export async function imageToImageV2(payload: ImageToImageV2Request): Promise<BriaV2Response> {
+  const { data } = await bria.post("/image-to-image-v2", payload);
+  return data;
+}

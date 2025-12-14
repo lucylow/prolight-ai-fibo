@@ -183,11 +183,13 @@ function AnimatedRoutes() {
         <Route path="/generate/video-edit" element={<PageWrapper><VideoEditor /></PageWrapper>} />
         {/* Bria AI Routes */}
         <Route path="/bria/image-generation" element={<PageWrapper><BriaImageGeneration /></PageWrapper>} />
+        <Route path="/bria/image-generation-v2" element={<PageWrapper><BriaImageGenerationV2 /></PageWrapper>} />
         <Route path="/bria/image-onboarding" element={<PageWrapper><BriaImageOnboarding /></PageWrapper>} />
         <Route path="/bria/tailored-models" element={<PageWrapper><BriaTailoredModels /></PageWrapper>} />
         <Route path="/bria/ads-generation" element={<PageWrapper><BriaAdsGeneration /></PageWrapper>} />
         <Route path="/bria/ads-generation-v1" element={<PageWrapper><BriaAdsGenerationV1 /></PageWrapper>} />
         <Route path="/bria/product-imagery" element={<PageWrapper><BriaProductImagery /></PageWrapper>} />
+        <Route path="/bria/vehicle-shot" element={<PageWrapper><BriaVehicleShotEditor /></PageWrapper>} />
         <Route path="/bria/image-editing" element={<PageWrapper><BriaImageEditing /></PageWrapper>} />
         <Route path="/bria/video-editing" element={<PageWrapper><BriaVideoEditing /></PageWrapper>} />
         <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />

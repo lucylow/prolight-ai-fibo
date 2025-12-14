@@ -47,6 +47,9 @@ requests==2.31.0
 Pillow==10.1.0
 numpy==1.26.2
 
+# Schema generation (optional - for generating Pydantic models from FIBO JSON schema)
+datamodel-code-generator>=0.23.0
+
 # Composition analysis (optional - CLIP for advanced saliency)
 # Uncomment the following lines to enable CLIP-based saliency analysis:
 # torch>=2.0.0

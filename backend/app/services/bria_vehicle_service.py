@@ -302,7 +302,14 @@ class BriaVehicleShotService:
                 mode=GenerationMode.HIGH_CONTROL,
                 optimize_description=True,
             )
-            results["shot_url"] = shot_result.get("result_url")
+            # Handle both single result_url and array of results
+            if isinstance(shot_result, dict):
+                results["shot_url"] = shot_result.get("result_url") or shot_result.get("url")
+                # If multiple results, use the first one
+                if not results["shot_url"] and "results" in shot_result:
+                    results_list = shot_result.get("results", [])
+                    if results_list and len(results_list) > 0:
+                        results["shot_url"] = results_list[0].get("url") or results_list[0].get("result_url")
             results["workflow_steps"].append("vehicle_shot_generated")
             
             # Step 2: Segment vehicle

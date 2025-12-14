@@ -42,6 +42,7 @@
     "/generate/image-edit",
     "/generate/video-edit",
     "/bria/image-generation",
+    "/bria/image-generation-v2",
     "/bria/tailored-models",
     "/bria/ads-generation",
     "/bria/ads-generation-v1",

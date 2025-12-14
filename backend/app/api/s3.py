@@ -192,3 +192,57 @@ def presign_get(key: str = None):
         "url": url,
         "key": key
     }
+
+
+@router.get("/s3/presign")
+def presign_get_put(
+    filename: str = Query(..., description="Filename for the upload"),
+    contentType: str = Query("image/png", description="Content type of the file"),
+    expiresSec: int = Query(3600, description="Expiration time in seconds")
+):
+    """
+    Generate presigned PUT and GET URLs for guidance images (Bria V1).
+    
+    Returns both presigned PUT URL (for client upload) and presigned GET URL
+    (to pass to Bria as image_url in guidance_methods).
+    """
+    if not S3_BUCKET:
+        raise HTTPException(status_code=500, detail="S3 not configured")
+    
+    if not s3:
+        raise HTTPException(status_code=500, detail="AWS credentials not configured")
+    
+    # Generate unique key
+    timestamp = int(time.time())
+    key = f"prolight/v1/{timestamp}-{filename.replace(' ', '_')}"
+    
+    try:
+        # Presigned PUT URL for upload
+        presigned_put = s3.generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": S3_BUCKET,
+                "Key": key,
+                "ContentType": contentType
+            },
+            ExpiresIn=expiresSec,
+            HttpMethod="PUT"
+        )
+        
+        # Presigned GET URL for Bria to fetch
+        presigned_get = s3.generate_presigned_url(
+            "get_object",
+            Params={
+                "Bucket": S3_BUCKET,
+                "Key": key
+            },
+            ExpiresIn=expiresSec
+        )
+        
+        return {
+            "key": key,
+            "presignedPutUrl": presigned_put,
+            "presignedGetUrl": presigned_get
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Presign failed: {str(e)}")

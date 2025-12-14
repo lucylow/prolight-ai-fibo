@@ -77,14 +77,14 @@ def get_bria_api_token() -> str:
     """Get Bria API token from settings."""
     # Try different environment variable names
     token = (
-        getattr(settings, 'BRIA_API_TOKEN', None) or
-        getattr(settings, 'BRIA_API_KEY', None) or
-        getattr(settings, 'FIBO_API_KEY', None)
+        settings.BRIA_API_TOKEN or
+        settings.BRIA_API_KEY or
+        settings.FIBO_API_KEY
     )
     if not token:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="BRIA_API_TOKEN not configured"
+            detail="BRIA_API_TOKEN not configured. Please set BRIA_API_TOKEN, BRIA_API_KEY, or FIBO_API_KEY in environment variables."
         )
     return token
 
