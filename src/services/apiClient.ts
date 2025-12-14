@@ -11,7 +11,6 @@ import type {
   BatchJobResponse,
   LightingAnalysis,
   HealthResponse,
-  FIBOLight,
   LightingPreset,
 } from '@/types/fibo';
 
@@ -383,15 +382,15 @@ class APIClient {
   }
 
   private mockListPresets(category?: string): PresetListResponse {
-    const defaultMainLight: FIBOLight = {
-      type: 'area',
-      direction: 'front-above',
-      position: [0, 2, 2],
+    const defaultMainLight = {
+      type: 'area' as const,
+      direction: '45 degrees camera-right',
+      position: [1, 1, 1] as [number, number, number],
       intensity: 0.8,
       colorTemperature: 5600,
-      softness: 0.7,
+      softness: 0.5,
       enabled: true,
-      distance: 2.5
+      distance: 1.5,
     };
 
     const presets: LightingPreset[] = [
@@ -401,8 +400,8 @@ class APIClient {
         category: 'portrait',
         description: 'Soft, flattering beauty lighting',
         lighting_config: {
-          mainLight: defaultMainLight,
-          lightingStyle: 'soft'
+          mainLight: { ...defaultMainLight, direction: 'above camera' },
+          lightingStyle: 'butterfly',
         },
         ideal_for: ['beauty', 'commercial', 'headshots'],
       },
@@ -412,50 +411,28 @@ class APIClient {
         category: 'portrait',
         description: 'Dramatic side lighting',
         lighting_config: {
-          mainLight: {
-            type: 'area',
-            direction: 'side-45',
-            position: [2, 1.5, 1],
-            intensity: 0.9,
-            colorTemperature: 5200,
-            softness: 0.4,
-            enabled: true,
-            distance: 2.0
-          },
-          lightingStyle: 'dramatic'
+          mainLight: { ...defaultMainLight, direction: '45 degrees side' },
+          lightingStyle: 'rembrandt',
         },
         ideal_for: ['dramatic', 'editorial'],
       },
     ];
 
-    const filtered = category ? presets.filter((p) => p.category === category) : presets;
     return {
-      presets: filtered,
-      total: filtered.length,
+      presets: category ? presets.filter((p) => p.category === category) : presets,
+      total: presets.length,
       page: 1,
       page_size: 10,
     };
   }
 
-  private mockGetPreset(presetId: string): LightingPreset {
+  private mockGetPreset(presetId: string) {
     return {
       presetId,
       name: 'Sample Preset',
       category: 'portrait',
       description: 'A sample lighting preset',
-      lighting_config: {
-        mainLight: {
-          type: 'area',
-          direction: 'front-above',
-          position: [0, 2, 2],
-          intensity: 0.8,
-          colorTemperature: 5600,
-          softness: 0.7,
-          enabled: true,
-          distance: 2.5
-        },
-        lightingStyle: 'soft'
-      },
+      lighting_config: {},
       ideal_for: ['portraits'],
     };
   }
