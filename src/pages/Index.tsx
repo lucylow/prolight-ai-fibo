@@ -394,6 +394,10 @@ const Index = () => {
         </div>
         <div className="text-center pt-6 sm:pt-8 border-t border-border/30 text-muted-foreground text-xs sm:text-sm">
           &copy; 2024 ProLight AI. Built for the FIBO Hackathon. Powered by Bria AI.
+          <br />
+          <span className="text-[10px] opacity-60">
+            Build: {typeof __BUILD_TIME__ !== 'undefined' && __BUILD_TIME__ ? new Date(__BUILD_TIME__).toLocaleString() : 'dev mode'}
+          </span>
         </div>
       </footer>
     </div>

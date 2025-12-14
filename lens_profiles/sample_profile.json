@@ -1,0 +1,8 @@
+{
+  "name": "Sample 50mm F1.8",
+  "manufacturer": "AcmeLens",
+  "model": "ACM-50/1.8",
+  "distortion": { "k1": -0.08, "k2": 0.02 },
+  "mtf": [0.98, 0.96, 0.92, 0.85, 0.77, 0.70],
+  "notes": "Synthetic sample profile"
+}

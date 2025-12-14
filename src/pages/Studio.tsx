@@ -1,6 +1,6 @@
 import React, { useState, Suspense, lazy, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Wand2, Lightbulb, Camera, Settings, Code, Sparkles } from 'lucide-react';
+import { Wand2, Lightbulb, Camera, Settings, Code, Sparkles, Maximize2 } from 'lucide-react';
 import { useLightingStore } from '@/stores/lightingStore';
 import { useGeneration } from '@/hooks/useGeneration';
 import LightingSetup from '@/components/lighting/LightingSetup';
@@ -14,6 +14,9 @@ import GenerationProgress from '@/components/studio/GenerationProgress';
 import FiboJsonPanel from '@/components/studio/FiboJsonPanel';
 import FiboBadge from '@/components/hero/FiboBadge';
 import { Skeleton } from '@/components/ui/skeleton';
+import LightingPanel from '@/components/LightingPanel';
+import MoodPaletteEditor from '@/components/MoodPaletteEditor';
+import CompositionPanel from '@/components/composition/CompositionPanel';
 
 // Lazy load 3D visualizer for performance
 const LightVisualizer = lazy(() => import('@/components/lighting/LightVisualizer'));
@@ -40,7 +43,10 @@ const Studio = () => {
 
   const tabs = [
     { id: 'lighting', label: 'Lighting', icon: Lightbulb },
+    { id: 'lighting-advanced', label: 'Advanced Lighting', icon: Lightbulb },
+    { id: 'palette', label: 'Palette & Mood', icon: Sparkles },
     { id: 'camera', label: 'Camera', icon: Camera },
+    { id: 'composition', label: 'Composition', icon: Maximize2 },
     { id: 'scene', label: 'Scene', icon: Settings },
   ];
 
@@ -48,8 +54,14 @@ const Studio = () => {
     switch (activeTab) {
       case 'lighting':
         return <LightingSetup />;
+      case 'lighting-advanced':
+        return <LightingPanel />;
+      case 'palette':
+        return <MoodPaletteEditor />;
       case 'camera':
         return <CameraControls />;
+      case 'composition':
+        return <CompositionPanel />;
       case 'scene':
         return <SceneSettings />;
       default:

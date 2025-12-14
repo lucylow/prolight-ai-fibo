@@ -1,7 +1,9 @@
-import React, { useRef } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import React, { useRef, useEffect } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, Sphere, Environment } from '@react-three/drei';
 import { useLighting } from '@/hooks/useLighting';
+import { useCompositionStore } from '@/stores/useCompositionStore';
+import { useLightingStore } from '@/stores/lightingStore';
 import * as THREE from 'three';
 
 const SubjectModel = () => {
@@ -45,6 +47,37 @@ const LightSource = ({ config, position }: LightSourceProps) => {
   );
 };
 
+// Camera controller that applies composition preview overrides
+const CameraController = () => {
+  const { camera } = useThree();
+  const preview = useCompositionStore((s) => s.previewCameraOverride);
+  const currentCameraSettings = useLightingStore((s) => s.cameraSettings);
+  const lastPreviewRef = useRef<string | null>(null);
+
+  // apply preview override when set; when null, restore camera from canonical store settings
+  useEffect(() => {
+    if (preview) {
+      if (preview.fov !== undefined) camera.fov = preview.fov;
+      if (preview.pan !== undefined) camera.rotation.y = (preview.pan * Math.PI) / 180.0; // yaw
+      if (preview.tilt !== undefined) camera.rotation.x = (preview.tilt * Math.PI) / 180.0; // pitch
+      camera.updateProjectionMatrix();
+      lastPreviewRef.current = JSON.stringify(preview);
+    } else {
+      // restore from store
+      if (currentCameraSettings?.fov !== undefined) {
+        camera.fov = currentCameraSettings.fov;
+      }
+      // Reset rotations if needed (or restore from store if stored)
+      camera.rotation.y = 0;
+      camera.rotation.x = 0;
+      camera.updateProjectionMatrix();
+      lastPreviewRef.current = null;
+    }
+  }, [preview, camera, currentCameraSettings]);
+
+  return null;
+};
+
 const Scene = () => {
   const { lightingSetup, getColorTemperatureColor } = useLighting();
 
@@ -56,6 +89,7 @@ const Scene = () => {
 
   return (
     <>
+      <CameraController />
       <ambientLight
         intensity={lightingSetup.ambient.enabled ? lightingSetup.ambient.intensity * 0.5 : 0}
         color={getColorTemperatureColor(lightingSetup.ambient.colorTemperature)}

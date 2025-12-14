@@ -47,3 +47,9 @@ metadata.create_all(engine)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
+
+# Import models to register them with Base
+from app.models import poses, composition_model
+
+# Create all tables (including those defined with declarative_base)
+Base.metadata.create_all(bind=engine)

@@ -310,3 +310,56 @@ class RefundResponse(BaseModel):
     currency: str
     status: str
     charge: str
+
+
+# ============================================================================
+# Photographer Poses Models
+# ============================================================================
+
+class CameraSchema(BaseModel):
+    """Camera state schema for poses."""
+    fov: float
+    focalLengthMM: float
+    sensorHeightMM: float
+    aspectRatio: float
+    aperture: float
+    focusDistanceM: float
+    position: List[float]
+    lookAt: List[float]
+
+
+class PoseCreate(BaseModel):
+    """Request to create a photographer pose."""
+    name: str = Field(..., description="Name of the pose")
+    camera: CameraSchema = Field(..., description="Camera state")
+    owner_id: Optional[str] = Field(None, description="Optional user ID")
+
+
+class PoseOut(BaseModel):
+    """Photographer pose response."""
+    id: int
+    name: str
+    camera: Dict[str, Any]
+    created_at: str
+    owner_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RenderStartRequest(BaseModel):
+    """Request to start a render from camera state."""
+    camera: CameraSchema = Field(..., description="Camera state to render")
+
+
+class RenderStartResponse(BaseModel):
+    """Response from render start."""
+    request_id: str = Field(..., description="Render request ID")
+    status_url: str = Field(..., description="URL to poll for status")
+
+
+class RenderCallbackRequest(BaseModel):
+    """Callback request from worker with render results."""
+    poseId: int = Field(..., description="Pose ID that was rendered")
+    requestId: str = Field(..., description="Render request ID")
+    result: Dict[str, Any] = Field(..., description="Render result data")

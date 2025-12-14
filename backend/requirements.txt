@@ -42,3 +42,16 @@ boto3==1.34.0
 
 # HTTP requests (for reCAPTCHA and Greenhouse)
 requests==2.31.0
+
+# Image processing for palette extraction
+Pillow==10.1.0
+numpy==1.26.2
+
+# Composition analysis (optional - CLIP for advanced saliency)
+# Uncomment the following lines to enable CLIP-based saliency analysis:
+# torch>=2.0.0
+# torchvision>=0.15.0
+# ftfy
+# regex
+# tqdm
+# git+https://github.com/openai/CLIP.git

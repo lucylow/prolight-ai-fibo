@@ -16,6 +16,7 @@ from app.api import (
     s3,
     auth,
     payments,
+    palette,
 )
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "s3",
     "auth",
     "payments",
+    "palette",
 ]
