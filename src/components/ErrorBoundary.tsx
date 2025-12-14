@@ -50,11 +50,27 @@ class ErrorBoundary extends Component<Props, State> {
       hasError: false,
       error: null,
       errorInfo: null,
+      retryCount: this.state.retryCount + 1,
     });
   };
 
   handleGoHome = () => {
     window.location.href = '/';
+  };
+
+  handleRetry = () => {
+    if (!this.state.isOnline) {
+      return; // Don't retry if offline
+    }
+
+    // Clear error state and retry
+    this.handleReset();
+    
+    // Force a small delay to allow state to reset
+    this.retryTimeoutId = setTimeout(() => {
+      // Trigger a re-render by updating a dummy state
+      this.forceUpdate();
+    }, 100);
   };
 
   render() {
@@ -63,8 +79,10 @@ class ErrorBoundary extends Component<Props, State> {
         return this.props.fallback;
       }
 
-      const { error, errorInfo } = this.state;
+      const { error, errorInfo, isOnline } = this.state;
       const isDevelopment = import.meta.env.DEV;
+      const userMessage = error ? getUserErrorMessage(error) : 'An unexpected error occurred';
+      const canRetry = error ? isErrorRetryable(error) : false;
 
       return (
         <div className="min-h-screen flex items-center justify-center p-4 bg-background">
@@ -72,18 +90,38 @@ class ErrorBoundary extends Component<Props, State> {
             <CardHeader>
               <div className="flex items-center gap-3">
                 <AlertTriangle className="w-8 h-8 text-destructive" />
-                <div>
+                <div className="flex-1">
                   <CardTitle>Something went wrong</CardTitle>
                   <CardDescription>
-                    An unexpected error occurred. We're sorry for the inconvenience.
+                    {userMessage}
                   </CardDescription>
                 </div>
+                {!isOnline && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <WifiOff className="w-4 h-4" />
+                    <span className="text-xs">Offline</span>
+                  </div>
+                )}
+                {isOnline && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Wifi className="w-4 h-4" />
+                    <span className="text-xs">Online</span>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+              {!isOnline && (
+                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                  <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
+                    You appear to be offline. Please check your internet connection and try again.
+                  </p>
+                </div>
+              )}
+
               <div className="p-4 bg-muted rounded-lg">
                 <p className="text-sm font-medium mb-2">Error details:</p>
-                <p className="text-sm text-muted-foreground font-mono">
+                <p className="text-sm text-muted-foreground font-mono break-words">
                   {error?.message || 'Unknown error'}
                 </p>
               </div>
@@ -93,7 +131,7 @@ class ErrorBoundary extends Component<Props, State> {
                   <summary className="text-sm font-medium cursor-pointer mb-2">
                     Stack trace (development only)
                   </summary>
-                  <pre className="text-xs text-muted-foreground overflow-auto max-h-64 font-mono">
+                  <pre className="text-xs text-muted-foreground overflow-auto max-h-64 font-mono whitespace-pre-wrap break-words">
                     {error?.stack}
                     {'\n\n'}
                     {errorInfo.componentStack}
@@ -102,9 +140,20 @@ class ErrorBoundary extends Component<Props, State> {
               )}
 
               <div className="flex flex-col sm:flex-row gap-2">
-                <Button onClick={this.handleReset} variant="default" className="flex-1">
+                {canRetry && isOnline && (
+                  <Button 
+                    onClick={this.handleRetry} 
+                    variant="default" 
+                    className="flex-1"
+                    disabled={!isOnline}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Try Again
+                  </Button>
+                )}
+                <Button onClick={this.handleReset} variant={canRetry ? "outline" : "default"} className="flex-1">
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Try Again
+                  Reset
                 </Button>
                 <Button onClick={this.handleGoHome} variant="outline" className="flex-1">
                   <Home className="w-4 h-4 mr-2" />
@@ -113,6 +162,9 @@ class ErrorBoundary extends Component<Props, State> {
               </div>
             </CardContent>
             <CardFooter className="text-xs text-muted-foreground">
+              {this.state.retryCount > 0 && (
+                <p className="mb-2">Retry attempts: {this.state.retryCount}</p>
+              )}
               If this problem persists, please contact support with the error details above.
             </CardFooter>
           </Card>

@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     
     # Gemini Configuration (for natural language processing)
     GEMINI_API_KEY: Optional[str] = None
+    GOOGLE_API_KEY: Optional[str] = None  # Alternative name for Gemini API key
+    
+    # fal.ai Configuration (alternative cloud API for FIBO)
+    FAL_KEY: Optional[str] = None
+    FAL_API_KEY: Optional[str] = None  # Alternative name
     
     # Database
     DATABASE_URL: str = "sqlite:///./prolight.db"

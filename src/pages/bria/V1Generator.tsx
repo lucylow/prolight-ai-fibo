@@ -8,6 +8,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import {
+  CONTROLNET_METHODS,
+  validateGuidanceImage,
+  getRecommendedScale,
+  getScaleDescription,
+  createImagePreview,
+  revokeImagePreview,
+} from "@/utils/controlnet-helpers";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "";
 
@@ -16,23 +24,52 @@ interface GuidanceMethod {
   scale: number;
   image_base64?: string;
   image_url?: string;
+  preview?: string; // For UI preview
 }
+
+const CONTROLNET_INFO: Record<string, { name: string; description: string; bestFor: string[] }> = {
+  controlnet_canny: {
+    name: "Canny Edge Detection",
+    description: "Preserves structure and outlines. Best for maintaining composition and shape.",
+    bestFor: ["Architectural renders", "Product outlines", "Structural preservation"]
+  },
+  controlnet_depth: {
+    name: "Depth Map",
+    description: "Controls 3D spatial relationships. Excellent for lighting-sensitive scenes.",
+    bestFor: ["Lighting control", "3D spatial accuracy", "ProLight AI workflows"]
+  },
+  controlnet_recoloring: {
+    description: "Maintains structure while changing colors. Great for style transfer.",
+    name: "Recoloring",
+    bestFor: ["Color style transfer", "Maintaining structure with new colors"]
+  },
+  controlnet_color_grid: {
+    name: "Color Grid",
+    description: "Controls color distribution and placement. Useful for composition control.",
+    bestFor: ["Color composition", "Palette control", "Artistic color placement"]
+  }
+};
 
 export default function V1Generator() {
   const { user } = useAuth();
   
-  // File & upload state
-  const [file, setFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [s3Key, setS3Key] = useState<string | null>(null);
-  const [presignedGetUrl, setPresignedGetUrl] = useState<string | null>(null);
+  // File & upload state (support multiple files for multiple ControlNets)
+  const [files, setFiles] = useState<Map<number, File>>(new Map());
+  const [uploadProgress, setUploadProgress] = useState<Map<number, number>>(new Map());
+  const [s3Keys, setS3Keys] = useState<Map<number, string>>(new Map());
+  const [presignedGetUrls, setPresignedGetUrls] = useState<Map<number, string>>(new Map());
 
   // Generation state
   const [prompt, setPrompt] = useState("A dramatic studio product shot of a watch, studio lighting");
   const [pipeline, setPipeline] = useState<"base" | "fast" | "hd">("base");
   const [modelVersion, setModelVersion] = useState("3.2");
-  const [guidanceMethod, setGuidanceMethod] = useState<GuidanceMethod["method"]>("controlnet_canny");
-  const [guidanceScale, setGuidanceScale] = useState(1.0);
+  const [guidanceMethods, setGuidanceMethods] = useState<GuidanceMethod[]>([
+    { 
+      method: "controlnet_depth", 
+      scale: getRecommendedScale("controlnet_depth"), 
+      preview: undefined 
+    }
+  ]);
   const [numResults, setNumResults] = useState(1);
   const [sync, setSync] = useState(false);
 
@@ -156,11 +193,112 @@ export default function V1Generator() {
     return resp.data;
   }
 
+  // Cleanup preview URLs on unmount
+  useEffect(() => {
+    return () => {
+      guidanceMethods.forEach((method) => {
+        if (method.preview) {
+          revokeImagePreview(method.preview);
+        }
+      });
+    };
+  }, []);
+
+  // Add a new ControlNet method
+  function addGuidanceMethod() {
+    if (guidanceMethods.length >= 2) {
+      toast.error("Maximum 2 ControlNet methods allowed");
+      return;
+    }
+    setGuidanceMethods([...guidanceMethods, { method: "controlnet_canny", scale: 0.9 }]);
+  }
+
+  // Remove a ControlNet method
+  function removeGuidanceMethod(index: number) {
+    const newMethods = guidanceMethods.filter((_, i) => i !== index);
+    setGuidanceMethods(newMethods);
+    
+    // Clean up associated file state
+    const newFiles = new Map(files);
+    const newProgress = new Map(uploadProgress);
+    const newKeys = new Map(s3Keys);
+    const newUrls = new Map(presignedGetUrls);
+    
+    newFiles.delete(index);
+    newProgress.delete(index);
+    newKeys.delete(index);
+    newUrls.delete(index);
+    
+    setFiles(newFiles);
+    setUploadProgress(newProgress);
+    setS3Keys(newKeys);
+    setPresignedGetUrls(newUrls);
+  }
+
+  // Update a specific guidance method
+  function updateGuidanceMethod(index: number, updates: Partial<GuidanceMethod>) {
+    const newMethods = [...guidanceMethods];
+    newMethods[index] = { ...newMethods[index], ...updates };
+    setGuidanceMethods(newMethods);
+  }
+
+  // Handle file selection for a specific ControlNet method
+  function handleFileSelect(index: number, file: File | null) {
+    const newFiles = new Map(files);
+    const newProgress = new Map(uploadProgress);
+    
+    if (file) {
+      // Validate file
+      const method = guidanceMethods[index]?.method;
+      if (method) {
+        const validation = validateGuidanceImage(file, method);
+        if (!validation.valid) {
+          toast.error(validation.error || "Invalid guidance image");
+          return;
+        }
+      }
+      
+      // Revoke old preview if exists
+      const oldPreview = guidanceMethods[index]?.preview;
+      if (oldPreview) {
+        revokeImagePreview(oldPreview);
+      }
+      
+      newFiles.set(index, file);
+      newProgress.set(index, 0);
+      
+      // Create preview
+      const preview = createImagePreview(file);
+      updateGuidanceMethod(index, { preview });
+    } else {
+      // Revoke preview
+      const oldPreview = guidanceMethods[index]?.preview;
+      if (oldPreview) {
+        revokeImagePreview(oldPreview);
+      }
+      
+      newFiles.delete(index);
+      newProgress.delete(index);
+      updateGuidanceMethod(index, { preview: undefined });
+    }
+    
+    setFiles(newFiles);
+    setUploadProgress(newProgress);
+  }
+
   // Main generation handler
   async function handleGenerate() {
-    if (!file && !prompt) {
-      toast.error("Please provide a prompt or upload a guidance image");
+    if (guidanceMethods.length === 0 && !prompt) {
+      toast.error("Please provide a prompt or add at least one ControlNet guidance method");
       return;
+    }
+
+    // Validate that all guidance methods have images
+    for (let i = 0; i < guidanceMethods.length; i++) {
+      if (!files.has(i) && !guidanceMethods[i].image_url) {
+        toast.error(`ControlNet method ${i + 1} requires an image`);
+        return;
+      }
     }
 
     setIsGenerating(true);
@@ -170,21 +308,43 @@ export default function V1Generator() {
     setLogs([]);
 
     try {
-      let guidanceImageUrl: string | undefined;
+      const guidanceMethodsPayload: GuidanceMethod[] = [];
 
-      // If file provided, upload to S3 first
-      if (file) {
-        log("Requesting presigned URLs...");
-        const { key, presignedPutUrl, presignedGetUrl: getUrl } = await getPresignedUrls(
-          file.name,
-          file.type
-        );
-        setS3Key(key);
-        setPresignedGetUrl(getUrl);
+      // Upload files and prepare guidance methods
+      for (let i = 0; i < guidanceMethods.length; i++) {
+        const method = guidanceMethods[i];
+        let imageUrl: string | undefined;
 
-        log("Uploading file to S3...");
-        await uploadFileToS3(presignedPutUrl, file);
-        guidanceImageUrl = getUrl;
+        // If file provided, upload to S3 first
+        const file = files.get(i);
+        if (file) {
+          log(`Uploading guidance image ${i + 1}...`);
+          const { key, presignedPutUrl, presignedGetUrl: getUrl } = await getPresignedUrls(
+            file.name,
+            file.type
+          );
+          
+          const newKeys = new Map(s3Keys);
+          const newUrls = new Map(presignedGetUrls);
+          newKeys.set(i, key);
+          newUrls.set(i, getUrl);
+          setS3Keys(newKeys);
+          setPresignedGetUrls(newUrls);
+
+          log(`Uploading file ${i + 1} to S3...`);
+          await uploadFileToS3(presignedPutUrl, file, i);
+          imageUrl = getUrl;
+        } else if (method.image_url) {
+          imageUrl = method.image_url;
+        }
+
+        if (imageUrl) {
+          guidanceMethodsPayload.push({
+            method: method.method,
+            scale: method.scale,
+            image_url: imageUrl,
+          });
+        }
       }
 
       // Build request body
@@ -196,15 +356,9 @@ export default function V1Generator() {
         sync,
       };
 
-      // Add guidance method if image provided
-      if (guidanceImageUrl) {
-        requestBody.guidance_methods = [
-          {
-            method: guidanceMethod,
-            scale: guidanceScale,
-            image_url: guidanceImageUrl,
-          },
-        ];
+      // Add guidance methods if any
+      if (guidanceMethodsPayload.length > 0) {
+        requestBody.guidance_methods = guidanceMethodsPayload;
       }
 
       log(`Calling /api/v1/generate/image (pipeline: ${pipeline}, sync: ${sync})...`);
@@ -297,67 +451,163 @@ export default function V1Generator() {
             </div>
           </div>
 
-          {/* Guidance Image Upload */}
-          <div className="space-y-2">
-            <Label>Guidance Image (Optional)</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                setFile(f || null);
-                setUploadProgress(null);
-              }}
-            />
-            {file && (
-              <div className="text-sm text-muted-foreground">
-                {file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)
-              </div>
-            )}
-            {uploadProgress !== null && (
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Upload Progress</span>
-                  <span>{uploadProgress}%</span>
-                </div>
-                <Progress value={uploadProgress} />
-              </div>
-            )}
-          </div>
-
-          {/* Guidance Method Settings */}
-          {file && (
-            <div className="grid grid-cols-2 gap-4 p-4 border rounded-lg">
-              <div className="space-y-2">
-                <Label>ControlNet Method</Label>
-                <Select
-                  value={guidanceMethod}
-                  onValueChange={(v) => setGuidanceMethod(v as any)}
+          {/* ControlNet Guidance Methods */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-base font-semibold">ControlNet Guidance Methods</Label>
+              {guidanceMethods.length < 2 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addGuidanceMethod}
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="controlnet_canny">Canny (Edges)</SelectItem>
-                    <SelectItem value="controlnet_depth">Depth</SelectItem>
-                    <SelectItem value="controlnet_recoloring">Recoloring</SelectItem>
-                    <SelectItem value="controlnet_color_grid">Color Grid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Guidance Scale: {guidanceScale.toFixed(2)}</Label>
-                <Input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.1"
-                  value={guidanceScale}
-                  onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
-                />
-              </div>
+                  + Add Method
+                </Button>
+              )}
             </div>
-          )}
+            <p className="text-sm text-muted-foreground">
+              Use up to 2 ControlNet methods simultaneously for combined control. 
+              Depth ControlNet is recommended for lighting-sensitive ProLight AI workflows.
+            </p>
+
+            {guidanceMethods.map((method, index) => (
+              <Card key={index} className="p-4 border-2">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h4 className="font-semibold">ControlNet Method {index + 1}</h4>
+                    <p className="text-sm text-muted-foreground">
+                      {CONTROLNET_INFO[method.method]?.description}
+                    </p>
+                  </div>
+                  {guidanceMethods.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeGuidanceMethod(index)}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Method Selection */}
+                  <div className="space-y-2">
+                    <Label>Method Type</Label>
+                    <Select
+                      value={method.method}
+                      onValueChange={(v) => updateGuidanceMethod(index, { method: v as any })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(CONTROLNET_METHODS).map(([value, info]) => (
+                          <SelectItem key={value} value={value}>
+                            <div>
+                              <div className="font-medium">{info.name}</div>
+                              <div className="text-xs text-muted-foreground">{info.description}</div>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {CONTROLNET_METHODS[method.method]?.bestFor && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        <strong>Best for:</strong> {CONTROLNET_METHODS[method.method].bestFor.join(", ")}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Scale Control */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label>Control Strength: {method.scale.toFixed(2)}</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {getScaleDescription(method.scale)}
+                      </span>
+                    </div>
+                    <Input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.05"
+                      value={method.scale}
+                      onChange={(e) => updateGuidanceMethod(index, { scale: parseFloat(e.target.value) })}
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>Creative (0.0)</span>
+                      <span>Balanced (0.5)</span>
+                      <span>Strict (1.0)</span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => {
+                        const recommended = getRecommendedScale(method.method);
+                        updateGuidanceMethod(index, { scale: recommended });
+                      }}
+                    >
+                      Use Recommended ({getRecommendedScale(method.method).toFixed(2)})
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Image Upload */}
+                <div className="mt-4 space-y-2">
+                  <Label>Guidance Image {index + 1}</Label>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          handleFileSelect(index, f || null);
+                        }}
+                      />
+                      {files.get(index) && (
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {files.get(index)?.name} ({(files.get(index)!.size / 1024 / 1024).toFixed(2)} MB)
+                        </div>
+                      )}
+                      {uploadProgress.get(index) !== undefined && uploadProgress.get(index)! < 100 && (
+                        <div className="space-y-2 mt-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Upload Progress</span>
+                            <span>{uploadProgress.get(index)}%</span>
+                          </div>
+                          <Progress value={uploadProgress.get(index)} />
+                        </div>
+                      )}
+                    </div>
+                    {method.preview && (
+                      <div className="w-32 h-32 border rounded-lg overflow-hidden">
+                        <img
+                          src={method.preview}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Or provide image URL:
+                  </div>
+                  <Input
+                    type="url"
+                    placeholder="https://example.com/guidance-image.png"
+                    value={method.image_url || ""}
+                    onChange={(e) => updateGuidanceMethod(index, { image_url: e.target.value })}
+                  />
+                </div>
+              </Card>
+            ))}
+          </div>
 
           {/* Options */}
           <div className="grid grid-cols-2 gap-4">

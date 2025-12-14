@@ -34,6 +34,7 @@ export interface EdgeFunctionConfig {
   retryDelay?: number;
   showToast?: boolean;
   validateResponse?: (data: unknown) => boolean;
+  signal?: AbortSignal; // Support request cancellation
 }
 
 /**
@@ -118,18 +119,36 @@ export async function invokeEdgeFunction<T = unknown>(
     validateResponse,
   } = config;
 
+  // Support external abort signal from config
+  const externalSignal = (config as { signal?: AbortSignal }).signal;
+  
   let lastError: EdgeFunctionErrorClass | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // Check if external signal is already aborted
+      if (externalSignal?.aborted) {
+        throw new Error('Request was cancelled');
+      }
+
       // Create abort controller for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
+      // Combine external signal with timeout signal
+      const combinedSignal = externalSignal
+        ? (() => {
+            const combined = new AbortController();
+            externalSignal.addEventListener('abort', () => combined.abort());
+            controller.signal.addEventListener('abort', () => combined.abort());
+            return combined.signal;
+          })()
+        : controller.signal;
+
       try {
         const result = await supabase.functions.invoke(functionName, {
           body: body || {},
-          signal: controller.signal as AbortSignal,
+          signal: combinedSignal as AbortSignal,
         });
 
         clearTimeout(timeoutId);
@@ -185,8 +204,16 @@ export async function invokeEdgeFunction<T = unknown>(
       } catch (invokeError) {
         clearTimeout(timeoutId);
 
-        // Handle abort (timeout)
+        // Handle abort (timeout or cancellation)
         if (invokeError instanceof Error && invokeError.name === 'AbortError') {
+          // Check if it was cancelled by external signal
+          if (externalSignal?.aborted) {
+            const error = new Error('Request was cancelled');
+            error.name = 'AbortError';
+            throw error;
+          }
+          
+          // Otherwise it was a timeout
           if (attempt < retries) {
             const delay = retryDelay * Math.pow(2, attempt);
             await new Promise((resolve) => setTimeout(resolve, delay));
@@ -476,6 +503,53 @@ export async function analyzeLighting(
       if (!data || typeof data !== 'object') return false;
       const d = data as Record<string, unknown>;
       return typeof d.keyFillRatio === 'number' && typeof d.lightingStyle === 'string';
+    },
+  });
+}
+
+/**
+ * FLUX.2 Generation
+ */
+export interface Flux2GenerateRequest {
+  prompt_json: Record<string, unknown>;
+  seed?: number;
+  steps?: number;
+  guidance?: number;
+  output_format?: string;
+  mode?: 'generate' | 'refine' | 'inspire';
+  generation_ref?: string;
+  instruction?: string;
+  locked_fields?: string[];
+  reference_image_base64?: string;
+  async_job?: boolean;
+}
+
+export interface Flux2GenerateResponse {
+  image_url?: string | null;
+  image_b64?: string | null;
+  image_id: string;
+  json_prompt: Record<string, unknown>;
+  cost: number;
+  generation_metadata: {
+    model: string;
+    mode: string;
+    timestamp: string;
+    provider: string;
+  };
+}
+
+export async function generateWithFlux2(
+  request: Flux2GenerateRequest,
+  config?: EdgeFunctionConfig
+): Promise<Flux2GenerateResponse> {
+  return invokeEdgeFunction<Flux2GenerateResponse>('flux2-generate', request, {
+    timeout: 180000, // 3min for FLUX.2 generation
+    retries: 2,
+    ...config,
+    validateResponse: (data) => {
+      if (!data || typeof data !== 'object') return false;
+      const d = data as Record<string, unknown>;
+      return typeof d.image_id === 'string' && (typeof d.image_url === 'string' || typeof d.image_b64 === 'string');
     },
   });
 }

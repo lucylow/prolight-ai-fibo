@@ -1,0 +1,179 @@
+{
+  "workflow_name": "FIBO Refine Mode Workflow",
+  "description": "Iterative refinement workflow using FIBO's Refine mode. Allows targeted adjustments (like 'make it backlit') without breaking scene composition. Perfect for ProLight AI's iterative workflow.",
+  "version": "1.0.0",
+  "author": "ProLight AI",
+  "nodes": {
+    "1": {
+      "class_type": "LoadImage",
+      "inputs": {
+        "image": "{{reference_image}}"
+      },
+      "title": "Load Reference",
+      "description": "Reference image to refine"
+    },
+    "2": {
+      "class_type": "FIBO_JSON_Loader",
+      "inputs": {
+        "fibo_json": "{{existing_fibo_json}}",
+        "mode": "refine"
+      },
+      "title": "Load Existing FIBO JSON",
+      "description": "Loads existing FIBO JSON structure"
+    },
+    "3": {
+      "class_type": "FIBO_Refine_Prompt",
+      "inputs": {
+        "existing_json": ["2", 0],
+        "refinement_instruction": "{{refinement_instruction}}",
+        "locked_fields": "{{locked_fields}}"
+      },
+      "title": "Refine JSON",
+      "description": "Refines FIBO JSON based on instruction while preserving locked fields"
+    },
+    "4": {
+      "class_type": "FIBO_Extract_From_Image",
+      "inputs": {
+        "image": ["1", 0],
+        "extract_lighting": true,
+        "extract_camera": true,
+        "extract_composition": true
+      },
+      "title": "Extract from Image",
+      "description": "Extracts lighting/camera/composition from reference image"
+    },
+    "5": {
+      "class_type": "FIBO_Merge_JSON",
+      "inputs": {
+        "base_json": ["3", 0],
+        "extracted_json": ["4", 0],
+        "merge_strategy": "selective",
+        "priority": "refinement"
+      },
+      "title": "Merge JSON",
+      "description": "Merges refined JSON with extracted image data"
+    },
+    "6": {
+      "class_type": "FIBO_Prompt_Builder",
+      "inputs": {
+        "json_input": ["5", 0],
+        "enhance_prompt": true,
+        "target_length": 1000
+      },
+      "title": "Build Refined Prompt",
+      "description": "Builds comprehensive prompt from merged JSON"
+    },
+    "7": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "flux1-dev.safetensors"
+      },
+      "title": "Load Model"
+    },
+    "8": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": ["6", 0],
+        "clip": ["7", 1]
+      },
+      "title": "Encode Refined Prompt"
+    },
+    "9": {
+      "class_type": "VAEEncode",
+      "inputs": {
+        "pixels": ["1", 0],
+        "vae": ["7", 2]
+      },
+      "title": "Encode Reference",
+      "description": "Encodes reference image for img2img"
+    },
+    "10": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": ["2", 1],
+        "steps": 40,
+        "cfg": 7.5,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "denoise": 0.6,
+        "model": ["7", 0],
+        "positive": ["8", 0],
+        "negative": ["11", 0],
+        "latent_image": ["9", 0]
+      },
+      "title": "Refine Image",
+      "description": "Refines image with new lighting while preserving composition"
+    },
+    "11": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "blurry, low quality, composition change, subject change",
+        "clip": ["7", 1]
+      },
+      "title": "Negative Prompt"
+    },
+    "12": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": ["10", 0],
+        "vae": ["7", 2]
+      },
+      "title": "Decode Refined Image"
+    },
+    "13": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "fibo_refined",
+        "images": ["12", 0]
+      },
+      "title": "Save Refined Image"
+    },
+    "14": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "fibo_original",
+        "images": ["1", 0]
+      },
+      "title": "Save Original"
+    }
+  },
+  "links": [
+    [1, 0, 4, 0],
+    [1, 0, 9, 0],
+    [1, 0, 14, 0],
+    [2, 0, 3, 0],
+    [2, 1, 10, 0],
+    [3, 0, 5, 0],
+    [4, 0, 5, 1],
+    [5, 0, 6, 0],
+    [6, 0, 8, 0],
+    [7, 0, 10, 1],
+    [7, 1, 8, 1],
+    [7, 1, 11, 1],
+    [7, 2, 9, 1],
+    [7, 2, 12, 1],
+    [8, 0, 10, 6],
+    [9, 0, 10, 7],
+    [10, 0, 12, 0],
+    [12, 0, 13, 0]
+  ],
+  "extra": {
+    "ds": {
+      "scale": 0.9,
+      "offset": [0, 0]
+    }
+  },
+  "metadata": {
+    "fibo_mode": "refine",
+    "supports_locked_fields": true,
+    "preserves_composition": true,
+    "iterative_refinement": true,
+    "use_cases": [
+      "adjust lighting without changing scene",
+      "make it backlit",
+      "increase contrast",
+      "change color temperature",
+      "add rim light"
+    ]
+  }
+}

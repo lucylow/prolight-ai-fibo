@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createAIGatewayClientFromEnv, AIGatewayErrorClass } from "../_shared/lovable-ai-gateway-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -169,168 +170,34 @@ serve(async (req) => {
 
     console.log("Received NL request:", JSON.stringify(nlRequest));
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ 
-        error: 'LOVABLE_API_KEY is not configured. Please add it to your Lovable project secrets.',
-        errorCode: 'CONFIG_ERROR',
-        details: {
-          message: 'The LOVABLE_API_KEY environment variable is required for AI image generation. Please configure it in your Lovable project settings under Secrets.',
-          helpUrl: 'https://docs.lovable.dev/guides/secrets'
-        }
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Initialize AI Gateway client
+    let aiClient;
+    try {
+      aiClient = createAIGatewayClientFromEnv({
+        timeout: 45000, // 45s timeout
+        retries: 2,
+        retryDelay: 1000,
       });
+    } catch (error) {
+      if (error instanceof AIGatewayErrorClass) {
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          errorCode: error.errorCode,
+          details: error.details
+        }), {
+          status: error.statusCode,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw error;
     }
 
-    // Helper function to make AI request with retry logic
-    const makeAIRequest = async (
-      endpoint: string,
-      payload: Record<string, unknown>,
-      retries = 2
-    ): Promise<{ imageUrl: string; textContent: string } | Response> => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
-
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          let errorText = '';
-          let errorData: Record<string, unknown> | null = null;
-          
-          try {
-            errorText = await response.text();
-            errorData = JSON.parse(errorText);
-          } catch {
-            // If parsing fails, use raw text
-          }
-
-          console.error("AI gateway error:", response.status, errorText);
-          
-          if (response.status === 401) {
-            return new Response(JSON.stringify({ 
-              error: "AI service authentication failed. Please check API configuration.",
-              errorCode: "AI_AUTH_ERROR"
-            }), {
-              status: 502,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          
-          if (response.status === 429) {
-            const retryAfter = response.headers.get("Retry-After") || "60";
-            return new Response(JSON.stringify({ 
-              error: `AI service rate limit exceeded. Please try again in ${retryAfter} seconds.`,
-              errorCode: "AI_RATE_LIMIT",
-              retryAfter: parseInt(retryAfter)
-            }), {
-              status: 429,
-              headers: { 
-                ...corsHeaders, 
-                'Content-Type': 'application/json',
-                'Retry-After': retryAfter
-              },
-            });
-          }
-          
-          if (response.status === 402) {
-            return new Response(JSON.stringify({ 
-              error: "AI service payment required. Please add credits to your workspace.",
-              errorCode: "AI_PAYMENT_REQUIRED"
-            }), {
-              status: 402,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-
-          if (response.status >= 500 && retries > 0) {
-            console.log(`Retrying AI request, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(endpoint, payload, retries - 1);
-          }
-
-          if (response.status >= 500) {
-            return new Response(JSON.stringify({ 
-              error: "AI service temporarily unavailable. Please try again later.",
-              errorCode: "AI_SERVER_ERROR",
-              details: errorData?.error?.message || errorText.substring(0, 200)
-            }), {
-              status: 502,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-
-          return new Response(JSON.stringify({ 
-            error: `AI service error: ${errorData?.error?.message || errorText.substring(0, 200) || 'Unknown error'}`,
-            errorCode: "AI_CLIENT_ERROR",
-            details: errorData
-          }), {
-            status: 502,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        return await response.json();
-      } catch (error) {
-        clearTimeout(timeoutId);
-        
-        if (error instanceof Error && error.name === 'AbortError') {
-          if (retries > 0) {
-            console.log(`Retrying due to timeout, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(endpoint, payload, retries - 1);
-          }
-          return new Response(JSON.stringify({ 
-            error: "AI service request timed out. Please try again.",
-            errorCode: "AI_TIMEOUT"
-          }), {
-            status: 504,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-          if (retries > 0) {
-            console.log(`Retrying due to network error, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(endpoint, payload, retries - 1);
-          }
-          return new Response(JSON.stringify({ 
-            error: "Network error connecting to AI service. Please check your connection.",
-            errorCode: "AI_NETWORK_ERROR"
-          }), {
-            status: 503,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        throw error;
-      }
-    };
-
     // Use AI to translate natural language to structured lighting JSON
-    const translationPayload = {
-      model: "google/gemini-2.5-flash",
-      messages: [
-        {
-          role: "system",
-          content: LIGHTING_SYSTEM_PROMPT
-        },
-        {
-          role: "user",
-          content: `Convert this lighting description to professional lighting JSON:
+    let translatedText: string;
+    try {
+      const translationResult = await aiClient.translateText(
+        LIGHTING_SYSTEM_PROMPT,
+        `Convert this lighting description to professional lighting JSON:
 
 Lighting intent: "${nlRequest.lightingDescription}"
 Scene: ${nlRequest.sceneDescription}
@@ -338,35 +205,23 @@ Subject: ${nlRequest.subject}
 Style: ${nlRequest.styleIntent || 'professional photography'}
 Environment: ${nlRequest.environment || 'studio'}
 
-Output ONLY the JSON object, nothing else.`
-        }
-      ],
-    };
-
-    const translationResponse = await makeAIRequest(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      translationPayload
-    );
-
-    // Check if translationResponse is already a Response (error case)
-    if (translationResponse instanceof Response) {
-      return translationResponse;
-    }
-
-    const translationData = translationResponse;
-    const translatedText = translationData.choices?.[0]?.message?.content || "";
-    console.log("Translated text:", translatedText);
-
-    // Validate translation response
-    if (!translationData.choices || !Array.isArray(translationData.choices) || translationData.choices.length === 0) {
-      console.error("Invalid translation response structure");
-      return new Response(JSON.stringify({ 
-        error: "AI service returned invalid translation response. Please try again.",
-        errorCode: "AI_INVALID_TRANSLATION"
-      }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+Output ONLY the JSON object, nothing else.`,
+        "google/gemini-2.5-flash"
+      );
+      translatedText = translationResult.textContent;
+      console.log("Translated text:", translatedText);
+    } catch (error) {
+      if (error instanceof AIGatewayErrorClass) {
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          errorCode: error.errorCode,
+          details: error.details
+        }), {
+          status: error.statusCode,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw error;
     }
 
     // Parse the JSON from the response
@@ -402,53 +257,28 @@ Output ONLY the JSON object, nothing else.`
     console.log("Image prompt:", imagePrompt);
 
     // Generate image using AI
-    const imagePayload = {
-      model: "google/gemini-2.5-flash-image-preview",
-      messages: [
-        {
-          role: "user",
-          content: imagePrompt
-        }
-      ],
-      modalities: ["image", "text"]
-    };
-
-    const imageResponse = await makeAIRequest(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      imagePayload
-    );
-
-    // Check if imageResponse is already a Response (error case)
-    if (imageResponse instanceof Response) {
-      return imageResponse;
+    let imageUrl: string | undefined;
+    let textContent: string = "";
+    try {
+      const imageResult = await aiClient.generateImage(
+        imagePrompt,
+        "google/gemini-2.5-flash-image-preview"
+      );
+      imageUrl = imageResult.imageUrl;
+      textContent = imageResult.textContent;
+    } catch (error) {
+      if (error instanceof AIGatewayErrorClass) {
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          errorCode: error.errorCode,
+          details: error.details
+        }), {
+          status: error.statusCode,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw error;
     }
-
-    const imageData = imageResponse;
-    
-    // Validate image response
-    if (!imageData.choices || !Array.isArray(imageData.choices) || imageData.choices.length === 0) {
-      console.error("Invalid image response structure");
-      return new Response(JSON.stringify({ 
-        error: "AI service returned invalid image response. Please try again.",
-        errorCode: "AI_INVALID_IMAGE_RESPONSE"
-      }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const message = imageData.choices[0]?.message;
-    if (!message) {
-      return new Response(JSON.stringify({ 
-        error: "AI service returned incomplete image response. Please try again.",
-        errorCode: "AI_INCOMPLETE_IMAGE_RESPONSE"
-      }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const imageUrl = message.images?.[0]?.image_url?.url;
 
     // Validate that we got an image
     if (!imageUrl) {
@@ -456,7 +286,7 @@ Output ONLY the JSON object, nothing else.`
       return new Response(JSON.stringify({ 
         error: "AI service did not generate an image. Please try again with a different description.",
         errorCode: "AI_NO_IMAGE",
-        details: { textContent: message.content }
+        details: { textContent }
       }), {
         status: 502,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -556,7 +386,7 @@ function validateAndNormalizeLighting(lightingJson: Record<string, unknown>): No
         key: normalizeLight(setup.key, { direction: "45 degrees camera-right", intensity: 0.8, colorTemperature: 5600, softness: 0.5, distance: 1.5, enabled: true }),
         fill: normalizeLight(setup.fill, { direction: "30 degrees camera-left", intensity: 0.4, colorTemperature: 5600, softness: 0.7, distance: 2.0, enabled: true }),
         rim: normalizeLight(setup.rim, { direction: "behind subject left", intensity: 0.5, colorTemperature: 3200, softness: 0.3, distance: 1.0, enabled: true }),
-        ambient: normalizeLight(setup.ambient, { intensity: 0.1, colorTemperature: 5000, enabled: true, direction: "omnidirectional" })
+        ambient: normalizeLight(setup.ambient, { intensity: 0.1, colorTemperature: 5000, softness: 1.0, distance: 0, enabled: true, direction: "omnidirectional" })
       },
       lighting_style: typeof lightingJson.lighting_style === 'string' ? lightingJson.lighting_style : "classical_portrait",
       mood_description: typeof lightingJson.mood_description === 'string' ? lightingJson.mood_description : "professional studio",
@@ -638,7 +468,7 @@ function getDefaultLighting(description: string): NormalizedLighting {
         key: { direction: "above camera butterfly position", intensity: 0.7, colorTemperature: 5600, softness: 0.8, distance: 1.5, enabled: true },
         fill: { direction: "below camera or reflector", intensity: 0.5, colorTemperature: 5600, softness: 0.9, distance: 2.0, enabled: true },
         rim: { direction: "behind subject", intensity: 0.4, colorTemperature: 5600, softness: 0.5, distance: 1.2, enabled: true },
-        ambient: { intensity: 0.15, colorTemperature: 5600, enabled: true, direction: "omnidirectional" }
+        ambient: { intensity: 0.15, colorTemperature: 5600, softness: 1.0, distance: 0, enabled: true, direction: "omnidirectional" }
       },
       lighting_style: "soft_beauty",
       mood_description: "soft and flattering",
@@ -666,7 +496,7 @@ function getDefaultLighting(description: string): NormalizedLighting {
       key: { direction: "45 degrees camera-right", intensity: 0.8, colorTemperature: 5600, softness: 0.5, distance: 1.5, enabled: true },
       fill: { direction: "30 degrees camera-left", intensity: 0.4, colorTemperature: 5600, softness: 0.7, distance: 2.0, enabled: true },
       rim: { direction: "behind subject left", intensity: 0.5, colorTemperature: 3500, softness: 0.3, distance: 1.0, enabled: true },
-      ambient: { intensity: 0.1, colorTemperature: 5000, enabled: true, direction: "omnidirectional" }
+      ambient: { intensity: 0.1, colorTemperature: 5000, softness: 1.0, distance: 0, enabled: true, direction: "omnidirectional" }
     },
     lighting_style: "classical_portrait",
     mood_description: "professional studio portrait",
@@ -681,41 +511,83 @@ interface LightingAnalysisResult {
   [key: string]: unknown;
 }
 
+/**
+ * Build comprehensive image prompt leveraging FIBO's training format
+ * Creates detailed structured descriptions matching FIBO's ~1000 word training captions
+ */
 function buildNLImagePrompt(request: NaturalLanguageRequest, lightingJson: NormalizedLighting, analysis: LightingAnalysisResult): string {
   const setup = lightingJson.lighting_setup;
   
+  // Build comprehensive lighting description with technical details
   let lightingDesc = "";
   
   if (setup.key?.enabled) {
     const k = setup.key;
-    lightingDesc += `Key light: ${Math.round(k.intensity * 100)}% at ${k.colorTemperature}K, ${k.softness > 0.6 ? "soft" : k.softness < 0.3 ? "hard" : "medium"}, from ${k.direction}. `;
+    const tempDesc = k.colorTemperature < 4500 ? "warm tungsten-like" : 
+                     k.colorTemperature > 6000 ? "cool daylight" : "neutral daylight";
+    const softnessDesc = k.softness > 0.6 ? "soft diffused with gradual shadow transitions" : 
+                        k.softness < 0.3 ? "hard crisp with defined shadow edges" : 
+                        "medium with moderate shadow transition";
+    lightingDesc += `Key light (primary): ${Math.round(k.intensity * 100)}% intensity, ${softnessDesc}, ${tempDesc} color temperature at ${k.colorTemperature}K, positioned ${k.direction}, distance ${k.distance.toFixed(1)}m with inverse square falloff. `;
   }
   
   if (setup.fill?.enabled) {
     const f = setup.fill;
-    lightingDesc += `Fill: ${Math.round(f.intensity * 100)}% (${analysis.keyFillRatio}:1 ratio), from ${f.direction}. `;
+    const fillSoftness = f.softness > 0.5 ? "soft" : "medium";
+    lightingDesc += `Fill light (shadow detail): ${Math.round(f.intensity * 100)}% intensity (${analysis.keyFillRatio}:1 key-to-fill ratio), ${fillSoftness} quality from ${f.direction}, ${f.colorTemperature}K color temperature. `;
   }
   
   if (setup.rim?.enabled) {
     const r = setup.rim;
-    lightingDesc += `Rim: ${Math.round(r.intensity * 100)}% at ${r.colorTemperature}K from ${r.direction}. `;
+    const rimTemp = r.colorTemperature < 4000 ? "warm tungsten" : "neutral daylight";
+    lightingDesc += `Rim/hair light (edge separation): ${Math.round(r.intensity * 100)}% intensity, ${rimTemp} ${r.colorTemperature}K, ${r.direction} position for subject-background separation. `;
+  }
+  
+  if (setup.ambient?.enabled) {
+    lightingDesc += `Ambient fill: ${Math.round(setup.ambient.intensity * 100)}% intensity at ${setup.ambient.colorTemperature}K for overall shadow detail and base exposure. `;
   }
 
-  return `Generate a professional studio photograph with expert lighting:
+  // Build comprehensive subject description
+  const subjectDesc = `${request.subject}, ${request.sceneDescription}`;
+  
+  // Build detailed technical specifications
+  const technicalSpecs = [
+    `${analysis.keyFillRatio}:1 key-to-fill ratio`,
+    `${analysis.lightingStyle?.replace(/_/g, ' ') || 'professional'} lighting pattern`,
+    `Professional rating: ${analysis.professionalRating}/10`,
+    `Color temperature: ${setup.key?.colorTemperature || 5600}K`,
+    `Shadow intensity: ${lightingJson.shadow_intensity.toFixed(2)}`
+  ].join(", ");
 
-SUBJECT: ${request.subject}
-SCENE: ${request.sceneDescription}
-ENVIRONMENT: ${request.environment || 'professional studio'}
+  return `Generate a professional studio photograph with expert-level lighting control matching FIBO's training format:
 
-LIGHTING SETUP (${lightingJson.lighting_style?.replace(/_/g, ' ')} style):
+SUBJECT DESCRIPTION:
+${subjectDesc}
+
+ENVIRONMENT:
+${request.environment || 'professional studio'} with controlled lighting conditions
+
+COMPREHENSIVE LIGHTING SETUP (${lightingJson.lighting_style?.replace(/_/g, ' ')} style):
 ${lightingDesc}
 
-MOOD: ${lightingJson.mood_description}
-STYLE: ${request.styleIntent || 'professional photography'}
+MOOD AND ATMOSPHERE:
+${lightingJson.mood_description}
 
-Technical specs: ${analysis.keyFillRatio}:1 key-to-fill ratio, ${analysis.lightingStyle?.replace(/_/g, ' ')} pattern, professional rating ${analysis.professionalRating}/10.
+STYLE INTENT:
+${request.styleIntent || 'professional photography'}
 
-Create a photorealistic, magazine-quality image with precise professional lighting matching the described setup.`;
+TECHNICAL SPECIFICATIONS:
+${technicalSpecs}
+
+QUALITY REQUIREMENTS:
+- Photorealistic, magazine-quality image
+- Precise professional lighting matching described setup
+- Expert-level control over lighting parameters
+- High detail and sharp focus on subject
+- Natural skin tones and material rendering
+- Professional studio photography standard
+
+Create an image that demonstrates FIBO's JSON-native and disentangled control capabilities, where lighting parameters precisely control the illumination while maintaining subject and composition consistency.`;
 }
 
 function analyzeLightingFromJson(lightingJson: NormalizedLighting): LightingAnalysisResult {

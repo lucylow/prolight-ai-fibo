@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { toast } from "sonner";
@@ -11,9 +11,10 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   const auth = useContext(AuthContext);
+  const location = useLocation();
 
   if (!auth) {
-    return <Navigate to="/sign-in" replace />;
+    return <Navigate to="/sign-in" state={{ from: location }} replace />;
   }
 
   if (auth.loading) {
@@ -25,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
   }
 
   if (!auth.user) {
-    return <Navigate to="/sign-in" replace />;
+    return <Navigate to="/sign-in" state={{ from: location }} replace />;
   }
 
   if (roles && roles.length > 0 && !roles.includes(auth.user.role)) {

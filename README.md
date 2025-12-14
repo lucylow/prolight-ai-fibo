@@ -11,7 +11,7 @@
 
 **Precision Lighting, Powered by FIBO**
 
-[Demo](#demo) • [Features](#features) • [Installation](#installation) • [API](#api) • [Architecture](#architecture) • [Contributing](#contributing)
+[Demo](#-demo) • [Features](#-key-features) • [Installation](#️-installation) • [API](#-api-documentation) • [Architecture](#️-system-architecture) • [Use Cases](#-use-cases) • [FAQ](#-frequently-asked-questions) • [Contributing](#-contributing)
 
 </div>
 
@@ -29,6 +29,33 @@ ProLight AI is a production-grade studio lighting simulator that bridges the gap
 - **Deterministic Generation**: FIBO JSON schema ensures reproducible results with seed values
 - **Natural Language Processing**: Google Gemini AI for converting descriptions to structured parameters
 - **Production-Ready**: Error handling, validation, rate limiting, and comprehensive logging
+
+## 🎬 Demo
+
+### Live Demo
+- **Production URL**: [Coming Soon]
+- **Staging Environment**: [Coming Soon]
+
+### Demo Features
+- **Interactive 3D Studio**: Real-time lighting visualization with Three.js
+- **Natural Language Input**: Describe your lighting setup in plain English
+- **Professional Presets**: One-click application of classic lighting patterns
+- **Image Generation**: Generate high-quality images with deterministic results
+- **Analysis Dashboard**: Real-time lighting metrics and professional ratings
+
+### Screenshots & Videos
+> **Note**: Add screenshots and demo videos to showcase the application. Consider including:
+> - 3D lighting visualization interface
+> - Natural language input examples
+> - Generated image gallery
+> - Analysis dashboard with metrics
+
+### Quick Demo Script
+1. **Start with a Preset**: Select "Rembrandt" from the presets menu
+2. **Adjust Parameters**: Modify intensity, color temperature, and softness
+3. **View 3D Preview**: See real-time updates in the 3D visualization
+4. **Generate Image**: Click "Generate" and wait 2-4 seconds
+5. **Analyze Results**: Review the professional rating and recommendations
 
 ## 🚀 Key Features
 
@@ -74,6 +101,29 @@ ProLight AI is a production-grade studio lighting simulator that bridges the gap
 - **Drag & Drop Controls**: Intuitive parameter adjustment with visual feedback
 - **Responsive Design**: Works seamlessly on desktop, tablet, and mobile devices
 - **Dark Mode Support**: System-aware theme switching with smooth transitions
+
+### 🎥 **Video Editing & Post-Processing**
+- **Background Removal**: Remove backgrounds from generated images
+- **Upscaling**: Enhance image resolution with AI-powered upscaling
+- **Foreground Masking**: Advanced masking for precise edits
+- **Real-time Status Updates**: Server-Sent Events (SSE) for job progress
+- **Batch Processing**: Process multiple images simultaneously
+
+### 🎨 **Tailored Generation**
+- **Custom Model Training**: Train models on your own image datasets
+- **Brand-Specific Generation**: Generate images matching your brand style
+- **Dataset Management**: Upload and organize training images
+- **ControlNet Support**: Canny, depth, recoloring, and color grid guidance
+- **Image Prompt Adapter**: Style transfer and reference-based generation
+- **Reimagine**: Transform images with structure and portrait references
+
+### 🔧 **Backend API Features**
+- **FastAPI REST API**: High-performance Python backend
+- **Comprehensive Endpoints**: Generate, presets, history, batch, analysis
+- **Mock Data Support**: Development without API keys
+- **Batch Operations**: Generate multiple variations efficiently
+- **Lighting Analysis**: Professional quality assessment
+- **History Management**: Track and manage generation history
 
 ## 🏗️ System Architecture
 
@@ -266,6 +316,55 @@ bun run dev
 
 The application will be available at `http://localhost:8080` (configurable in `vite.config.ts`).
 
+### Backend Setup
+
+The backend is a FastAPI application that provides additional API endpoints and features:
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Copy environment configuration
+cp .env.example .env
+# Edit .env with your API keys
+
+# Run the server
+python -m app.main
+# Or using uvicorn directly
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+The backend API will be available at `http://localhost:8000` with interactive documentation at:
+- **Swagger UI**: `http://localhost:8000/docs`
+- **ReDoc**: `http://localhost:8000/redoc`
+
+### Docker Setup (Recommended)
+
+For a complete setup with both frontend and backend:
+
+```bash
+# Start all services with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+This will start:
+- Frontend: `http://localhost:5173`
+- Backend API: `http://localhost:8000`
+- Database: PostgreSQL (if configured)
+
 ### Environment Variables
 
 Create a `.env` file in the root directory:
@@ -289,6 +388,39 @@ VITE_API_URL=http://localhost:54321/functions/v1
 # Build Information (auto-generated)
 VITE_BUILD_TIME=2025-01-XX
 VITE_COMMIT_HASH=abc1234
+```
+
+**Backend Environment Variables** (`.env` in `backend/` directory):
+
+```env
+# FIBO API Configuration
+FIBO_API_KEY=your_bria_api_key_here
+USE_MOCK_FIBO=True  # Set to False to use real FIBO API
+
+# Google Gemini API (Optional)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Database Configuration
+DATABASE_URL=sqlite:///./prolight.db
+# Or PostgreSQL: postgresql://user:password@localhost:5432/prolight
+
+# CORS Configuration
+CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","http://localhost:8080"]
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+DEBUG=False
+
+# AWS S3 (for image uploads, optional)
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_REGION=us-east-1
+S3_BUCKET_NAME=prolight-images
+
+# Stripe (for payments, optional)
+STRIPE_SECRET_KEY=your_stripe_secret_key
+STRIPE_PUBLISHABLE_KEY=your_stripe_publishable_key
 ```
 
 ### Supabase Edge Functions Setup
@@ -523,6 +655,99 @@ interface AnalysisResponse {
 }
 ```
 
+### Complete FIBO JSON Example
+
+Here's a complete example of a FIBO JSON prompt for professional portrait photography:
+
+```json
+{
+  "subject": {
+    "main_entity": "professional model in evening dress",
+    "attributes": ["elegant", "confident", "high fashion"],
+    "action": "posing for editorial photograph",
+    "emotion": "sophisticated",
+    "mood": "luxurious"
+  },
+  "environment": {
+    "setting": "minimalist photography studio with gray seamless backdrop",
+    "time_of_day": "studio",
+    "lighting_conditions": "professional studio lighting",
+    "atmosphere": "clean and modern",
+    "interior_style": "minimalist"
+  },
+  "camera": {
+    "shot_type": "medium shot",
+    "camera_angle": "eye-level",
+    "fov": 85,
+    "lens_type": "portrait",
+    "aperture": "f/2.8",
+    "focus_distance_m": 2.5,
+    "pitch": 0,
+    "yaw": 0,
+    "roll": 0,
+    "seed": 42
+  },
+  "lighting": {
+    "main_light": {
+      "direction": "45 degrees camera-right, elevated 30 degrees",
+      "intensity": 0.8,
+      "color_temperature": 5600,
+      "softness": 0.6,
+      "distance": 1.5,
+      "falloff": "inverse_square"
+    },
+    "fill_light": {
+      "direction": "30 degrees camera-left",
+      "intensity": 0.4,
+      "color_temperature": 5600,
+      "softness": 0.7,
+      "distance": 2.0,
+      "falloff": "inverse_square"
+    },
+    "rim_light": {
+      "direction": "behind subject camera-left",
+      "intensity": 0.5,
+      "color_temperature": 3200,
+      "softness": 0.3,
+      "distance": 2.5,
+      "falloff": "inverse_square"
+    },
+    "ambient_light": {
+      "intensity": 0.1,
+      "color_temperature": 5500
+    }
+  },
+  "color_palette": {
+    "white_balance": "5600K",
+    "mood": "neutral",
+    "dominant_colors": ["gray", "white", "black"],
+    "saturation": 1.0,
+    "contrast": 1.2
+  },
+  "style_medium": "photograph",
+  "artistic_style": "professional editorial fashion photography",
+  "composition": {
+    "rule_of_thirds": true,
+    "depth_layers": 3,
+    "framing": "centered"
+  },
+  "render": {
+    "resolution": [1024, 1024],
+    "color_space": "sRGB",
+    "bit_depth": 8,
+    "samples": 50
+  },
+  "enhancements": {
+    "hdr": true,
+    "professional_grade": true,
+    "color_fidelity": true,
+    "detail_enhancement": true,
+    "noise_reduction": true
+  },
+  "negative_prompt": "blurry, distorted, low quality, artifacts"
+}
+```
+
 ### FIBO JSON Schema
 
 The complete FIBO JSON schema structure:
@@ -651,6 +876,96 @@ const result = await generateImage({
 
 console.log('Generated image:', result.imageUrl);
 console.log('Seed for reproducibility:', result.seed);
+```
+
+### Backend API Endpoints
+
+The FastAPI backend provides additional endpoints:
+
+#### Generate Endpoints
+- `POST /api/generate` - Generate image from lighting setup
+- `POST /api/generate/natural-language` - Generate from natural language description
+- `POST /api/generate/from-preset` - Generate using a preset
+
+#### Presets Endpoints
+- `GET /api/presets` - List all available presets
+- `GET /api/presets/{preset_id}` - Get specific preset details
+- `GET /api/presets/categories` - List preset categories
+- `POST /api/presets/search` - Search presets by criteria
+
+#### History Endpoints
+- `GET /api/history` - Get generation history (paginated)
+- `GET /api/history/{generation_id}` - Get specific generation details
+- `DELETE /api/history/{generation_id}` - Delete a generation
+- `POST /api/history/clear` - Clear all history
+- `GET /api/history/stats` - Get generation statistics
+
+#### Batch Endpoints
+- `POST /api/batch/generate` - Start batch generation job
+- `GET /api/batch/{batch_id}` - Get batch job status
+- `POST /api/batch/product-variations` - Generate product variations
+- `GET /api/batch/{batch_id}/export` - Export batch results
+
+#### Analysis Endpoints
+- `POST /api/analyze/lighting` - Analyze lighting setup
+- `POST /api/analyze/compare` - Compare two lighting setups
+- `GET /api/analyze/recommendations/{style}` - Get style-specific recommendations
+
+#### Video Editing Endpoints
+- `POST /api/video-editing/jobs` - Create video editing job
+- `GET /api/video-editing/jobs/{job_id}` - Get job status
+- `GET /api/video-editing/subscribe/{job_id}` - SSE stream for real-time updates
+
+#### Tailored Generation Endpoints
+- `POST /api/tailored/projects` - Create tailored project
+- `GET /api/tailored/projects` - List projects
+- `POST /api/tailored/projects/{project_id}/datasets` - Create dataset
+- `POST /api/tailored/datasets/{dataset_id}/images/register` - Register images
+- `POST /api/tailored/models` - Create custom model
+- `POST /api/tailored/models/{model_id}/generate` - Generate with custom model
+
+### Python Client Example
+
+```python
+import requests
+
+# Generate image from lighting setup
+response = requests.post(
+    "http://localhost:8000/api/generate",
+    json={
+        "subject_description": "professional model in studio",
+        "environment": "minimalist photography studio",
+        "lighting_setup": {
+            "key": {
+                "direction": "45 degrees camera-right, elevated 30 degrees",
+                "intensity": 0.8,
+                "color_temperature": 5600,
+                "softness": 0.6,
+                "distance": 1.5,
+                "enabled": True
+            },
+            "fill": {
+                "direction": "30 degrees camera-left",
+                "intensity": 0.4,
+                "color_temperature": 5600,
+                "softness": 0.7,
+                "distance": 2.0,
+                "enabled": True
+            }
+        },
+        "camera_settings": {
+            "shot_type": "medium shot",
+            "camera_angle": "eye-level",
+            "fov": 85,
+            "lens_type": "portrait",
+            "aperture": "f/2.8"
+        }
+    }
+)
+
+result = response.json()
+print(f"Generated image: {result['image_url']}")
+print(f"Seed: {result['seed']}")
 ```
 
 ## 🔧 Development
@@ -1214,10 +1529,78 @@ graph TB
 # Install Vercel CLI
 npm i -g vercel
 
-# Deploy
+# Login to Vercel
+vercel login
+
+# Deploy to production
 vercel --prod
 
 # Or connect GitHub repo for automatic deployments
+# 1. Go to Vercel dashboard
+# 2. Import your GitHub repository
+# 3. Configure build settings:
+#    - Build Command: npm run build
+#    - Output Directory: dist
+#    - Install Command: npm install
+```
+
+**Vercel Environment Variables:**
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY` - Your Supabase anonymous key
+- `VITE_API_URL` - Backend API URL (if using separate backend)
+
+### Backend Deployment
+
+#### Option 1: Railway
+
+```bash
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login
+railway login
+
+# Initialize project
+railway init
+
+# Link to existing project
+railway link
+
+# Deploy
+railway up
+```
+
+#### Option 2: Docker
+
+```bash
+# Build Docker image
+cd backend
+docker build -t prolight-ai-backend .
+
+# Run container
+docker run -d \
+  -p 8000:8000 \
+  -e FIBO_API_KEY=your_key \
+  -e DATABASE_URL=your_database_url \
+  prolight-ai-backend
+```
+
+#### Option 3: Heroku
+
+```bash
+# Install Heroku CLI
+# Login to Heroku
+heroku login
+
+# Create app
+heroku create prolight-ai-backend
+
+# Set environment variables
+heroku config:set FIBO_API_KEY=your_key
+heroku config:set DATABASE_URL=your_database_url
+
+# Deploy
+git push heroku main
 ```
 
 ### Edge Functions Deployment
@@ -1228,10 +1611,43 @@ supabase functions deploy generate-lighting
 supabase functions deploy natural-language-lighting
 supabase functions deploy analyze-lighting
 supabase functions deploy video-editing
+supabase functions deploy tailored-generation
+supabase functions deploy poll-jobs
 
 # Set environment secrets
 supabase secrets set BRIA_API_KEY=your_key
 supabase secrets set GEMINI_API_KEY=your_key
+
+# Deploy to specific project
+supabase functions deploy generate-lighting --project-ref your-project-ref
+```
+
+### Worker Deployment
+
+The worker can be deployed as:
+- **Cron Job**: Set up a cron job to run periodically
+- **Cloud Function**: Deploy to AWS Lambda, Google Cloud Functions, etc.
+- **Docker Container**: Run as a background service
+- **Supabase pg_cron**: Use PostgreSQL cron extension
+
+Example cron job:
+```bash
+# Run every 5 minutes
+*/5 * * * * cd /path/to/prolight-ai-fibo/worker && node worker.js
+```
+
+### Database Migrations
+
+```bash
+# Run migrations
+cd backend
+alembic upgrade head
+
+# Create new migration
+alembic revision --autogenerate -m "description"
+
+# Apply migration
+alembic upgrade head
 ```
 
 ### Environment Configuration
@@ -1251,6 +1667,130 @@ Set the following environment variables in your deployment platform:
 4. **Rate Limiting**: Implement rate limiting for API endpoints
 5. **Error Handling**: Sanitized error messages (no sensitive data exposure)
 6. **Type Safety**: TypeScript for compile-time safety
+7. **Environment Variables**: Never commit `.env` files to version control
+8. **HTTPS Only**: All production endpoints should use HTTPS
+9. **Authentication**: Implement user authentication for production use
+10. **Input Sanitization**: Sanitize all user inputs to prevent injection attacks
+
+### Security Best Practices
+
+- **Never expose API keys** in client-side code
+- **Use environment variables** for all sensitive configuration
+- **Validate all inputs** on both client and server
+- **Implement rate limiting** to prevent abuse
+- **Use HTTPS** for all API communications
+- **Regular security audits** of dependencies
+- **Keep dependencies updated** to patch vulnerabilities
+
+## 💡 Use Cases
+
+### Professional Photography
+- **Portrait Photography**: Create perfect studio lighting for portraits
+- **Product Photography**: Generate consistent product shots with professional lighting
+- **Fashion Photography**: Experiment with dramatic lighting setups
+- **Commercial Photography**: Create high-quality commercial images
+
+### Content Creation
+- **Social Media**: Generate eye-catching images for social media posts
+- **Marketing Materials**: Create professional marketing images
+- **Blog Posts**: Generate featured images with custom lighting
+- **E-commerce**: Create product images with consistent lighting
+
+### Education & Training
+- **Photography Education**: Learn lighting principles through experimentation
+- **Workshop Demonstrations**: Show different lighting setups in real-time
+- **Portfolio Building**: Create diverse portfolio pieces with various lighting styles
+
+### Research & Development
+- **Lighting Research**: Study the effects of different lighting parameters
+- **Algorithm Testing**: Test image generation algorithms with controlled inputs
+- **A/B Testing**: Compare different lighting setups for optimization
+
+## ❓ Frequently Asked Questions
+
+### General Questions
+
+**Q: What is FIBO?**  
+A: FIBO (Fine-grained Image Boosting Optimization) is BRIA AI's JSON-native architecture for structured image generation. It replaces ambiguous text prompts with precise, reproducible parameters.
+
+**Q: How is this different from other AI image generators?**  
+A: ProLight AI provides deterministic control through structured JSON parameters. Same parameters + seed = identical output every time, unlike text-based generators that produce variable results.
+
+**Q: Do I need expensive equipment?**  
+A: No! ProLight AI simulates professional studio lighting setups digitally, allowing you to create perfect lighting without physical equipment.
+
+**Q: Can I use this commercially?**  
+A: Yes, BRIA FIBO is fully licensed for commercial use. Check BRIA AI's licensing terms for specific details.
+
+### Technical Questions
+
+**Q: What programming languages are used?**  
+A: The frontend uses TypeScript/React, backend uses Python/FastAPI, and edge functions use TypeScript/Deno.
+
+**Q: How long does image generation take?**  
+A: Typically 2-4 seconds per image, depending on BRIA API response time and image complexity.
+
+**Q: Can I run this locally?**  
+A: Yes! See the [Installation](#️-installation) section for local development setup instructions.
+
+**Q: What are the system requirements?**  
+A: 
+- **Frontend**: Modern browser with WebGL support (Chrome, Firefox, Safari, Edge)
+- **Backend**: Python 3.11+, Node.js 18+ (for edge functions)
+- **Storage**: ~500MB for dependencies
+
+**Q: How do I get API keys?**  
+A: 
+- **BRIA API**: Sign up at [bria.ai](https://www.bria.ai/) and get your API key
+- **Gemini API**: Get your key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+- **Supabase**: Create a project at [supabase.com](https://supabase.com)
+
+### Troubleshooting
+
+**Q: Images aren't generating. What's wrong?**  
+A: 
+1. Check that your BRIA API key is correctly set
+2. Verify your internet connection
+3. Check browser console for error messages
+4. Ensure edge functions are deployed and accessible
+
+**Q: 3D visualization isn't working.**  
+A: 
+1. Ensure your browser supports WebGL
+2. Check browser console for WebGL errors
+3. Try a different browser
+4. Update your graphics drivers
+
+**Q: Backend won't start.**  
+A: 
+1. Verify Python version (3.11+)
+2. Check that all dependencies are installed
+3. Ensure port 8000 is not in use
+4. Check `.env` file configuration
+
+**Q: Edge functions return errors.**  
+A: 
+1. Verify Supabase secrets are set correctly
+2. Check edge function logs in Supabase dashboard
+3. Ensure functions are deployed to the correct project
+4. Verify API keys are valid
+
+### Feature Questions
+
+**Q: Can I save my lighting setups?**  
+A: Yes! Use the presets feature to save and reuse your favorite lighting configurations.
+
+**Q: Can I generate multiple images at once?**  
+A: Yes! Use the batch generation feature to create multiple variations.
+
+**Q: How do I use natural language input?**  
+A: Navigate to the "Natural Language" tab and describe your desired lighting setup in plain English. The system will convert it to structured parameters.
+
+**Q: What lighting presets are available?**  
+A: We include 6+ professional presets: Butterfly, Rembrandt, Loop, Split, Product Three-Point, and Golden Hour Window.
+
+**Q: Can I train custom models?**  
+A: Yes! Use the tailored generation feature to train models on your own image datasets.
 
 ## 🤝 Contributing
 
@@ -1284,22 +1824,115 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 
 ## 📚 Additional Documentation
 
+### Core Documentation
 - **[FIBO Parameter Reference](./docs/FIBO_PARAMETER_REFERENCE.md)** - Complete FIBO schema documentation
 - **[Deployment Guide](./docs/DEPLOYMENT.md)** - Detailed deployment instructions
 - **[Setup Guide](./docs/SETUP.md)** - Development environment setup
 - **[Hackathon Submission](./docs/HACKATHON_SUBMISSION.md)** - Hackathon submission details
+- **[Project Structure](./docs/PROJECT_STRUCTURE.md)** - Detailed project organization
+
+### Integration Guides
+- **[BRIA Integration Guide](./docs/BRIA_INTEGRATION_GUIDE.md)** - Complete BRIA API integration
+- **[BRIA Image Generation V2](./docs/BRIA_IMAGE_GENERATION_V2_INTEGRATION.md)** - Image generation API
+- **[BRIA Ads V1 Integration](./docs/BRIA_ADS_V1_INTEGRATION.md)** - Advertisement generation
+- **[ControlNet Integration](./docs/CONTROLNET_INTEGRATION_GUIDE.md)** - ControlNet guidance
+- **[Video Editing Integration](./VIDEO_EDITING_QUICKSTART.md)** - Video editing features
+
+### Architecture & Improvements
+- **[FIBO Architecture Improvements](./docs/FIBO_ARCHITECTURE_IMPROVEMENTS.md)** - Architecture enhancements
+- **[Edge Functions Improvements](./docs/EDGE_FUNCTIONS_IMPROVEMENTS.md)** - Edge function optimizations
+- **[Frontend Enhancements](./FRONTEND_ENHANCEMENTS.md)** - Frontend improvements
+
+### Backend Documentation
+- **[Backend README](./backend/README.md)** - Backend setup and API documentation
+- **[Backend Environment Setup](./backend/ENV_SETUP.md)** - Environment configuration
+
+### Quick References
+- **[Lovable Edge Quick Reference](./docs/LOVABLE_EDGE_QUICK_REFERENCE.md)** - Edge function quick reference
+- **[FIBO Integration](./docs/FIBO_INTEGRATION.md)** - FIBO integration details
+
+## 📊 Project Statistics
+
+### Codebase Metrics
+- **Frontend**: ~200+ TypeScript/React files
+- **Backend**: ~50+ Python files
+- **Edge Functions**: 6+ Deno/TypeScript functions
+- **Total Lines of Code**: ~50,000+
+- **Test Coverage**: Backend tests included
+- **Documentation**: Comprehensive docs in `/docs` directory
+
+### Technology Adoption
+- **TypeScript**: 100% type coverage in frontend
+- **Python**: Type hints throughout backend
+- **Modern React**: Hooks, Context, and modern patterns
+- **Edge Computing**: Deno runtime for low latency
+- **3D Graphics**: Three.js for real-time visualization
+
+### API Endpoints
+- **Frontend API**: 20+ endpoints
+- **Backend API**: 30+ endpoints
+- **Edge Functions**: 6+ serverless functions
+- **Total Endpoints**: 50+ API endpoints
+
+## 🤝 Community & Support
+
+### Getting Help
+- **GitHub Issues**: Report bugs and request features
+- **Discussions**: Ask questions and share ideas
+- **Documentation**: Comprehensive guides in `/docs`
+- **Examples**: Check `/integration_examples` for code samples
+
+### Contributing Guidelines
+
+We welcome contributions! Here's how you can help:
+
+1. **Report Bugs**: Open an issue with detailed information
+2. **Suggest Features**: Share your ideas for improvements
+3. **Submit PRs**: Follow our coding standards and test your changes
+4. **Improve Documentation**: Help make the docs better
+5. **Share Examples**: Add examples of how you're using ProLight AI
+
+### Code of Conduct
+
+We are committed to providing a welcoming and inclusive environment. Please be respectful and constructive in all interactions.
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+### Third-Party Licenses
+
+- **BRIA FIBO**: Commercial license from BRIA AI
+- **React**: MIT License
+- **Three.js**: MIT License
+- **FastAPI**: MIT License
+- **Supabase**: Apache 2.0 License
+
+Please review individual package licenses in `package.json` and `requirements.txt`.
+
 ## 🙏 Acknowledgments
 
-- **BRIA AI** for the FIBO model and API access
-- **Google Gemini** for natural language processing capabilities
-- **Three.js** community for 3D graphics components
-- **Supabase** for edge functions and infrastructure
-- **React** and **TypeScript** communities for excellent tooling
+### Core Technologies
+- **BRIA AI** for the FIBO model and API access - enabling structured, deterministic image generation
+- **Google Gemini** for natural language processing capabilities - converting descriptions to structured parameters
+- **Three.js** community for 3D graphics components - real-time lighting visualization
+- **Supabase** for edge functions and infrastructure - serverless backend capabilities
+- **React** and **TypeScript** communities for excellent tooling and developer experience
+
+### Libraries & Frameworks
+- **FastAPI** - High-performance Python web framework
+- **Vite** - Next-generation frontend build tool
+- **Zustand** - Lightweight state management
+- **TanStack Query** - Powerful data synchronization
+- **Radix UI** - Accessible component primitives
+- **Tailwind CSS** - Utility-first CSS framework
+- **Framer Motion** - Production-ready motion library
+- **React Three Fiber** - React renderer for Three.js
+
+### Inspiration
+- Professional photographers who inspired the lighting control system
+- The open-source community for continuous improvement
+- Hackathon organizers for creating the opportunity to build this project
 
 ## 🏆 Hackathon Submission
 
@@ -1310,6 +1943,138 @@ This project was created for the **FIBO Hackathon 2025** and demonstrates:
 - ✅ **Technical Excellence**: Full-stack TypeScript implementation with edge computing
 - ✅ **User Experience**: Intuitive interface with real-time 3D feedback
 - ✅ **Production Ready**: Error handling, validation, and comprehensive documentation
+
+## 🐛 Troubleshooting
+
+### Common Issues and Solutions
+
+#### Frontend Issues
+
+**Problem: Application won't start**
+```bash
+# Clear node_modules and reinstall
+rm -rf node_modules package-lock.json
+npm install
+
+# Check Node.js version (requires 18+)
+node --version
+
+# Clear Vite cache
+rm -rf node_modules/.vite
+```
+
+**Problem: 3D visualization not rendering**
+- Check browser WebGL support: Visit [get.webgl.org](https://get.webgl.org/)
+- Update graphics drivers
+- Try a different browser (Chrome, Firefox, Safari)
+- Check browser console for WebGL errors
+
+**Problem: API calls failing**
+- Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set
+- Check network tab in browser DevTools
+- Verify CORS configuration on backend
+- Check Supabase project is active
+
+#### Backend Issues
+
+**Problem: Backend won't start**
+```bash
+# Check Python version (requires 3.11+)
+python --version
+
+# Reinstall dependencies
+pip install -r requirements.txt --force-reinstall
+
+# Check port availability
+lsof -i :8000  # macOS/Linux
+netstat -ano | findstr :8000  # Windows
+
+# Use different port
+uvicorn app.main:app --port 8001
+```
+
+**Problem: Database connection errors**
+- Verify `DATABASE_URL` in `.env` file
+- Check database is running (if using local PostgreSQL)
+- Verify database credentials
+- Check network connectivity
+
+**Problem: FIBO API errors**
+- Verify `FIBO_API_KEY` is set correctly
+- Check API key is valid and not expired
+- Set `USE_MOCK_FIBO=True` for testing without API
+- Check BRIA API status page
+
+#### Edge Function Issues
+
+**Problem: Edge functions return 500 errors**
+```bash
+# Check function logs
+supabase functions logs generate-lighting
+
+# Verify secrets are set
+supabase secrets list
+
+# Test function locally
+supabase functions serve generate-lighting --env-file .env.local
+```
+
+**Problem: CORS errors**
+- Verify CORS headers in edge function code
+- Check `Access-Control-Allow-Origin` header
+- Ensure frontend URL is in allowed origins
+
+#### Docker Issues
+
+**Problem: Docker containers won't start**
+```bash
+# Check Docker is running
+docker ps
+
+# Rebuild containers
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+**Problem: Port conflicts**
+- Edit `docker-compose.yml` to use different ports
+- Stop conflicting services
+- Check what's using the ports: `lsof -i :8000`
+
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. **Check the logs**: Frontend (browser console), Backend (terminal), Edge Functions (Supabase dashboard)
+2. **Review documentation**: See [Additional Documentation](#-additional-documentation)
+3. **Search issues**: Check GitHub issues for similar problems
+4. **Create an issue**: Provide error messages, logs, and steps to reproduce
+
+### Debug Mode
+
+Enable debug mode for more detailed error messages:
+
+**Frontend:**
+```typescript
+// In vite.config.ts or .env
+VITE_DEBUG=true
+```
+
+**Backend:**
+```python
+# In .env
+DEBUG=True
+```
+
+**Edge Functions:**
+```typescript
+// Add console.log statements
+console.log('Debug:', JSON.stringify(data, null, 2));
+```
 
 ---
 

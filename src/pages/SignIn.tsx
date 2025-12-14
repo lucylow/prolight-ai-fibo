@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Github, Mail } from "lucide-react";
 const SignIn = () => {
   const auth = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,6 +21,9 @@ const SignIn = () => {
     return null;
   }
 
+  // Get the intended destination from location state, or default to dashboard
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -27,7 +31,7 @@ const SignIn = () => {
     try {
       await auth.login(email, password);
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      navigate(from, { replace: true });
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'message' in err 
         ? String(err.message) 

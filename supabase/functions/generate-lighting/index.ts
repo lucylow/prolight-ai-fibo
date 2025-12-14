@@ -1,9 +1,119 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { createAIGatewayClientFromEnv, AIGatewayErrorClass } from "../_shared/lovable-ai-gateway-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+/**
+ * Get user ID from authorization header
+ */
+async function getUserId(authHeader: string | null): Promise<string | null> {
+  if (!authHeader) return null;
+  
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user } } = await supabase.auth.getUser(token);
+    return user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Check if user has sufficient credits
+ */
+async function checkCredits(userId: string, creditsNeeded: number = 1): Promise<{ allowed: boolean; info?: any }> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get active subscription and plan
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select(`
+        *,
+        plan:plans(*)
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (!subscription || !subscription.plan) {
+      return { allowed: false, info: { reason: 'no_active_plan' } };
+    }
+
+    const plan = subscription.plan;
+    const periodStart = subscription.current_period_start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const periodEnd = subscription.current_period_end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString();
+
+    // Calculate credits used in period
+    const { data: usageData } = await supabase
+      .from('credit_usage')
+      .select('credits_used')
+      .eq('user_id', userId)
+      .gte('timestamp', periodStart)
+      .lt('timestamp', periodEnd);
+
+    const used = usageData?.reduce((sum, r) => sum + (r.credits_used || 0), 0) || 0;
+    const remaining = plan.monthly_credit_limit - used;
+
+    if (remaining >= creditsNeeded) {
+      return { allowed: true };
+    } else {
+      return {
+        allowed: false,
+        info: {
+          reason: 'insufficient_credits',
+          remaining,
+          used,
+          limit: plan.monthly_credit_limit,
+          required: creditsNeeded,
+        },
+      };
+    }
+  } catch (error) {
+    console.error('Error checking credits:', error);
+    return { allowed: false, info: { reason: 'error_checking_credits' } };
+  }
+}
+
+/**
+ * Record credit usage
+ */
+async function recordCreditUsage(
+  userId: string,
+  action: string,
+  credits: number = 1,
+  relatedRequestId?: string,
+  metadata?: Record<string, unknown>
+): Promise<void> {
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    await supabase.from('credit_usage').insert({
+      user_id: userId,
+      action,
+      credits_used: credits,
+      related_request_id: relatedRequestId || null,
+      metadata: metadata || {},
+    });
+  } catch (error) {
+    console.error('Error recording credit usage:', error);
+    // Don't throw - credit recording failure shouldn't break the request
+  }
+}
 
 interface LightSettings {
   direction: string;
@@ -175,19 +285,52 @@ serve(async (req) => {
 
     console.log("Received scene request:", JSON.stringify(sceneRequest));
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      return new Response(JSON.stringify({ 
-        error: 'LOVABLE_API_KEY is not configured. Please add it to your Lovable project secrets.',
-        errorCode: 'CONFIG_ERROR',
-        details: {
-          message: 'The LOVABLE_API_KEY environment variable is required for AI image generation. Please configure it in your Lovable project settings under Secrets.',
-          helpUrl: 'https://docs.lovable.dev/guides/secrets'
-        }
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Initialize AI Gateway client
+    let aiClient;
+    try {
+      aiClient = createAIGatewayClientFromEnv({
+        timeout: 60000, // 60s timeout for image generation
+        retries: 2,
+        retryDelay: 1000,
       });
+    } catch (error) {
+      if (error instanceof AIGatewayErrorClass) {
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          errorCode: error.errorCode,
+          details: error.details
+        }), {
+          status: error.statusCode,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      throw error;
+    }
+
+    // Check credits before generation
+    const authHeader = req.headers.get('authorization');
+    const userId = await getUserId(authHeader);
+    
+    if (userId) {
+      // Calculate credits needed (1 base credit + additional for HDR)
+      const creditsNeeded = sceneRequest.enhanceHDR ? 2 : 1;
+      const creditCheck = await checkCredits(userId, creditsNeeded);
+      
+      if (!creditCheck.allowed) {
+        return new Response(JSON.stringify({
+          error: creditCheck.info?.reason === 'insufficient_credits'
+            ? `Insufficient credits. You have ${creditCheck.info.remaining} credits remaining, but ${creditsNeeded} are required.`
+            : 'No active subscription plan. Please subscribe to continue using ProLight AI.',
+          errorCode: creditCheck.info?.reason === 'insufficient_credits' ? 'INSUFFICIENT_CREDITS' : 'NO_ACTIVE_PLAN',
+          details: creditCheck.info,
+        }), {
+          status: 402,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    } else {
+      // Optional: Allow unauthenticated requests for demo (remove in production)
+      console.warn('Warning: Request without authentication - credits not checked');
     }
 
     // Build FIBO-style JSON from lighting setup
@@ -202,218 +345,62 @@ serve(async (req) => {
     const imagePrompt = buildProfessionalImagePrompt(sceneRequest, fiboJson, lightingAnalysis);
     console.log("Image prompt:", imagePrompt);
 
-    // Helper function to make AI request with retry logic
-    const makeAIRequest = async (retries = 2): Promise<{ imageUrl: string; textContent: string } | Response> => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for AI
-
-      try {
-        const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-2.5-flash-image-preview",
-            messages: [
-              {
-                role: "user",
-                content: imagePrompt
-              }
-            ],
-            modalities: ["image", "text"]
-          }),
-          signal: controller.signal,
+    // Generate image using AI Gateway client
+    let imageUrl: string | undefined;
+    let textContent: string = "";
+    try {
+      const imageResult = await aiClient.generateImage(
+        imagePrompt,
+        "google/gemini-2.5-flash-image-preview"
+      );
+      imageUrl = imageResult.imageUrl;
+      textContent = imageResult.textContent;
+    } catch (error) {
+      if (error instanceof AIGatewayErrorClass) {
+        return new Response(JSON.stringify({ 
+          error: error.message,
+          errorCode: error.errorCode,
+          details: error.details
+        }), {
+          status: error.statusCode,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
-
-        clearTimeout(timeoutId);
-
-        if (!response.ok) {
-          let errorText = '';
-          let errorData: Record<string, unknown> | null = null;
-          
-          try {
-            errorText = await response.text();
-            errorData = JSON.parse(errorText);
-          } catch {
-            // If parsing fails, use raw text
-          }
-
-          console.error("AI gateway error:", response.status, errorText);
-          
-          // Handle specific error codes
-          if (response.status === 401) {
-            return new Response(JSON.stringify({ 
-              error: "AI service authentication failed. Please check API configuration.",
-              errorCode: "AI_AUTH_ERROR"
-            }), {
-              status: 502,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          
-          if (response.status === 429) {
-            const retryAfter = response.headers.get("Retry-After") || "60";
-            return new Response(JSON.stringify({ 
-              error: `AI service rate limit exceeded. Please try again in ${retryAfter} seconds.`,
-              errorCode: "AI_RATE_LIMIT",
-              retryAfter: parseInt(retryAfter)
-            }), {
-              status: 429,
-              headers: { 
-                ...corsHeaders, 
-                'Content-Type': 'application/json',
-                'Retry-After': retryAfter
-              },
-            });
-          }
-          
-          if (response.status === 402) {
-            return new Response(JSON.stringify({ 
-              error: "AI service payment required. Please add credits to your workspace.",
-              errorCode: "AI_PAYMENT_REQUIRED"
-            }), {
-              status: 402,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-
-          if (response.status >= 500 && retries > 0) {
-            // Retry on server errors
-            console.log(`Retrying AI request, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(retries - 1);
-          }
-
-          if (response.status >= 500) {
-            return new Response(JSON.stringify({ 
-              error: "AI service temporarily unavailable. Please try again later.",
-              errorCode: "AI_SERVER_ERROR",
-              details: errorData?.error?.message || errorText.substring(0, 200)
-            }), {
-              status: 502,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-
-          return new Response(JSON.stringify({ 
-            error: `AI service error: ${errorData?.error?.message || errorText.substring(0, 200) || 'Unknown error'}`,
-            errorCode: "AI_CLIENT_ERROR",
-            details: errorData
-          }), {
-            status: 502,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        const data = await response.json();
-        console.log("AI response received");
-
-        // Validate response structure
-        if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
-          console.error("Invalid AI response structure:", JSON.stringify(data).substring(0, 500));
-          if (retries > 0) {
-            console.log(`Retrying due to invalid response structure, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(retries - 1);
-          }
-          return new Response(JSON.stringify({ 
-            error: "AI service returned invalid response. Please try again.",
-            errorCode: "AI_INVALID_RESPONSE"
-          }), {
-            status: 502,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        const message = data.choices[0]?.message;
-        if (!message) {
-          if (retries > 0) {
-            console.log(`Retrying due to missing message, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(retries - 1);
-          }
-          return new Response(JSON.stringify({ 
-            error: "AI service returned incomplete response. Please try again.",
-            errorCode: "AI_INCOMPLETE_RESPONSE"
-          }), {
-            status: 502,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        const imageUrl = message.images?.[0]?.image_url?.url;
-        const textContent = message.content || "";
-
-        // Validate that we got an image
-        if (!imageUrl) {
-          console.warn("AI response missing image URL:", JSON.stringify(message).substring(0, 500));
-          if (retries > 0) {
-            console.log(`Retrying due to missing image, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(retries - 1);
-          }
-          return new Response(JSON.stringify({ 
-            error: "AI service did not generate an image. Please try again with a different prompt.",
-            errorCode: "AI_NO_IMAGE",
-            details: { textContent }
-          }), {
-            status: 502,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        return { imageUrl, textContent };
-      } catch (error) {
-        clearTimeout(timeoutId);
-        
-        if (error instanceof Error && error.name === 'AbortError') {
-          if (retries > 0) {
-            console.log(`Retrying due to timeout, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(retries - 1);
-          }
-          return new Response(JSON.stringify({ 
-            error: "AI service request timed out. The request took too long. Please try again.",
-            errorCode: "AI_TIMEOUT"
-          }), {
-            status: 504,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-          if (retries > 0) {
-            console.log(`Retrying due to network error, ${retries} attempts remaining...`);
-            await new Promise(resolve => setTimeout(resolve, 1000 * (3 - retries)));
-            return makeAIRequest(retries - 1);
-          }
-          return new Response(JSON.stringify({ 
-            error: "Network error connecting to AI service. Please check your connection and try again.",
-            errorCode: "AI_NETWORK_ERROR"
-          }), {
-            status: 503,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-
-        throw error;
       }
-    };
-
-    const aiResult = await makeAIRequest();
-    
-    // Check if aiResult is already a Response (error case)
-    if (aiResult instanceof Response) {
-      return aiResult;
+      throw error;
     }
 
-    const { imageUrl, textContent } = aiResult;
+    // Validate that we got an image
+    if (!imageUrl) {
+      console.warn("AI response missing image URL");
+      return new Response(JSON.stringify({ 
+        error: "AI service did not generate an image. Please try again with a different prompt.",
+        errorCode: "AI_NO_IMAGE",
+        details: { textContent }
+      }), {
+        status: 502,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const imageId = crypto.randomUUID();
+
+    // Record credit usage after successful generation
+    if (userId) {
+      const creditsNeeded = sceneRequest.enhanceHDR ? 2 : 1;
+      await recordCreditUsage(
+        userId,
+        'generate_image',
+        creditsNeeded,
+        imageId,
+        {
+          enhanceHDR: sceneRequest.enhanceHDR,
+          lighting_style: lightingAnalysis.lightingStyle,
+        }
+      );
+    }
 
     return new Response(JSON.stringify({
       image_url: imageUrl || null,
-      image_id: crypto.randomUUID(),
+      image_id: imageId,
       fibo_json: fiboJson,
       lighting_analysis: lightingAnalysis,
       generation_metadata: {
@@ -464,39 +451,122 @@ serve(async (req) => {
   }
 });
 
+/**
+ * Build comprehensive FIBO JSON leveraging enhanced architecture
+ * Uses long structured prompts (~1000 words) matching FIBO training format
+ * Leverages DimFusion conditioning and JSON-native disentangled control
+ */
 function buildFiboJson(request: SceneRequest) {
   const { lightingSetup, cameraSettings, subjectDescription, environment } = request;
 
+  // Build comprehensive lighting structure with detailed parameters
   const lightingJson: Record<string, Record<string, unknown>> = {};
   for (const [type, settings] of Object.entries(lightingSetup)) {
     if (settings.enabled) {
+      // Enhanced lighting description matching FIBO's training format
       lightingJson[`${type}_light`] = {
+        type: "area", // Professional area light
         direction: settings.direction,
         intensity: settings.intensity,
         color_temperature: settings.colorTemperature,
+        color_kelvin: settings.colorTemperature,
         softness: settings.softness,
         distance: settings.distance,
-        color_kelvin: settings.colorTemperature,
-        falloff: "inverse_square"
+        falloff: "inverse_square",
+        // Additional parameters for better conditioning
+        quality: settings.softness > 0.6 ? "soft_diffused" : settings.softness < 0.3 ? "hard_crisp" : "medium",
+        temperature_description: settings.colorTemperature < 4500 ? "warm_tungsten" : 
+                                 settings.colorTemperature > 6000 ? "cool_daylight" : "neutral_daylight"
       };
     }
   }
 
   // Extract color temperatures for white balance
   const keyTemp = lightingSetup.key?.colorTemperature || 5600;
+  const temps: number[] = [];
+  if (lightingSetup.key?.enabled) temps.push(lightingSetup.key.colorTemperature);
+  if (lightingSetup.fill?.enabled) temps.push(lightingSetup.fill.colorTemperature);
+  if (lightingSetup.rim?.enabled) temps.push(lightingSetup.rim.colorTemperature);
+  const avgTemp = temps.length > 0 ? temps.reduce((a, b) => a + b, 0) / temps.length : 5600;
+  
+  // Build comprehensive subject with detailed attributes (FIBO training format)
+  const subjectAttributes = [
+    "professionally lit",
+    "high quality",
+    "detailed",
+    "sharp focus",
+    "expert lighting",
+    "studio quality",
+    "magazine editorial standard"
+  ];
+  
+  // Add style-specific attributes
+  if (request.stylePreset?.includes("fashion")) {
+    subjectAttributes.push("editorial fashion", "runway quality", "high-end commercial");
+  } else if (request.stylePreset?.includes("beauty")) {
+    subjectAttributes.push("beauty portrait", "flattering lighting", "skin texture detail");
+  } else if (request.stylePreset?.includes("product")) {
+    subjectAttributes.push("product photography", "commercial grade", "catalog quality");
+  }
+  
+  // Add lighting-specific attributes
+  if (lightingSetup.key?.enabled) {
+    if (lightingSetup.key.softness > 0.7) {
+      subjectAttributes.push("soft diffused lighting", "gradual shadow transitions");
+    } else if (lightingSetup.key.softness < 0.3) {
+      subjectAttributes.push("dramatic hard lighting", "defined shadow edges");
+    }
+  }
+  
+  // Build detailed action description
+  let action = "posed for professional photograph";
+  if (request.stylePreset?.includes("fashion")) {
+    action = "posed confidently for high-fashion editorial photograph, displaying garment details and silhouette with professional model composure";
+  } else if (request.stylePreset?.includes("beauty")) {
+    action = "posed naturally for beauty portrait, with attention to skin texture, facial features, and flattering angles";
+  } else if (request.stylePreset?.includes("product")) {
+    action = "displayed prominently for commercial product photography, showcasing design details, materials, and professional presentation";
+  }
+  
+  // Build comprehensive environment description
+  const isOutdoor = environment.toLowerCase().includes("outdoor") || 
+                    environment.toLowerCase().includes("natural");
+  let lightingConditions = "professional studio";
+  if (isOutdoor) {
+    lightingConditions = "natural daylight with controlled studio lighting enhancement";
+  } else {
+    lightingConditions = "controlled professional studio environment with precise lighting setup";
+  }
+  
+  // Determine atmosphere based on lighting
+  const key = lightingSetup.key;
+  const fill = lightingSetup.fill;
+  const ratio = key?.enabled ? key.intensity / Math.max(fill?.enabled ? fill.intensity : 0.1, 0.1) : 2.0;
+  let atmosphere = "controlled";
+  if (ratio > 5) {
+    atmosphere = "dramatic and moody";
+  } else if (ratio < 1.5) {
+    atmosphere = "soft and even";
+  } else {
+    atmosphere = "professional and balanced";
+  }
   
   return {
     subject: {
       main_entity: subjectDescription,
-      attributes: ["professionally lit", "high quality", "detailed", "sharp focus"],
-      action: "posed for professional photograph",
-      mood: determineMoodFromLighting(lightingSetup)
+      attributes: subjectAttributes,
+      action: action,
+      mood: determineMoodFromLighting(lightingSetup),
+      emotion: determineMoodFromLighting(lightingSetup).includes("dramatic") ? "intense" : 
+               determineMoodFromLighting(lightingSetup).includes("warm") ? "welcoming" : "professional"
     },
     environment: {
       setting: environment,
-      time_of_day: "controlled lighting",
-      lighting_conditions: "professional studio",
-      atmosphere: environment.includes("outdoor") ? "natural" : "controlled"
+      time_of_day: isOutdoor ? "daylight" : "controlled lighting",
+      lighting_conditions: lightingConditions,
+      atmosphere: atmosphere,
+      interior_style: isOutdoor ? undefined : "professional photography studio",
+      weather: isOutdoor ? "clear" : undefined
     },
     camera: {
       shot_type: cameraSettings.shotType,
@@ -504,29 +574,77 @@ function buildFiboJson(request: SceneRequest) {
       fov: cameraSettings.fov,
       lens_type: cameraSettings.lensType,
       aperture: cameraSettings.aperture,
-      focus: "sharp on subject",
-      depth_of_field: getDepthOfField(cameraSettings.aperture)
+      focus_distance_m: calculateFocusDistance(cameraSettings.fov, cameraSettings.shotType),
+      pitch: 0,
+      yaw: 0,
+      roll: 0,
+      seed: Math.floor(Math.random() * 1000000)
     },
     lighting: lightingJson,
     style_medium: "photograph",
-    artistic_style: "professional studio photography",
+    artistic_style: request.stylePreset || "professional studio photography",
     color_palette: {
-      white_balance: `${keyTemp}K`,
-      mood: keyTemp < 4500 ? "warm" : keyTemp > 6000 ? "cool" : "neutral"
+      white_balance: `${Math.round(avgTemp)}K`,
+      mood: avgTemp < 4000 ? "warm" : avgTemp > 6500 ? "cool" : "neutral",
+      saturation: 1.0,
+      contrast: 1.0
+    },
+    composition: {
+      rule_of_thirds: true,
+      framing: "professional composition",
+      depth: getDepthOfField(cameraSettings.aperture).includes("shallow") ? "shallow" :
+             getDepthOfField(cameraSettings.aperture).includes("deep") ? "deep" : "medium",
+      negative_space: 0.2,
+      leading_lines: ["subject focus", "lighting direction"],
+      depth_layers: ["foreground", "subject", "background"]
+    },
+    materials: {
+      surface_reflectivity: lightingSetup.key?.softness ? (1.0 - lightingSetup.key.softness) * 0.3 : 0.15,
+      subsurface_scattering: lightingSetup.key?.softness && lightingSetup.key.softness > 0.6 ? true : false,
+      specular_highlights: lightingSetup.key?.intensity ? lightingSetup.key.intensity * 0.8 : 0.5,
+      material_response: "photorealistic"
     },
     enhancements: {
       hdr: request.enhanceHDR,
       professional_grade: true,
       color_fidelity: true,
       detail_enhancement: true,
-      noise_reduction: true
+      noise_reduction: true,
+      contrast_enhance: 1.0
     },
-    composition: {
-      rule_of_thirds: true,
-      depth_layers: ["foreground", "subject", "background"]
+    render: {
+      resolution: [2048, 2048],
+      color_space: "sRGB",
+      bit_depth: request.enhanceHDR ? 16 : 8,
+      samples: request.enhanceHDR ? 256 : 128,
+      denoiser: "professional"
+    },
+    meta: {
+      source: "prolight-ai-enhanced",
+      version: "2.0",
+      fibo_architecture: "8B-DiT-flow-matching",
+      text_encoder: "SmolLM3-3B",
+      conditioning: "DimFusion",
+      deterministic: true
     },
     negative_prompt: request.negativePrompt || "blurry, low quality, overexposed, underexposed, harsh shadows"
   };
+}
+
+/**
+ * Calculate focus distance based on FOV and shot type
+ */
+function calculateFocusDistance(fov: number, shotType: string): number {
+  const shotTypeLower = shotType.toLowerCase();
+  
+  if (shotTypeLower.includes("close")) return 0.5;
+  if (shotTypeLower.includes("medium")) return 1.5;
+  if (shotTypeLower.includes("wide")) return 3.0;
+  
+  if (fov < 30) return 2.0; // Telephoto
+  if (fov > 70) return 1.0; // Wide angle
+  
+  return 1.5; // Standard
 }
 
 interface LightingAnalysis {
@@ -602,6 +720,21 @@ function determineMoodFromLighting(lightingSetup: Record<string, LightSettings>)
   if (avgTemp < 4000) return "warm and intimate";
   if (avgTemp > 6500) return "cool and modern";
   return "professional and balanced";
+}
+
+function determineLightingStyleName(lightingSetup: Record<string, LightSettings>): string {
+  const key = lightingSetup.key;
+  const fill = lightingSetup.fill;
+  
+  if (!key?.enabled) return "ambient";
+  
+  const ratio = key.intensity / Math.max(fill?.enabled ? fill.intensity : 0.1, 0.1);
+  
+  if (ratio >= 8) return "high_contrast_dramatic";
+  if (ratio >= 4) return "dramatic";
+  if (ratio >= 2) return "classical_portrait";
+  if (ratio >= 1.5) return "soft_lighting";
+  return "flat_lighting";
 }
 
 function getDepthOfField(aperture: string): string {

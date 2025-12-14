@@ -107,11 +107,61 @@
     @apply bg-background text-foreground antialiased;
     background: linear-gradient(135deg, hsl(222 47% 6%) 0%, hsl(217 33% 17%) 100%);
     min-height: 100vh;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 
   /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Improved typography hierarchy */
+  h1 {
+    @apply text-4xl font-bold tracking-tight lg:text-5xl;
+    line-height: 1.2;
+  }
+
+  h2 {
+    @apply text-3xl font-semibold tracking-tight lg:text-4xl;
+    line-height: 1.3;
+  }
+
+  h3 {
+    @apply text-2xl font-semibold tracking-tight lg:text-3xl;
+    line-height: 1.4;
+  }
+
+  h4 {
+    @apply text-xl font-semibold tracking-tight lg:text-2xl;
+    line-height: 1.4;
+  }
+
+  h5 {
+    @apply text-lg font-semibold tracking-tight;
+    line-height: 1.5;
+  }
+
+  h6 {
+    @apply text-base font-semibold tracking-tight;
+    line-height: 1.5;
+  }
+
+  p {
+    @apply leading-7;
+  }
+
+  /* Better spacing for common elements */
+  section {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  /* Improved list styling */
+  ul, ol {
+    @apply space-y-2;
+  }
+
+  li {
+    @apply leading-7;
   }
 
   /* Better focus styles for accessibility */
@@ -129,6 +179,33 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Improved selection styling */
+  ::selection {
+    @apply bg-primary/30 text-foreground;
+  }
+
+  ::-moz-selection {
+    @apply bg-primary/30 text-foreground;
+  }
+
+  /* Better disabled state styling */
+  [disabled] {
+    @apply cursor-not-allowed opacity-50;
+  }
+
+  /* Improved image loading */
+  img {
+    @apply transition-opacity duration-200;
+  }
+
+  img[loading="lazy"] {
+    @apply opacity-0;
+  }
+
+  img[loading="lazy"].loaded {
+    @apply opacity-100;
   }
 }
 
@@ -216,24 +293,66 @@
 
   /* Better scrollbar styling */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-muted/30;
+    @apply bg-muted/20;
   }
 
   ::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/30 rounded-full;
     @apply hover:bg-muted-foreground/50;
+    transition: background-color 0.2s;
+  }
+
+  /* Smooth shimmer animation for skeletons */
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   /* Smooth transitions for theme changes */
   * {
-    transition-property: background-color, border-color, color, fill, stroke;
+    transition-property: background-color, border-color, color, fill, stroke, opacity, transform, box-shadow;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
+  }
+
+  /* Better focus styles for all interactive elements */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply ring-2 ring-primary/50 ring-offset-2 ring-offset-background;
+  }
+
+  /* Improved link styles */
+  a {
+    @apply transition-colors duration-200;
+  }
+
+  a:hover {
+    @apply text-primary;
+  }
+
+  /* Better form element styling */
+  input[type="range"] {
+    @apply cursor-pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 rounded-full bg-primary cursor-pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 4px hsl(var(--primary) / 0.2);
   }
 }
 
@@ -354,4 +473,138 @@
     transform: translateY(-12px);
     transition: opacity 200ms ease-in, transform 200ms ease-in;
   }
+}
+
+/* Error UI Styles */
+.error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 2rem;
+  font-family: system-ui, -apple-system, sans-serif;
+  text-align: center;
+  background: hsl(var(--background));
+}
+
+.error-content {
+  max-width: 600px;
+  width: 100%;
+}
+
+.error-title {
+  color: hsl(var(--destructive));
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.error-description {
+  color: hsl(var(--muted-foreground));
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.error-message {
+  color: hsl(var(--foreground) / 0.8);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  max-width: 100%;
+  word-break: break-word;
+}
+
+.error-stack-details {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 0.375rem;
+  max-width: 100%;
+  text-align: left;
+  max-height: 300px;
+  overflow: auto;
+}
+
+.error-stack-summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: hsl(var(--foreground));
+  user-select: none;
+}
+
+.error-stack-summary:hover {
+  color: hsl(var(--primary));
+}
+
+.error-stack-pre {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.error-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.error-button {
+  padding: 0.75rem 1.5rem;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+
+.error-button:hover {
+  transform: translateY(-1px);
+}
+
+.error-button:active {
+  transform: translateY(0);
+}
+
+.error-button:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+.error-button-primary {
+  background-color: hsl(var(--primary));
+}
+
+.error-button-primary:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+
+.error-button-secondary {
+  background-color: hsl(var(--muted-foreground));
+}
+
+.error-button-secondary:hover {
+  background-color: hsl(var(--muted-foreground) / 0.9);
+}
+
+.error-button-danger {
+  background-color: hsl(var(--destructive));
+}
+
+.error-button-danger:hover {
+  background-color: hsl(var(--destructive) / 0.9);
+}
+
+.error-help {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  margin-top: 1.5rem;
 }

@@ -363,3 +363,44 @@ class RenderCallbackRequest(BaseModel):
     poseId: int = Field(..., description="Pose ID that was rendered")
     requestId: str = Field(..., description="Render request ID")
     result: Dict[str, Any] = Field(..., description="Render result data")
+
+
+# ============================================================================
+# Chat Models
+# ============================================================================
+
+class ChatMessage(BaseModel):
+    """Single chat message."""
+    role: str = Field(..., description="Message role: 'user', 'assistant', or 'system'")
+    content: str = Field(..., description="Message content")
+    
+    @validator('role')
+    def validate_role(cls, v):
+        if v not in ['user', 'assistant', 'system']:
+            raise ValueError("role must be 'user', 'assistant', or 'system'")
+        return v
+
+
+class ChatRequest(BaseModel):
+    """Request for chat endpoint."""
+    conversation_id: str = Field(..., description="Unique conversation identifier")
+    messages: List[ChatMessage] = Field(..., description="List of messages in conversation")
+    stream: bool = Field(False, description="Whether to stream the response")
+
+
+class ChatResponse(BaseModel):
+    """Response from chat endpoint."""
+    reply: str = Field(..., description="Assistant's reply")
+    intent: Optional[str] = Field(None, description="Detected intent")
+    entities: Optional[Dict[str, Any]] = Field(None, description="Extracted entities")
+    followups: Optional[List[str]] = Field(None, description="Suggested follow-up questions")
+
+
+class ChatStreamChunk(BaseModel):
+    """Streaming chunk from chat."""
+    type: str = Field(..., description="Chunk type: 'delta', 'intent', 'done', or 'error'")
+    delta: Optional[str] = Field(None, description="Text delta (for type='delta')")
+    intent: Optional[str] = Field(None, description="Detected intent (for type='intent')")
+    entities: Optional[Dict[str, Any]] = Field(None, description="Extracted entities (for type='intent')")
+    full_response: Optional[str] = Field(None, description="Full response (for type='done')")
+    error: Optional[str] = Field(None, description="Error message (for type='error')")

@@ -96,7 +96,7 @@ const Index = () => {
           initial={{ opacity: 0, scale: 0.9, x: 50 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="absolute right-[5%] top-1/2 -translate-y-1/2 w-1/2 max-w-[600px] h-[300px] md:h-[400px] lg:h-[500px] hidden md:block"
+          className="absolute right-[5%] top-1/2 -translate-y-1/2 w-1/2 max-w-[600px] h-[250px] sm:h-[300px] md:h-[400px] lg:h-[500px] hidden lg:block"
         >
           <div className="w-full h-full rounded-2xl md:rounded-3xl shadow-2xl overflow-hidden glass-card-premium">
             <LightingCanvas keyIntensity={keyIntensity / 100} fillIntensity={fillIntensity / 100} colorTemp={colorTemp} />
@@ -149,12 +149,12 @@ const Index = () => {
           <p className="text-lg text-muted-foreground">See how easy it is to create professional lighting setups</p>
         </motion.div>
         
-        <div className="flex flex-col lg:flex-row items-center gap-12">
+        <div className="flex flex-col lg:flex-row items-center gap-8 sm:gap-12">
           <motion.div 
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="flex-1 w-full"
+            className="flex-1 w-full order-2 lg:order-1"
           >
             <h3 className="text-xl sm:text-2xl font-semibold mb-3 sm:mb-4">Real-time Lighting Control</h3>
             <p className="text-sm sm:text-base text-muted-foreground mb-6 sm:mb-8 leading-relaxed">Adjust the parameters below to see how different lighting setups affect your scene.</p>
@@ -197,7 +197,7 @@ const Index = () => {
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="flex-1 h-[300px] sm:h-[350px] md:h-[400px] w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl glass-card-premium"
+            className="flex-1 h-[250px] sm:h-[300px] md:h-[350px] lg:h-[400px] w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl glass-card-premium order-1 lg:order-2"
           >
             <LightingCanvas keyIntensity={keyIntensity / 100} fillIntensity={fillIntensity / 100} colorTemp={colorTemp} />
           </motion.div>
@@ -222,10 +222,10 @@ const Index = () => {
           viewport={{ once: true }}
           className="glass-card-premium p-8 max-w-3xl mx-auto overflow-hidden"
         >
-          <div className="grid grid-cols-3 gap-4 text-center mb-4 pb-4 border-b border-border/30">
-            <div className="text-muted-foreground text-sm font-medium">Feature</div>
-            <div className="gradient-text font-bold">ProLight AI</div>
-            <div className="text-muted-foreground">Traditional</div>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-center mb-4 pb-4 border-b border-border/30">
+            <div className="text-muted-foreground text-xs sm:text-sm font-medium">Feature</div>
+            <div className="gradient-text font-bold text-xs sm:text-sm">ProLight AI</div>
+            <div className="text-muted-foreground text-xs sm:text-sm">Traditional</div>
           </div>
           {comparisonData.map((row, i) => (
             <motion.div 

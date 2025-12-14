@@ -1,0 +1,125 @@
+{
+  "workflow_name": "FIBO Structured JSON Generation",
+  "description": "Professional lighting generation using FIBO's structured JSON prompts with ComfyUI integration. Supports ~1000 word structured prompts for precise control.",
+  "version": "1.0.0",
+  "author": "ProLight AI",
+  "nodes": {
+    "1": {
+      "class_type": "FIBO_JSON_Loader",
+      "inputs": {
+        "fibo_json": "{{fibo_json}}",
+        "mode": "generate"
+      },
+      "title": "Load FIBO JSON",
+      "description": "Loads structured FIBO JSON prompt (~1000 words) for precise lighting control"
+    },
+    "2": {
+      "class_type": "FIBO_Prompt_Builder",
+      "inputs": {
+        "json_input": ["1", 0],
+        "enhance_prompt": true,
+        "target_length": 1000
+      },
+      "title": "Build Enhanced Prompt",
+      "description": "Converts FIBO JSON to comprehensive text prompt matching FIBO training format"
+    },
+    "3": {
+      "class_type": "CheckpointLoaderSimple",
+      "inputs": {
+        "ckpt_name": "flux1-dev.safetensors"
+      },
+      "title": "Load Model"
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": ["2", 0],
+        "clip": ["3", 1]
+      },
+      "title": "Encode Prompt"
+    },
+    "5": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 2048,
+        "height": 2048,
+        "batch_size": 1
+      },
+      "title": "Create Latent"
+    },
+    "6": {
+      "class_type": "KSampler",
+      "inputs": {
+        "seed": ["1", 1],
+        "steps": 40,
+        "cfg": 7.5,
+        "sampler_name": "euler",
+        "scheduler": "normal",
+        "denoise": 1.0,
+        "model": ["3", 0],
+        "positive": ["4", 0],
+        "negative": ["7", 0],
+        "latent_image": ["5", 0]
+      },
+      "title": "Sample Image"
+    },
+    "7": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "text": "blurry, low quality, overexposed, underexposed, harsh shadows, artifacts",
+        "clip": ["3", 1]
+      },
+      "title": "Negative Prompt"
+    },
+    "8": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": ["6", 0],
+        "vae": ["3", 2]
+      },
+      "title": "Decode Image"
+    },
+    "9": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "filename_prefix": "fibo_prolight",
+        "images": ["8", 0]
+      },
+      "title": "Save Image"
+    },
+    "10": {
+      "class_type": "FIBO_Lighting_Extractor",
+      "inputs": {
+        "json_input": ["1", 0]
+      },
+      "title": "Extract Lighting Params",
+      "description": "Extracts lighting parameters from FIBO JSON for post-processing"
+    }
+  },
+  "links": [
+    [1, 0, 2, 0],
+    [1, 0, 10, 0],
+    [1, 1, 6, 0],
+    [2, 0, 4, 0],
+    [3, 0, 6, 1],
+    [3, 1, 4, 1],
+    [3, 1, 7, 1],
+    [3, 2, 8, 1],
+    [5, 0, 6, 6],
+    [6, 0, 8, 0],
+    [8, 0, 9, 0]
+  ],
+  "extra": {
+    "ds": {
+      "scale": 0.8,
+      "offset": [0, 0]
+    }
+  },
+  "metadata": {
+    "fibo_architecture": "8B-DiT-flow-matching",
+    "text_encoder": "SmolLM3-3B",
+    "conditioning": "DimFusion",
+    "supports_refine_mode": true,
+    "supports_inspire_mode": true
+  }
+}

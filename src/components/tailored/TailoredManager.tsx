@@ -42,6 +42,7 @@ import {
   type TailoredJob,
   type GuidanceMethod,
 } from '@/api/tailored-generation';
+import { mockProjects, mockDatasets, mockModels, mockJobs, shouldUseMockData } from '@/services/enhancedMockData';
 
 export default function TailoredManager() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -87,7 +88,16 @@ export default function TailoredManager() {
       setJobs(jb);
     } catch (error) {
       console.error('Failed to fetch data:', error);
-      toast.error('Failed to load data');
+      // Use mock data if API fails and mock data is enabled
+      if (shouldUseMockData()) {
+        setProjects(mockProjects);
+        setDatasets(mockDatasets);
+        setModels(mockModels);
+        setJobs(mockJobs);
+        console.log('Using mock data for TailoredManager');
+      } else {
+        toast.error('Failed to load data');
+      }
     }
   }
 

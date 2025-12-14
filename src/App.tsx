@@ -63,7 +63,9 @@ import AccountSettings from "./pages/AccountSettings";
 import Teams from "./pages/Teams";
 import Invoices from "./pages/Invoices";
 import Admin from "./pages/Admin";
+import BusinessModelCanvas from "./pages/BusinessModelCanvas";
 import { CookieConsent } from "./components/CookieConsent";
+import { initializeMockData } from "./services/enhancedMockData";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -161,7 +163,14 @@ function AnimatedRoutes() {
             </ProtectedRoute>
           } 
         />
-        <Route path="/admin/refunds" element={<PageWrapper><AdminRefunds /></PageWrapper>} />
+        <Route 
+          path="/admin/refunds" 
+          element={
+            <ProtectedRoute roles={["admin"]}>
+              <PageWrapper><AdminRefunds /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
         <Route path="/customer-portal" element={<PageWrapper><CustomerPortal /></PageWrapper>} />
         <Route path="/success" element={<PageWrapper><Success /></PageWrapper>} />
         <Route path="/cancel" element={<PageWrapper><Cancel /></PageWrapper>} />
@@ -174,6 +183,7 @@ function AnimatedRoutes() {
         <Route path="/company/blog/:slug" element={<PageWrapper><PostView /></PageWrapper>} />
         <Route path="/company/careers" element={<PageWrapper><CareersPage /></PageWrapper>} />
         <Route path="/company/contact" element={<PageWrapper><ContactPage /></PageWrapper>} />
+        <Route path="/business-model" element={<PageWrapper><BusinessModelCanvas /></PageWrapper>} />
         <Route path="/product" element={<PageWrapper><ProductPage /></PageWrapper>} />
         <Route path="/features" element={<PageWrapper><FeaturesPage /></PageWrapper>} />
         <Route path="/use-cases" element={<PageWrapper><UseCasesPage /></PageWrapper>} />
@@ -263,27 +273,34 @@ function DeploymentBanner() {
   );
 }
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <ToastContainer position="top-right" autoClose={3000} />
-            <BrowserRouter>
-              <CookieConsent />
-              <DeploymentBanner />
-              <MainLayout>
-                <AnimatedRoutes />
-              </MainLayout>
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  // Initialize mock data on app startup if enabled
+  React.useEffect(() => {
+    initializeMockData();
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <ToastContainer position="top-right" autoClose={3000} />
+              <BrowserRouter>
+                <CookieConsent />
+                <DeploymentBanner />
+                <MainLayout>
+                  <AnimatedRoutes />
+                </MainLayout>
+              </BrowserRouter>
+            </TooltipProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;

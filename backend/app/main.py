@@ -125,7 +125,7 @@ async def root():
 # ============================================================================
 
 # Import route modules
-from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1
+from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1, chat
 
 # Include routers
 app.include_router(generate.router, prefix=settings.API_PREFIX, tags=["Generate"])
@@ -146,6 +146,7 @@ app.include_router(vehicle_shot.router, prefix=settings.API_PREFIX, tags=["Vehic
 app.include_router(auth.router, tags=["Auth"])
 app.include_router(payments.router, tags=["Payments"])
 app.include_router(bria_v1.router, tags=["Bria V1"])
+app.include_router(chat.router, tags=["Chat"])
 
 
 # ============================================================================

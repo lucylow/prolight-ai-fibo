@@ -3,11 +3,18 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { Lightbulb, Palette, MessageSquare, History, Sparkles } from "lucide-react";
+import { Lightbulb, Palette, MessageSquare, History, Sparkles, TrendingUp, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { mockDashboardStats, shouldUseMockData } from "@/services/enhancedMockData";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const stats = shouldUseMockData() ? mockDashboardStats : {
+    totalGenerations: 0,
+    totalProjects: 0,
+    totalModels: 0,
+    recentActivity: [],
+  };
 
   const quickActions = [
     {
@@ -71,6 +78,70 @@ const Dashboard = () => {
           );
         })}
       </div>
+
+      {stats.totalGenerations > 0 && (
+        <div className="grid gap-6 md:grid-cols-3 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Generations</CardTitle>
+              <Sparkles className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalGenerations}</div>
+              <p className="text-xs text-muted-foreground">All time</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Projects</CardTitle>
+              <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalProjects}</div>
+              <p className="text-xs text-muted-foreground">In progress</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Trained Models</CardTitle>
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.totalModels}</div>
+              <p className="text-xs text-muted-foreground">Ready to use</p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {stats.recentActivity.length > 0 && (
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>Your latest actions and generations</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {stats.recentActivity.map((activity, i) => (
+                <div key={i} className="flex items-start gap-4 pb-4 border-b last:border-0">
+                  <div className="p-2 rounded-full bg-muted">
+                    {activity.type === 'generation' && <Sparkles className="h-4 w-4" />}
+                    {activity.type === 'training' && <TrendingUp className="h-4 w-4" />}
+                    {activity.type === 'project' && <Lightbulb className="h-4 w-4" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{activity.description}</p>
+                    <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {new Date(activity.timestamp).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

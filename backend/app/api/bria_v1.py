@@ -37,11 +37,43 @@ if not BRIA_API_TOKEN:
 # ============================================================================
 
 class GuidanceMethod(BaseModel):
-    """ControlNet guidance method configuration."""
+    """ControlNet guidance method configuration.
+    
+    ControlNet provides precise control over image generation by conditioning
+    on structural information from guidance images. Each method has specific use cases:
+    
+    - controlnet_canny: Edge detection - best for preserving structure and outlines
+    - controlnet_depth: Depth maps - excellent for 3D spatial relationships and lighting
+    - controlnet_recoloring: Color guidance - maintains structure while changing colors
+    - controlnet_color_grid: Color distribution - controls color placement and composition
+    
+    You can use up to 2 ControlNet methods simultaneously for combined control.
+    """
     method: Literal["controlnet_canny", "controlnet_depth", "controlnet_recoloring", "controlnet_color_grid"]
-    scale: float = Field(default=1.0, ge=0.0, le=1.0)
-    image_base64: Optional[str] = None
-    image_url: Optional[str] = None
+    scale: float = Field(
+        default=1.0, 
+        ge=0.0, 
+        le=1.0,
+        description="Control strength (0.0 = no control, 1.0 = full control). "
+                    "Lower values allow more creative freedom, higher values enforce strict adherence."
+    )
+    image_base64: Optional[str] = Field(
+        None,
+        description="Guidance image as base64 data URI (data:image/...;base64,...)"
+    )
+    image_url: Optional[str] = Field(
+        None,
+        description="URL to guidance image. Server will fetch and convert to base64."
+    )
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "method": "controlnet_depth",
+                "scale": 0.9,
+                "image_url": "https://example.com/depth-map.png"
+            }
+        }
 
 
 class ImagePromptAdapter(BaseModel):
@@ -135,25 +167,69 @@ async def fetch_image_url_to_base64(image_url: str) -> str:
 
 
 async def finalize_guidance_payload(guidance_methods: List[GuidanceMethod]) -> dict:
-    """Convert guidance methods to Bria V1 payload format."""
+    """Convert guidance methods to Bria V1 payload format.
+    
+    Supports up to 2 ControlNet methods simultaneously. When using multiple methods,
+    they are applied in sequence, allowing for combined control (e.g., depth + canny).
+    
+    Args:
+        guidance_methods: List of ControlNet guidance configurations (max 2)
+        
+    Returns:
+        Dictionary with Bria V1 API format guidance fields
+        
+    Raises:
+        HTTPException: If validation fails or image cannot be fetched
+    """
+    if len(guidance_methods) > 2:
+        raise HTTPException(
+            status_code=400,
+            detail="Maximum 2 ControlNet guidance methods allowed simultaneously"
+        )
+    
+    # Validate no duplicate methods
+    methods = [g.method for g in guidance_methods]
+    if len(methods) != len(set(methods)):
+        raise HTTPException(
+            status_code=400,
+            detail="Duplicate ControlNet methods not allowed. Use different methods for combined control."
+        )
+    
     payload = {}
-    for i, g in enumerate(guidance_methods[:2], start=1):
+    for i, g in enumerate(guidance_methods, start=1):
         payload[f"guidance_method_{i}"] = g.method
         payload[f"guidance_method_{i}_scale"] = g.scale
         
+        # Validate that image is provided
+        if not g.image_base64 and not g.image_url:
+            raise HTTPException(
+                status_code=400,
+                detail=f"guidance_method_{i} ({g.method}) requires either image_base64 or image_url"
+            )
+        
+        # Handle base64 images
         if g.image_base64:
             # Ensure it's a data URI
             if g.image_base64.startswith("data:"):
                 payload[f"guidance_method_{i}_image_file"] = g.image_base64
             else:
+                # Assume raw base64, wrap in data URI
                 payload[f"guidance_method_{i}_image_file"] = f"data:image/png;base64,{g.image_base64}"
+        # Handle URL images
         elif g.image_url:
-            payload[f"guidance_method_{i}_image_file"] = await fetch_image_url_to_base64(g.image_url)
-        else:
-            raise HTTPException(
-                status_code=400,
-                detail=f"guidance_method_{i} requires image_base64 or image_url"
-            )
+            try:
+                payload[f"guidance_method_{i}_image_file"] = await fetch_image_url_to_base64(g.image_url)
+            except httpx.HTTPStatusError as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Failed to fetch guidance image from URL for {g.method}: {e.response.status_code}"
+                )
+            except Exception as e:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Error processing guidance image URL for {g.method}: {str(e)}"
+                )
+    
     return payload
 
 
@@ -201,6 +277,24 @@ async def generate_image(request: GenerateImageRequest):
     Generate image using Bria V1 text-to-image pipelines.
     
     Supports base, fast, and hd pipelines with ControlNet guidance and Image Prompt Adapter.
+    
+    **ControlNet Integration:**
+    - Supports up to 2 ControlNet methods simultaneously
+    - Methods: canny (edges), depth (3D spatial), recoloring (color), color_grid (color placement)
+    - Scale parameter controls influence strength (0.0-1.0)
+    - Guidance images can be provided as base64 or URLs
+    
+    **Best Practices:**
+    - Use depth ControlNet for lighting-sensitive scenes (excellent for ProLight AI use cases)
+    - Combine canny + depth for maximum structural control
+    - Start with scale=0.8-0.9 for balanced control vs creativity
+    - Lower scale (0.5-0.7) allows more artistic interpretation
+    - Higher scale (0.95-1.0) enforces strict adherence to guidance
+    
+    **Example Use Cases:**
+    - Product photography: depth ControlNet for precise lighting control
+    - Architectural renders: canny + depth for structure preservation
+    - Style transfer: recoloring ControlNet with reference color palette
     """
     if not BRIA_API_TOKEN:
         raise HTTPException(status_code=500, detail="BRIA_API_TOKEN not configured")

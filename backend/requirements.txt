@@ -47,6 +47,12 @@ requests==2.31.0
 Pillow==10.1.0
 numpy==1.26.2
 
+# Redis for vector store and conversation memory
+redis[hiredis]==5.0.1
+
+# Server-Sent Events for streaming
+sse-starlette==1.8.2
+
 # Schema generation (optional - for generating Pydantic models from FIBO JSON schema)
 datamodel-code-generator>=0.23.0
 
@@ -58,3 +64,16 @@ datamodel-code-generator>=0.23.0
 # regex
 # tqdm
 # git+https://github.com/openai/CLIP.git
+
+# FIBO Model Support (Bria AI)
+# Install diffusers from source for FIBO support:
+# pip install git+https://github.com/huggingface/diffusers
+torch>=2.0.0
+torchvision>=0.15.0
+# diffusers>=0.30.0  # Install from source: git+https://github.com/huggingface/diffusers
+google-genai>=0.2.0  # For Gemini API integration
+boltons>=23.0.0
+ujson>=5.9.0
+sentencepiece>=0.1.99
+accelerate>=0.25.0
+transformers>=4.36.0
