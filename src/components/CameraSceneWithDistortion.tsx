@@ -82,7 +82,9 @@ function PostprocessingComposer() {
       if (passRef.current && composerRef.current) {
         try {
           composerRef.current.removePass(passRef.current);
-        } catch (e) {}
+        } catch (e) {
+          // Ignore errors during cleanup - pass may already be removed
+        }
       }
     };
   }, []); // run once
@@ -99,7 +101,9 @@ function PostprocessingComposer() {
     return () => {
       try {
         composer.removePass(passRef.current);
-      } catch (e) {}
+      } catch (e) {
+        // Ignore errors during cleanup - pass may already be removed
+      }
     };
   }, [composerRef.current, passRef.current]);
 

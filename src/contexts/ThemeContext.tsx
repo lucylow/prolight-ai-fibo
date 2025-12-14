@@ -36,28 +36,28 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 };
 
 export const useThemeContext = () => {
-  // Try to use next-themes directly first, fallback to context
-  try {
-    const nextTheme = useNextTheme();
-    if (nextTheme) {
-      return {
-        theme: nextTheme.theme || "light",
-        toggleTheme: () => nextTheme.setTheme(nextTheme.theme === "dark" ? "light" : "dark"),
-        setTheme: nextTheme.setTheme,
-      };
-    }
-  } catch (e) {
-    // Fallback to context
-  }
-
+  // Call hooks unconditionally at the top level (Rules of Hooks)
+  const nextTheme = useNextTheme();
   const context = useContext(ThemeContext);
-  if (context === undefined) {
-    // Return a default implementation if context is not available
+  
+  // Prefer next-themes if available
+  if (nextTheme && nextTheme.theme !== undefined) {
     return {
-      theme: "light",
-      toggleTheme: () => {},
-      setTheme: () => {},
+      theme: nextTheme.theme || "light",
+      toggleTheme: () => nextTheme.setTheme(nextTheme.theme === "dark" ? "light" : "dark"),
+      setTheme: nextTheme.setTheme,
     };
   }
-  return context;
+  
+  // Fallback to context if available
+  if (context !== undefined) {
+    return context;
+  }
+  
+  // Return a default implementation if neither is available
+  return {
+    theme: "light",
+    toggleTheme: () => {},
+    setTheme: () => {},
+  };
 };

@@ -33,6 +33,40 @@ These functions will be automatically deployed when you push to your Lovable Clo
 
 ## Available Functions
 
+### Structured Prompt Generation ⭐ NEW
+**Endpoint:** `/edge/bria/structured-prompt`
+
+Generate detailed FIBO JSON schemas from short text descriptions or images.
+This implements Bria's recommended decoupled workflow:
+1. Generate structured prompt from intent
+2. Edit/refine the JSON
+3. Pass to image generation
+
+```typescript
+POST /edge/bria/structured-prompt
+{
+  "prompt": "silver lamp with soft butterfly lighting",
+  "images": ["url1", "url2"], // optional reference images
+  "sync": true // default true for prompt generation
+}
+```
+
+**Response:**
+```json
+{
+  "request_id": "abc123", // if async
+  "status": "COMPLETED",
+  "structured_prompt": { /* full FIBO JSON */ },
+  "data": { /* full BRIA response */ }
+}
+```
+
+**Benefits:**
+- Editable JSON for UI reflection (live JSON panel)
+- Better deterministic control
+- Auditability
+- Separation of concerns
+
 ### Image Generation
 **Endpoint:** `/edge/bria/image-generate`
 
@@ -45,6 +79,36 @@ POST /edge/bria/image-generate
   "structured_prompt": { /* FIBO JSON */ },
   "images": ["url1", "url2"], // optional reference images
   "num_results": 1,
+  "sync": false // async by default
+}
+```
+
+**Response:**
+```json
+{
+  "request_id": "abc123",
+  "status": "IN_PROGRESS",
+  "data": { /* BRIA response */ }
+}
+```
+
+### Reimagine ⭐ NEW
+**Endpoint:** `/edge/bria/reimagine`
+
+Advanced image editing that generates stylized variations of existing images
+with structured prompts. Perfect for:
+- Product packshot variations
+- Multi-format asset generation
+- Style transfer with lighting control
+- Automated crop/aspect ratio variants
+
+```typescript
+POST /edge/bria/reimagine
+{
+  "asset_id": "bria_asset_id", // or "image_url": "https://..."
+  "structured_prompt": { /* FIBO JSON with lighting/composition */ },
+  "prompt": "optional text prompt",
+  "variations": 3, // number of variations to generate
   "sync": false // async by default
 }
 ```
@@ -184,7 +248,72 @@ POST /edge/bria/video-edit
 
 ## Usage from Frontend
 
-### Example: Generate Image
+### Recommended: Decoupled Workflow
+
+This is Bria's recommended pattern for production use:
+
+```typescript
+// Step 1: Generate structured prompt from intent
+const promptResponse = await fetch('/edge/bria/structured-prompt', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    prompt: "silver lamp with soft butterfly lighting"
+  })
+});
+
+const { structured_prompt } = await promptResponse.json();
+
+// Step 2: Edit/refine the JSON (show in UI for user editing)
+structured_prompt.lighting = { /* custom lighting override */ };
+
+// Step 3: Generate image with refined structured prompt
+const imageResponse = await fetch('/edge/bria/image-generate', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    structured_prompt: structured_prompt,
+    num_results: 1,
+    sync: false
+  })
+});
+
+const { request_id, status } = await imageResponse.json();
+
+// Step 4: Poll for completion
+if (status === 'IN_PROGRESS') {
+  const statusResponse = await fetch(`/edge/bria/status?request_id=${request_id}`);
+  const statusData = await statusResponse.json();
+  // Handle status updates
+}
+```
+
+### Using TypeScript Client SDK
+
+For a better developer experience, use the TypeScript client:
+
+```typescript
+import { BriaClient } from '../lib/bria-client';
+
+const client = new BriaClient();
+
+// Complete workflow
+const { structured_prompt, result } = await client.generateFromPrompt(
+  "silver lamp with soft butterfly lighting",
+  {
+    onStructuredPrompt: (prompt) => {
+      // Show in UI for editing
+      setEditablePrompt(prompt);
+    },
+    onProgress: (status) => {
+      // Show progress
+      console.log('Progress:', status.status);
+    }
+  }
+);
+```
+
+### Example: Generate Image (Direct)
 
 ```typescript
 const response = await fetch('/edge/bria/image-generate', {
@@ -209,6 +338,28 @@ if (status === 'IN_PROGRESS') {
   const statusData = await statusResponse.json();
   // Handle status updates
 }
+```
+
+### Example: Reimagine Image
+
+```typescript
+// Generate variations with custom lighting
+const reimagineResponse = await fetch('/edge/bria/reimagine', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    asset_id: "bria_asset_id",
+    structured_prompt: {
+      lighting: { /* custom lighting */ },
+      composition: { /* custom composition */ }
+    },
+    variations: 3,
+    sync: false
+  })
+});
+
+const { request_id } = await reimagineResponse.json();
+// Poll for completion...
 ```
 
 ### Example: Edit Image

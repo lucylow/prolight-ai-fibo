@@ -4,18 +4,36 @@
  * Generates images using BRIA's FIBO API with structured prompts.
  * Supports both text prompts and FIBO JSON structured prompts.
  * 
- * Secrets required:
- * - BRIA_API_KEY (or PRODUCTION/STAGING for environment-specific keys)
+ * Enhanced with improved secret management and parameter validation.
+ * 
+ * Secrets required (in Lovable Cloud):
+ * - BRIA_API_KEY (for development)
+ * - PRODUCTION (for production environment, optional)
+ * - STAGING (for staging environment, optional)
+ * 
+ * Alternative secret names also supported:
+ * - BRIA_API_TOKEN
+ * - BRIA_TOKEN
+ * - BRIA_API_KEY_PROD / BRIA_API_TOKEN_PROD (for production)
+ * - BRIA_API_KEY_STAGING / BRIA_API_TOKEN_STAGING (for staging)
  * 
  * Usage:
  * POST /edge/bria/image-generate
  * {
  *   "prompt": "optional text prompt",
- *   "structured_prompt": { ... }, // FIBO JSON structure
+ *   "structured_prompt": { ... }, // FIBO JSON structure (see docs/FIBO_PARAMETER_REFERENCE.md)
  *   "images": ["url1", "url2"], // optional reference images
  *   "num_results": 1,
- *   "sync": false // async by default
+ *   "sync": false, // async by default
+ *   "width": 2048, // optional
+ *   "height": 2048, // optional
+ *   "guidance_scale": 7.5, // optional
+ *   "steps": 40 // optional
  * }
+ * 
+ * For complete FIBO parameter reference, see:
+ * - docs/FIBO_PARAMETER_REFERENCE.md
+ * - docs.bria.ai
  */
 
 import { json } from '@lovable/cloud';

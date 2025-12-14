@@ -39,6 +39,18 @@ import MarketingPricingPage from "./pages/marketing/Pricing";
 import DocsPage from "./pages/marketing/Docs";
 import SignIn from "./pages/SignIn";
 import SignOut from "./pages/SignOut";
+import TextToImage from "./pages/generate/TextToImage";
+import TailoredGen from "./pages/generate/TailoredGen";
+import AdsGenerator from "./pages/generate/AdsGenerator";
+import ProductEditor from "./pages/generate/ProductEditor";
+import ImageEditor from "./pages/generate/ImageEditor";
+import VideoEditor from "./pages/generate/VideoEditor";
+import BriaImageGeneration from "./pages/bria/ImageGeneration";
+import BriaTailoredModels from "./pages/bria/TailoredModels";
+import BriaAdsGeneration from "./pages/bria/AdsGeneration";
+import BriaProductImagery from "./pages/bria/ProductImagery";
+import BriaImageEditing from "./pages/bria/ImageEditing";
+import BriaVideoEditing from "./pages/bria/VideoEditing";
 import PaymentPage from "./pages/PaymentPage";
 import Dashboard from "./pages/Dashboard";
 import AccountSettings from "./pages/AccountSettings";
@@ -157,6 +169,19 @@ function AnimatedRoutes() {
         <Route path="/features" element={<PageWrapper><FeaturesPage /></PageWrapper>} />
         <Route path="/use-cases" element={<PageWrapper><UseCasesPage /></PageWrapper>} />
         <Route path="/docs" element={<PageWrapper><DocsPage /></PageWrapper>} />
+        <Route path="/generate/text-to-image" element={<PageWrapper><TextToImage /></PageWrapper>} />
+        <Route path="/generate/tailored" element={<PageWrapper><TailoredGen /></PageWrapper>} />
+        <Route path="/generate/ads" element={<PageWrapper><AdsGenerator /></PageWrapper>} />
+        <Route path="/generate/product" element={<PageWrapper><ProductEditor /></PageWrapper>} />
+        <Route path="/generate/image-edit" element={<PageWrapper><ImageEditor /></PageWrapper>} />
+        <Route path="/generate/video-edit" element={<PageWrapper><VideoEditor /></PageWrapper>} />
+        {/* Bria AI Routes */}
+        <Route path="/bria/image-generation" element={<PageWrapper><BriaImageGeneration /></PageWrapper>} />
+        <Route path="/bria/tailored-models" element={<PageWrapper><BriaTailoredModels /></PageWrapper>} />
+        <Route path="/bria/ads-generation" element={<PageWrapper><BriaAdsGeneration /></PageWrapper>} />
+        <Route path="/bria/product-imagery" element={<PageWrapper><BriaProductImagery /></PageWrapper>} />
+        <Route path="/bria/image-editing" element={<PageWrapper><BriaImageEditing /></PageWrapper>} />
+        <Route path="/bria/video-editing" element={<PageWrapper><BriaVideoEditing /></PageWrapper>} />
         <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
       </Routes>
     </AnimatePresence>

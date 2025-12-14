@@ -19,23 +19,107 @@ export interface BriaSuccessResponse<T = unknown> {
 /**
  * Get BRIA API key from environment secrets
  * Supports environment-specific keys (PRODUCTION, STAGING, BRIA_API_KEY)
+ * Also supports Lovable Cloud secret naming conventions
+ * 
+ * Priority order:
+ * 1. Environment-specific keys (PRODUCTION, STAGING)
+ * 2. Generic BRIA_API_KEY
+ * 3. Alternative names (BRIA_API_TOKEN, BRIA_TOKEN)
+ * 
+ * @throws {Error} If no valid API key is found
+ * @returns {string} The BRIA API key
  */
 export function getBriaApiKey(): string {
-  const env = process.env.NODE_ENV || 'development';
+  const env = process.env.NODE_ENV || process.env.ENV || 'development';
   
-  // Priority: PRODUCTION > STAGING > BRIA_API_KEY
-  const key = 
-    env === 'production' 
-      ? (process.env.PRODUCTION || process.env.BRIA_API_KEY)
-      : env === 'staging'
-      ? (process.env.STAGING || process.env.BRIA_API_KEY)
-      : process.env.BRIA_API_KEY;
-
-  if (!key) {
-    throw new Error('BRIA API key not configured. Please add BRIA_API_KEY, PRODUCTION, or STAGING secret in Lovable Cloud.');
+  // Try environment-specific keys first
+  let key: string | undefined;
+  
+  if (env === 'production') {
+    key = process.env.PRODUCTION 
+      || process.env.BRIA_API_TOKEN_PROD
+      || process.env.BRIA_API_KEY_PROD
+      || process.env.BRIA_API_KEY;
+  } else if (env === 'staging') {
+    key = process.env.STAGING
+      || process.env.BRIA_API_TOKEN_STAGING
+      || process.env.BRIA_API_KEY_STAGING
+      || process.env.BRIA_API_KEY;
+  } else {
+    // Development - try all possible names
+    key = process.env.BRIA_API_KEY
+      || process.env.BRIA_API_TOKEN
+      || process.env.BRIA_TOKEN;
   }
 
-  return key;
+  // Validate key format (basic check)
+  if (!key) {
+    const errorMessage = [
+      'BRIA API key not configured.',
+      `Environment: ${env}`,
+      'Please add one of the following secrets in Lovable Cloud:',
+      '  - BRIA_API_KEY (for development)',
+      '  - PRODUCTION (for production environment)',
+      '  - STAGING (for staging environment)',
+      '  - BRIA_API_TOKEN (alternative name)',
+      '',
+      'To add secrets:',
+      '1. Go to Lovable Cloud project dashboard',
+      '2. Navigate to Settings → Secrets',
+      '3. Click "Add New Secret"',
+      '4. Add the secret with the exact name above'
+    ].join('\n');
+    
+    throw new Error(errorMessage);
+  }
+
+  // Basic validation: key should not be empty or just whitespace
+  const trimmedKey = key.trim();
+  if (!trimmedKey || trimmedKey.length < 10) {
+    throw new Error(
+      'BRIA API key appears to be invalid (too short). ' +
+      'Please verify your API key in Lovable Cloud secrets.'
+    );
+  }
+
+  return trimmedKey;
+}
+
+/**
+ * Validate BRIA API key format (basic checks)
+ * @param key - The API key to validate
+ * @returns {boolean} True if key appears valid
+ */
+export function isValidBriaApiKey(key: string): boolean {
+  if (!key || typeof key !== 'string') {
+    return false;
+  }
+  
+  const trimmed = key.trim();
+  
+  // Basic checks: should be at least 10 characters
+  // and not contain obvious placeholder text
+  if (trimmed.length < 10) {
+    return false;
+  }
+  
+  const placeholderPatterns = [
+    /^your[_-]?bria/i,
+    /^bria[_-]?api[_-]?key/i,
+    /^placeholder/i,
+    /^example/i,
+    /^test[_-]?key/i,
+    /^xxxx/i,
+    /^replace/i
+  ];
+  
+  for (const pattern of placeholderPatterns) {
+    if (pattern.test(trimmed)) {
+      return false;
+    }
+  }
+  
+  return true;
 }
 
 /**
@@ -132,15 +216,48 @@ export async function parseBriaResponse(response: Response): Promise<unknown> {
 
 /**
  * Safe logging - never logs secrets
+ * Automatically sanitizes sensitive fields from log output
  */
 export function safeLog(context: string, message: string, data?: Record<string, unknown>): void {
   const sanitizedData = data ? { ...data } : {};
   
   // Remove any potential secret fields
-  delete sanitizedData.api_token;
-  delete sanitizedData.api_key;
-  delete sanitizedData.token;
-  delete sanitizedData.key;
+  const secretFields = [
+    'api_token',
+    'api_key',
+    'token',
+    'key',
+    'secret',
+    'password',
+    'authorization',
+    'auth',
+    'credentials',
+    'BRIA_API_KEY',
+    'BRIA_API_TOKEN',
+    'PRODUCTION',
+    'STAGING'
+  ];
+  
+  for (const field of secretFields) {
+    delete sanitizedData[field];
+    // Also check nested objects
+    for (const key in sanitizedData) {
+      if (typeof sanitizedData[key] === 'object' && sanitizedData[key] !== null) {
+        const nested = sanitizedData[key] as Record<string, unknown>;
+        for (const nestedField of secretFields) {
+          delete nested[nestedField];
+        }
+      }
+    }
+  }
+
+  // Mask any values that look like API keys (long alphanumeric strings)
+  for (const key in sanitizedData) {
+    const value = sanitizedData[key];
+    if (typeof value === 'string' && value.length > 20 && /^[a-zA-Z0-9_-]+$/.test(value)) {
+      sanitizedData[key] = `${value.substring(0, 4)}...${value.substring(value.length - 4)}`;
+    }
+  }
 
   console.log(`[${context}] ${message}`, sanitizedData);
 }

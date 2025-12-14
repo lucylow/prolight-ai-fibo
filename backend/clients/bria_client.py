@@ -306,27 +306,28 @@ class BriaClient:
         2. Override the lighting section with precise 3D-mapped lighting
         3. Generate final image with FIBO
         
+        This follows Bria's recommended decoupled workflow:
+        structured_prompt/generate → edit JSON → image/generate
+        
         Args:
             scene_prompt: Natural language scene description
             lighting_override: FIBO lighting structure from lights_to_fibo_lighting()
             **kwargs: Additional generation parameters
             
         Returns:
-            Dict[str, Any]: Generation result
+            Dict[str, Any]: Generation result with structured_prompt included
         """
         # Step 1: Generate structured prompt from scene description
-        # For now, we'll use the /image/generate endpoint which does VLM internally
-        # In production, you might want to use /structured_prompt/generate first
-        
-        # Generate base structured prompt via VLM
+        # Use the dedicated /structured_prompt/generate endpoint (recommended by Bria)
         vlm_result = await self.generate_structured_prompt(
             prompt=scene_prompt,
-            **kwargs
+            sync=True,  # Default to sync for prompt generation
+            **{k: v for k, v in kwargs.items() if k not in ['sync', 'num_results']}
         )
         
         # Step 2: Extract structured prompt and override lighting
         if "structured_prompt" in vlm_result:
-            structured_prompt = vlm_result["structured_prompt"]
+            structured_prompt = vlm_result["structured_prompt"].copy()
         else:
             # Fallback: create minimal structured prompt
             structured_prompt = {
@@ -336,8 +337,14 @@ class BriaClient:
                 "style": {"aesthetic": "professional", "mood": "neutral"}
             }
         
-        # Override lighting section
-        structured_prompt.update(lighting_override)
+        # Override lighting section (merge with existing lighting if present)
+        if "lighting" in structured_prompt:
+            if isinstance(structured_prompt["lighting"], dict):
+                structured_prompt["lighting"].update(lighting_override)
+            else:
+                structured_prompt["lighting"] = lighting_override
+        else:
+            structured_prompt["lighting"] = lighting_override
         
         # Step 3: Generate image with overridden lighting
         result = await self.generate_image(
@@ -345,7 +352,7 @@ class BriaClient:
             **kwargs
         )
         
-        # Include the structured prompt in the result for transparency
+        # Include the structured prompt in the result for transparency and UI reflection
         result["structured_prompt"] = structured_prompt
         
         return result
@@ -434,6 +441,382 @@ class BriaClient:
             
             # Still in progress, wait and retry
             await asyncio.sleep(poll_interval)
+    
+    async def text_to_image(
+        self,
+        prompt: Optional[str] = None,
+        structured_prompt: Optional[Dict[str, Any]] = None,
+        model_version: str = "v2",
+        num_results: int = 1,
+        sync: bool = False,
+        seed: Optional[int] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Generate images using Bria's text-to-image pipeline (V1/V2).
+        
+        Args:
+            prompt: Text prompt
+            structured_prompt: FIBO JSON structured prompt
+            model_version: Model version ("v1" or "v2")
+            num_results: Number of images to generate
+            sync: Whether to wait for completion
+            seed: Optional seed for deterministic outputs
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Generation result
+        """
+        payload: Dict[str, Any] = {
+            "num_results": num_results,
+            "sync": sync,
+            "model_version": model_version
+        }
+        
+        if prompt:
+            payload["prompt"] = prompt
+        if structured_prompt:
+            payload["structured_prompt"] = structured_prompt
+        if seed is not None:
+            payload["seed"] = seed
+        
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", "/text-to-image", payload)
+        return result
+    
+    async def train_tailored_model(
+        self,
+        name: str,
+        training_images: list,
+        description: Optional[str] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Train a custom tailored model that preserves visual IP.
+        
+        Args:
+            name: Model name
+            training_images: List of image URLs or asset IDs for training
+            description: Optional model description
+            **kwargs: Additional training parameters
+            
+        Returns:
+            Dict[str, Any]: Training job result with model_id
+        """
+        payload: Dict[str, Any] = {
+            "name": name,
+            "training_images": training_images
+        }
+        
+        if description:
+            payload["description"] = description
+        
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", "/tailored-gen/train", payload)
+        return result
+    
+    async def get_tailored_model_status(self, model_id: str) -> Dict[str, Any]:
+        """
+        Get training status of a tailored model.
+        
+        Args:
+            model_id: Model ID from training job
+            
+        Returns:
+            Dict[str, Any]: Model status (training, completed, failed)
+        """
+        result = await self._make_request("GET", f"/tailored-gen/models/{model_id}")
+        return result
+    
+    async def list_tailored_models(self) -> Dict[str, Any]:
+        """
+        List all tailored models for the account.
+        
+        Returns:
+            Dict[str, Any]: List of models
+        """
+        result = await self._make_request("GET", "/tailored-gen/models")
+        return result
+    
+    async def tailored_text_to_image(
+        self,
+        model_id: str,
+        prompt: Optional[str] = None,
+        structured_prompt: Optional[Dict[str, Any]] = None,
+        num_results: int = 1,
+        sync: bool = False,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Generate images using a tailored model.
+        
+        Args:
+            model_id: Tailored model ID
+            prompt: Text prompt
+            structured_prompt: FIBO JSON structured prompt
+            num_results: Number of images to generate
+            sync: Whether to wait for completion
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Generation result
+        """
+        payload: Dict[str, Any] = {
+            "model_id": model_id,
+            "num_results": num_results,
+            "sync": sync
+        }
+        
+        if prompt:
+            payload["prompt"] = prompt
+        if structured_prompt:
+            payload["structured_prompt"] = structured_prompt
+        
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", "/tailored-gen/text-to-image", payload)
+        return result
+    
+    async def reimagine(
+        self,
+        asset_id: Optional[str] = None,
+        image_url: Optional[str] = None,
+        prompt: Optional[str] = None,
+        structured_prompt: Optional[Dict[str, Any]] = None,
+        variations: int = 1,
+        sync: bool = False,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Reimagine an image with structured prompts for stylized variations.
+        Can be used with or without tailored models.
+        
+        Perfect for:
+        - Product packshot variations
+        - Multi-format asset generation
+        - Style transfer with lighting control
+        - Automated crop/aspect ratio variants
+        
+        Args:
+            asset_id: Bria asset ID (alternative to image_url)
+            image_url: Source image URL (alternative to asset_id)
+            prompt: Optional text prompt
+            structured_prompt: FIBO JSON with lighting/composition overrides
+            variations: Number of variations to generate
+            sync: Whether to wait for completion
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Reimagine result with request_id (async) or image URLs (sync)
+        """
+        if not asset_id and not image_url:
+            raise ValueError("Either asset_id or image_url must be provided")
+        
+        payload: Dict[str, Any] = {
+            "sync": sync,
+            "variations": variations
+        }
+        
+        if asset_id:
+            payload["asset_id"] = asset_id
+        if image_url:
+            payload["image_url"] = image_url
+        if prompt:
+            payload["prompt"] = prompt
+        if structured_prompt:
+            payload["structured_prompt"] = structured_prompt
+        
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", "/image/edit/reimagine", payload)
+        return result
+    
+    async def reimagine_with_tailored_model(
+        self,
+        model_id: str,
+        image_url: str,
+        prompt: Optional[str] = None,
+        structured_prompt: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Reimagine an image using a tailored model (legacy method for backward compatibility).
+        
+        Args:
+            model_id: Tailored model ID
+            image_url: Source image URL
+            prompt: Optional text prompt
+            structured_prompt: Optional FIBO JSON
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Reimagine result
+        """
+        payload: Dict[str, Any] = {
+            "model_id": model_id,
+            "image_url": image_url
+        }
+        
+        if prompt:
+            payload["prompt"] = prompt
+        if structured_prompt:
+            payload["structured_prompt"] = structured_prompt
+        
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", "/tailored-gen/reimagine", payload)
+        return result
+    
+    async def generate_ads(
+        self,
+        template_id: Optional[str] = None,
+        branding_blocks: Optional[list] = None,
+        prompt: Optional[str] = None,
+        structured_prompt: Optional[Dict[str, Any]] = None,
+        brand_id: Optional[str] = None,
+        sizes: Optional[list] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Generate advertisement images at scale with brand consistency.
+        
+        Args:
+            template_id: Optional template ID
+            branding_blocks: Branding elements (logos, fonts, colors)
+            prompt: Ad description
+            structured_prompt: FIBO JSON structured prompt
+            brand_id: Brand ID for consistency
+            sizes: List of ad sizes to generate
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Ads generation result
+        """
+        payload: Dict[str, Any] = {}
+        
+        if template_id:
+            payload["template_id"] = template_id
+        if branding_blocks:
+            payload["branding_blocks"] = branding_blocks
+        if prompt:
+            payload["prompt"] = prompt
+        if structured_prompt:
+            payload["structured_prompt"] = structured_prompt
+        if brand_id:
+            payload["brand_id"] = brand_id
+        if sizes:
+            payload["sizes"] = sizes
+        
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", "/ads/generate", payload)
+        return result
+    
+    async def product_shot_edit(
+        self,
+        asset_id: str,
+        operation: str,
+        params: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Edit product imagery (packshots, lifestyle, relighting).
+        
+        Args:
+            asset_id: Bria asset ID
+            operation: Operation type (isolate, add_shadow, packshot, replace_background, enhance_product)
+            params: Operation-specific parameters
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Edit result
+        """
+        payload: Dict[str, Any] = {
+            "asset_id": asset_id
+        }
+        
+        if params:
+            payload.update(params)
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", f"/product/{operation}", payload)
+        return result
+    
+    async def edit_image(
+        self,
+        asset_id: str,
+        operation: str,
+        params: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Edit and transform user images.
+        
+        Args:
+            asset_id: Bria asset ID (from onboard_image)
+            operation: Operation type (remove_background, expand, enhance, generative_fill, crop, mask, upscale, color_correction, noise_reduction)
+            params: Operation-specific parameters
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Edit result
+        """
+        payload: Dict[str, Any] = {
+            "asset_id": asset_id
+        }
+        
+        if params:
+            payload.update(params)
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", f"/image/edit/{operation}", payload)
+        return result
+    
+    async def onboard_image(self, image_url: str) -> Dict[str, Any]:
+        """
+        Onboard an image to Bria's asset system.
+        
+        Args:
+            image_url: Image URL to onboard
+            
+        Returns:
+            Dict[str, Any]: Onboard result with asset_id
+        """
+        payload = {"image_url": image_url}
+        result = await self._make_request("POST", "/image/onboard", payload)
+        return result
+    
+    async def edit_video(
+        self,
+        asset_id: str,
+        operation: str,
+        params: Optional[Dict[str, Any]] = None,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """
+        Edit video content with advanced AI capabilities.
+        
+        Args:
+            asset_id: Bria video asset ID
+            operation: Operation type (increase_resolution, remove_background, enhance, etc.)
+            params: Operation-specific parameters
+            **kwargs: Additional parameters
+            
+        Returns:
+            Dict[str, Any]: Video edit result
+        """
+        payload: Dict[str, Any] = {
+            "asset_id": asset_id
+        }
+        
+        if params:
+            payload.update(params)
+        payload.update(kwargs)
+        
+        result = await self._make_request("POST", f"/video/edit/{operation}", payload)
+        return result
     
     async def close(self):
         """Close HTTP client."""

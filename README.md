@@ -74,6 +74,79 @@ graph TB
     A3 --> A4
 ```
 
+### Data Flow Architecture
+
+```mermaid
+flowchart LR
+    Start([User Input]) --> InputType{Input Type?}
+    
+    InputType -->|3D Lighting Setup| LightingUI[Lighting Controls UI]
+    InputType -->|Natural Language| NLInput[Natural Language Input]
+    
+    LightingUI --> LightingStore[Zustand State Store]
+    NLInput --> Gemini[Gemini AI<br/>NL to JSON]
+    
+    Gemini --> LightingStore
+    LightingStore --> FIBOMapper[FIBO JSON Mapper]
+    
+    FIBOMapper --> Analysis[Lighting Analysis Engine]
+    Analysis --> FIBOJSON[Structured FIBO JSON]
+    
+    FIBOJSON --> SupabaseFn[Supabase Edge Function]
+    SupabaseFn --> BRIAAPI[BRIA FIBO API]
+    
+    BRIAAPI --> ImageGen[Image Generation]
+    ImageGen --> Result[Generated Image]
+    
+    Result --> Preview[3D Preview Update]
+    Result --> AnalysisDash[Analysis Dashboard]
+    
+    Preview --> End([User Feedback])
+    AnalysisDash --> End
+    
+    style LightingUI fill:#e1f5ff
+    style NLInput fill:#e1f5ff
+    style FIBOJSON fill:#fff4e1
+    style BRIAAPI fill:#ffe1f5
+    style Result fill:#e1ffe1
+```
+
+### Request Sequence Diagram
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Supabase
+    participant Gemini
+    participant BRIA
+    
+    User->>Frontend: Adjust Lighting Parameters
+    Frontend->>Frontend: Update 3D Visualization
+    Frontend->>Frontend: Calculate Lighting Ratios
+    
+    User->>Frontend: Generate Image
+    Frontend->>Supabase: POST /generate-lighting
+    
+    Supabase->>Supabase: Build FIBO JSON
+    Supabase->>Supabase: Analyze Lighting Setup
+    
+    alt Natural Language Mode
+        Supabase->>Gemini: Convert NL to JSON
+        Gemini-->>Supabase: Structured Lighting JSON
+    end
+    
+    Supabase->>BRIA: POST /generate (FIBO JSON)
+    BRIA-->>Supabase: Image URL + Metadata
+    
+    Supabase->>Supabase: Analyze Generated Image
+    Supabase-->>Frontend: Image + Analysis Results
+    
+    Frontend->>Frontend: Update Preview
+    Frontend->>Frontend: Display Analysis
+    Frontend-->>User: Show Generated Image
+```
+
 ### Technology Stack
 
 | Layer | Technology | Purpose |
@@ -321,6 +394,83 @@ const result = await generateFromNaturalLanguage({
 
 ## 🔧 Development
 
+### Frontend Component Architecture
+
+```mermaid
+graph TB
+    subgraph "Application Root"
+        App[App Component]
+    end
+    
+    subgraph "State Management"
+        Store[Zustand Store<br/>useLightingStore]
+        Store --> LightingState[Lighting Setup State]
+        Store --> CameraState[Camera Settings]
+        Store --> SceneState[Scene Settings]
+        Store --> GenerationState[Generation Results]
+    end
+    
+    subgraph "Main UI Components"
+        Layout[Main Layout]
+        Controls[Lighting Controls Panel]
+        Visualizer[3D Visualizer<br/>Three.js Canvas]
+        Preview[Image Preview]
+        Analysis[Analysis Dashboard]
+    end
+    
+    subgraph "Control Components"
+        LightControl[Light Control<br/>Key/Fill/Rim/Ambient]
+        CameraControl[Camera Settings Control]
+        SceneControl[Scene Description Control]
+        PresetSelector[Preset Selector]
+    end
+    
+    subgraph "Visualization Components"
+        ThreeScene[Three.js Scene]
+        LightHelpers[Light Helpers<br/>Directional/Point/Ambient]
+        CameraHelper[Camera Helper]
+        GridHelper[Grid & Axes]
+    end
+    
+    subgraph "Generation Hooks"
+        useGeneration[useGeneration Hook]
+        useNaturalLanguage[useNaturalLanguage Hook]
+        useAnalysis[useAnalysis Hook]
+    end
+    
+    App --> Layout
+    Layout --> Controls
+    Layout --> Visualizer
+    Layout --> Preview
+    Layout --> Analysis
+    
+    Controls --> LightControl
+    Controls --> CameraControl
+    Controls --> SceneControl
+    Controls --> PresetSelector
+    
+    Visualizer --> ThreeScene
+    ThreeScene --> LightHelpers
+    ThreeScene --> CameraHelper
+    ThreeScene --> GridHelper
+    
+    LightControl --> Store
+    CameraControl --> Store
+    SceneControl --> Store
+    
+    useGeneration --> Store
+    useNaturalLanguage --> Store
+    useAnalysis --> Store
+    
+    Store --> Visualizer
+    Store --> Preview
+    Store --> Analysis
+    
+    style Store fill:#e1f5ff
+    style Visualizer fill:#fff4e1
+    style useGeneration fill:#ffe1f5
+```
+
 ### Project Structure
 ```
 prolight-ai/
@@ -379,6 +529,121 @@ npm run format
 - **Professional Parameters**: Camera, lighting, and composition controls
 - **Commercial Licensing**: Fully licensed training data
 
+### FIBO JSON Transformation Flow
+
+```mermaid
+graph TB
+    subgraph "Input Sources"
+        A1[3D Lighting Controls]
+        A2[Natural Language]
+        A3[Preset Configurations]
+    end
+    
+    subgraph "Transformation Layer"
+        B1[Lighting Parameter Mapper]
+        B2[Gemini NL Parser]
+        B3[Preset Loader]
+    end
+    
+    subgraph "FIBO JSON Structure"
+        C1[Subject Block]
+        C2[Environment Block]
+        C3[Camera Block]
+        C4[Lighting Block]
+        C5[Style Block]
+    end
+    
+    subgraph "Lighting Block Details"
+        D1[Main Light<br/>direction, intensity,<br/>colorTemperature, softness]
+        D2[Fill Light<br/>direction, intensity,<br/>colorTemperature, softness]
+        D3[Rim Light<br/>direction, intensity,<br/>colorTemperature, softness]
+        D4[Ambient Light<br/>intensity, colorTemperature]
+    end
+    
+    A1 --> B1
+    A2 --> B2
+    A3 --> B3
+    
+    B1 --> C4
+    B2 --> C4
+    B3 --> C4
+    
+    B1 --> C1
+    B2 --> C1
+    B3 --> C1
+    
+    B1 --> C2
+    B2 --> C2
+    B3 --> C2
+    
+    B1 --> C3
+    B2 --> C3
+    B3 --> C3
+    
+    C4 --> D1
+    C4 --> D2
+    C4 --> D3
+    C4 --> D4
+    
+    C1 --> E[Complete FIBO JSON]
+    C2 --> E
+    C3 --> E
+    C4 --> E
+    C5 --> E
+    
+    E --> F[BRIA FIBO API]
+    F --> G[Generated Image]
+    
+    style C4 fill:#fff4e1
+    style E fill:#e1ffe1
+    style F fill:#ffe1f5
+```
+
+### Lighting Parameter Mapping
+
+```mermaid
+graph LR
+    subgraph "3D Lighting Parameters"
+        A1[Direction<br/>3D Vector/Spherical]
+        A2[Intensity<br/>0.0 - 1.0]
+        A3[Color Temperature<br/>2500K - 10000K]
+        A4[Softness<br/>0.0 - 1.0]
+        A5[Distance<br/>meters]
+    end
+    
+    subgraph "Photographic Terms"
+        B1[Direction String<br/>"45° camera-right,<br/>elevated 30°"]
+        B2[Intensity<br/>Normalized 0-1]
+        B3[Color Temperature<br/>Kelvin value]
+        B4[Softness<br/>Hard/Medium/Soft]
+        B5[Distance<br/>Relative positioning]
+    end
+    
+    subgraph "FIBO JSON Format"
+        C1["direction: string<br/>photographic description"]
+        C2["intensity: number<br/>0.0 - 1.0"]
+        C3["colorTemperature: number<br/>Kelvin"]
+        C4["softness: number<br/>0.0 - 1.0"]
+        C5["distance: number<br/>meters"]
+    end
+    
+    A1 -->|Convert| B1
+    A2 -->|Normalize| B2
+    A3 -->|Preserve| B3
+    A4 -->|Map| B4
+    A5 -->|Calculate| B5
+    
+    B1 --> C1
+    B2 --> C2
+    B3 --> C3
+    B4 --> C4
+    B5 --> C5
+    
+    style A1 fill:#e1f5ff
+    style B1 fill:#fff4e1
+    style C1 fill:#e1ffe1
+```
+
 ### Implementation Highlights
 
 ```python
@@ -409,6 +674,105 @@ class FIBOClient:
 | 3D Visualization FPS | 60 FPS | > 30 FPS |
 | API Response Time | < 100ms | < 200ms |
 | Concurrent Users | 100+ | 50+ |
+
+### System Performance Flow
+
+```mermaid
+graph TB
+    subgraph "Client-Side Performance"
+        A1[React Rendering<br/>~16ms per frame]
+        A2[Three.js Rendering<br/>60 FPS target]
+        A3[State Updates<br/>Zustand store]
+        A4[3D Calculations<br/>Light positioning]
+    end
+    
+    subgraph "Network Layer"
+        B1[HTTP Request<br/>Supabase Edge Function]
+        B2[Request Size<br/>~5-10 KB JSON]
+        B3[Response Time<br/>< 100ms initial]
+    end
+    
+    subgraph "Server Processing"
+        C1[JSON Transformation<br/>~10-20ms]
+        C2[Lighting Analysis<br/>~20-30ms]
+        C3[FIBO API Call<br/>2-4 seconds]
+        C4[Image Processing<br/>~100-200ms]
+    end
+    
+    subgraph "External Services"
+        D1[BRIA FIBO API<br/>Image Generation]
+        D2[Gemini AI<br/>NL Processing<br/>~500ms-1s]
+    end
+    
+    A1 --> A2
+    A3 --> A4
+    A4 --> B1
+    
+    B1 --> B2
+    B2 --> C1
+    
+    C1 --> C2
+    C2 --> C3
+    C3 --> D1
+    C3 --> D2
+    
+    D1 --> C4
+    D2 --> C1
+    
+    C4 --> B3
+    B3 --> A1
+    
+    style A2 fill:#e1ffe1
+    style C3 fill:#fff4e1
+    style D1 fill:#ffe1f5
+```
+
+### Deployment Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        Browser[Web Browser<br/>React App]
+        CDN[Vercel CDN<br/>Static Assets]
+    end
+    
+    subgraph "Edge Layer"
+        EdgeFn[Supabase Edge Functions<br/>Deno Runtime]
+        EdgeFn1[generate-lighting]
+        EdgeFn2[natural-language-lighting]
+        EdgeFn3[analyze-lighting]
+    end
+    
+    subgraph "API Services"
+        BRIA[BRIA FIBO API<br/>Image Generation]
+        Gemini[Google Gemini API<br/>NL Processing]
+    end
+    
+    subgraph "Storage"
+        SupabaseStorage[Supabase Storage<br/>Generated Images]
+        SupabaseDB[(Supabase Database<br/>User Sessions)]
+    end
+    
+    Browser --> CDN
+    Browser --> EdgeFn
+    
+    EdgeFn --> EdgeFn1
+    EdgeFn --> EdgeFn2
+    EdgeFn --> EdgeFn3
+    
+    EdgeFn1 --> BRIA
+    EdgeFn2 --> Gemini
+    EdgeFn3 --> SupabaseDB
+    
+    BRIA --> SupabaseStorage
+    EdgeFn1 --> SupabaseStorage
+    EdgeFn2 --> SupabaseStorage
+    
+    style Browser fill:#e1f5ff
+    style EdgeFn fill:#fff4e1
+    style BRIA fill:#ffe1f5
+    style SupabaseStorage fill:#e1ffe1
+```
 
 ## 🤝 Contributing
 
