@@ -353,7 +353,15 @@ const Index = () => {
             <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">The future of AI-powered photography pre-production. Built for the FIBO Hackathon.</p>
           </div>
           {[
-            { title: 'Product', links: ['Features', 'Use Cases', 'Pricing', 'Documentation'] },
+            { 
+              title: 'Product', 
+              links: [
+                { label: 'Features', path: '/features' },
+                { label: 'Use Cases', path: '/use-cases' },
+                { label: 'Pricing', path: '/pricing' },
+                { label: 'Documentation', path: '/docs' }
+              ]
+            },
             { title: 'Company', links: ['About', 'Blog', 'Careers', 'Contact'] },
             { 
               title: 'Legal', 
