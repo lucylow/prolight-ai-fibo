@@ -6,10 +6,12 @@
 declare module '@nivo/bar' {
   const _default: any;
   export default _default;
+  export const ResponsiveBar: any;
 }
 declare module '@nivo/line' {
   const _default: any;
   export default _default;
+  export const ResponsiveLine: any;
 }
 declare module '@nivo/core' {
   const _default: any;
@@ -18,6 +20,7 @@ declare module '@nivo/core' {
 declare module '@nivo/pie' {
   const _default: any;
   export default _default;
+  export const ResponsivePie: any;
 }
 declare module '@nivo/legends' {
   const _default: any;
@@ -26,5 +29,6 @@ declare module '@nivo/legends' {
 declare module '@nivo/heatmap' {
   const _default: any;
   export default _default;
+  export const ResponsiveHeatMap: any;
 }
 
