@@ -106,8 +106,10 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let nlRequest: NaturalLanguageRequest | null = null;
+  
   try {
-    const nlRequest: NaturalLanguageRequest = await req.json();
+    nlRequest = await req.json();
     console.log("Received NL request:", JSON.stringify(nlRequest));
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -145,6 +147,9 @@ Output ONLY the JSON object, nothing else.`
       }),
     });
 
+    let lightingJson: LightingJson;
+    let useMockTranslation = false;
+
     if (!translationResponse.ok) {
       const errorText = await translationResponse.text();
       console.error("Translation error:", translationResponse.status, errorText);
@@ -161,26 +166,31 @@ Output ONLY the JSON object, nothing else.`
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      throw new Error("Failed to translate lighting description");
-    }
-
-    const translationData = await translationResponse.json();
-    const translatedText = translationData.choices?.[0]?.message?.content || "";
-    console.log("Translated text:", translatedText);
-
-    // Parse the JSON from the response
-    let lightingJson;
-    try {
-      const jsonMatch = translatedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        lightingJson = JSON.parse(jsonMatch[0]);
-        lightingJson = validateAndNormalizeLighting(lightingJson);
-      } else {
-        throw new Error("No JSON found in response");
-      }
-    } catch (parseError) {
-      console.error("Parse error:", parseError);
+      
+      // Use mock fallback for other errors
+      console.warn("Translation API failed, using mock fallback");
       lightingJson = getDefaultLighting(nlRequest.lightingDescription);
+      useMockTranslation = true;
+    } else {
+      const translationData = await translationResponse.json();
+      const translatedText = translationData.choices?.[0]?.message?.content || "";
+      console.log("Translated text:", translatedText);
+
+      // Parse the JSON from the response
+      try {
+        const jsonMatch = translatedText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          lightingJson = JSON.parse(jsonMatch[0]);
+          lightingJson = validateAndNormalizeLighting(lightingJson);
+        } else {
+          throw new Error("No JSON found in response");
+        }
+      } catch (parseError) {
+        console.error("Parse error:", parseError);
+        console.warn("Failed to parse AI response, using mock fallback");
+        lightingJson = getDefaultLighting(nlRequest.lightingDescription);
+        useMockTranslation = true;
+      }
     }
 
     console.log("Parsed lighting JSON:", JSON.stringify(lightingJson));
@@ -192,57 +202,80 @@ Output ONLY the JSON object, nothing else.`
     const imagePrompt = buildNLImagePrompt(nlRequest, lightingJson, lightingAnalysis);
     console.log("Image prompt:", imagePrompt);
 
-    const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-image-preview",
-        messages: [
-          {
-            role: "user",
-            content: imagePrompt
-          }
-        ],
-        modalities: ["image", "text"]
-      }),
-    });
+    let imageUrl: string | null = null;
+    let useMockImage = false;
 
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error("Image generation error:", imageResponse.status, errorText);
-      
-      if (imageResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+    try {
+      const imageResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image-preview",
+          messages: [
+            {
+              role: "user",
+              content: imagePrompt
+            }
+          ],
+          modalities: ["image", "text"]
+        }),
+      });
+
+      if (!imageResponse.ok) {
+        const errorText = await imageResponse.text();
+        console.error("Image generation error:", imageResponse.status, errorText);
+        
+        if (imageResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        if (imageResponse.status === 402) {
+          return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
+            status: 402,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        // Use mock fallback for other errors
+        console.warn("Image generation API failed, using mock fallback");
+        imageUrl = getMockImageUrl();
+        useMockImage = true;
+      } else {
+        const imageData = await imageResponse.json();
+        imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url || null;
+        
+        // If no image URL in response, use mock fallback
+        if (!imageUrl) {
+          console.warn("No image URL in AI response, using mock fallback");
+          imageUrl = getMockImageUrl();
+          useMockImage = true;
+        }
       }
-      if (imageResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required. Please add credits to your workspace." }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      throw new Error(`Image generation error: ${errorText}`);
+    } catch (imageError) {
+      console.error("Image generation exception:", imageError);
+      console.warn("Image generation failed, using mock fallback");
+      imageUrl = getMockImageUrl();
+      useMockImage = true;
     }
 
-    const imageData = await imageResponse.json();
-    const imageUrl = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
     return new Response(JSON.stringify({
-      image_url: imageUrl || null,
+      image_url: imageUrl,
       image_id: crypto.randomUUID(),
       fibo_json: lightingJson,
       lighting_analysis: lightingAnalysis,
       generation_metadata: {
-        model: "google/gemini-2.5-flash-image-preview",
+        model: useMockImage ? "mock-fallback" : "google/gemini-2.5-flash-image-preview",
         original_description: nlRequest.lightingDescription,
         translated_style: lightingJson.lighting_style,
         mood: lightingJson.mood_description,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        mock_fallback: useMockTranslation || useMockImage,
+        mock_reason: useMockTranslation ? "translation_failed" : useMockImage ? "image_generation_failed" : null
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -250,12 +283,42 @@ Output ONLY the JSON object, nothing else.`
 
   } catch (error) {
     console.error("Error in natural-language-lighting:", error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : "Unknown error" 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    
+    // Use comprehensive mock fallback when everything fails
+    console.warn("Critical error occurred, using comprehensive mock fallback");
+    try {
+      const lightingDescription = nlRequest?.lightingDescription || "professional portrait";
+      const mockLightingJson = getDefaultLighting(lightingDescription);
+      const mockLightingAnalysis = analyzeLightingFromJson(mockLightingJson);
+      
+      return new Response(JSON.stringify({
+        image_url: getMockImageUrl(),
+        image_id: crypto.randomUUID(),
+        fibo_json: mockLightingJson,
+        lighting_analysis: mockLightingAnalysis,
+        generation_metadata: {
+          model: "mock-fallback",
+          original_description: lightingDescription,
+          translated_style: mockLightingJson.lighting_style,
+          mood: mockLightingJson.mood_description,
+          timestamp: new Date().toISOString(),
+          mock_fallback: true,
+          mock_reason: "critical_error",
+          error_message: error instanceof Error ? error.message : "Unknown error"
+        }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } catch (fallbackError) {
+      // If even the fallback fails, return error response
+      return new Response(JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error",
+        fallback_error: fallbackError instanceof Error ? fallbackError.message : "Fallback also failed"
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
   }
 });
 
@@ -348,6 +411,16 @@ function getDefaultLighting(description: string): LightingJson {
     mood_description: "professional studio portrait",
     shadow_intensity: 0.5
   };
+}
+
+/**
+ * Generate mock image URL - returns a placeholder image service URL
+ * This is used as fallback when AI image generation fails
+ */
+function getMockImageUrl(): string {
+  // Using a placeholder image service that generates professional-looking images
+  // This provides a visual fallback when AI generation is unavailable
+  return "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=1024&h=1024&fit=crop&auto=format";
 }
 
 function buildNLImagePrompt(request: NaturalLanguageRequest, lightingJson: LightingJson, analysis: LightingAnalysis): string {
