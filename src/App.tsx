@@ -19,6 +19,7 @@ import { initializeMockData } from "./services/enhancedMockData";
 // Core pages - loaded immediately
 import Index from "./pages/Index";
 import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
 import SignOut from "./pages/SignOut";
 import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
@@ -86,6 +87,7 @@ const ProfessionalPhotographyDemos = lazy(() => import("./pages/ProfessionalPhot
 const ContentCreation = lazy(() => import("./pages/ContentCreation"));
 const ProAgent = lazy(() => import("./components/ProAgent"));
 const Education = lazy(() => import("./pages/Education"));
+const ProLightStudio = lazy(() => import("./components/ProLightStudio"));
 
 // Enhanced loading fallback component with better UX
 const PageLoader: React.FC = React.memo(() => (
@@ -160,6 +162,7 @@ function AnimatedRoutes() {
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<PageWrapper><Index /></PageWrapper>} />
         <Route path="/sign-in" element={<PageWrapper><SignIn /></PageWrapper>} />
+        <Route path="/sign-up" element={<PageWrapper><SignUp /></PageWrapper>} />
         <Route path="/signout" element={<PageWrapper><SignOut /></PageWrapper>} />
         <Route path="/forgot-password" element={<PageWrapper><ForgotPassword /></PageWrapper>} />
         <Route path="/studio" element={<PageWrapper><Studio /></PageWrapper>} />
@@ -168,6 +171,8 @@ function AnimatedRoutes() {
         <Route path="/studio/photography-demos" element={<PageWrapper><ProfessionalPhotographyDemos /></PageWrapper>} />
         <Route path="/studio/pro-agent" element={<PageWrapper><ProAgent /></PageWrapper>} />
         <Route path="/pro-agent" element={<PageWrapper><ProAgent /></PageWrapper>} />
+        <Route path="/studio/prolight" element={<PageWrapper><ProLightStudio /></PageWrapper>} />
+        <Route path="/prolight" element={<PageWrapper><ProLightStudio /></PageWrapper>} />
         <Route path="/content-creation" element={<PageWrapper><ContentCreation /></PageWrapper>} />
         <Route path="/studio/content-creation" element={<PageWrapper><ContentCreation /></PageWrapper>} />
         <Route path="/presets" element={<PageWrapper><Presets /></PageWrapper>} />

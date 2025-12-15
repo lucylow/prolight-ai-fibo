@@ -640,13 +640,23 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button 
-                  onClick={() => navigate('/sign-in')} 
-                  size="sm" 
-                  className="hidden sm:flex text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-                >
-                  Sign In
-                </Button>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate('/sign-in')} 
+                    size="sm" 
+                    className="text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  >
+                    Sign In
+                  </Button>
+                  <Button 
+                    onClick={() => navigate('/sign-up')} 
+                    size="sm" 
+                    className="text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  >
+                    Sign Up
+                  </Button>
+                </div>
               )}
 
               {/* Mobile Menu Button */}
@@ -879,16 +889,29 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                     Sign Out
                   </Button>
                 ) : (
-                  <Button 
-                    onClick={() => { 
-                      navigate('/sign-in'); 
-                      setMobileMenuOpen(false); 
-                    }} 
-                    size="sm"
-                    className="flex-1 rounded-lg transition-all duration-200 active:scale-95"
-                  >
-                    Sign In
-                  </Button>
+                  <>
+                    <Button 
+                      onClick={() => { 
+                        navigate('/sign-in'); 
+                        setMobileMenuOpen(false); 
+                      }} 
+                      size="sm"
+                      variant="outline"
+                      className="flex-1 rounded-lg transition-all duration-200 active:scale-95"
+                    >
+                      Sign In
+                    </Button>
+                    <Button 
+                      onClick={() => { 
+                        navigate('/sign-up'); 
+                        setMobileMenuOpen(false); 
+                      }} 
+                      size="sm"
+                      className="flex-1 rounded-lg transition-all duration-200 active:scale-95"
+                    >
+                      Sign Up
+                    </Button>
+                  </>
                 )}
               </div>
             </div>

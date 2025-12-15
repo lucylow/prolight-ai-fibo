@@ -18,6 +18,7 @@ interface AuthContextProps {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loginWithOAuth: (provider: "google" | "github") => Promise<void>;
+  loginAsDemo: () => Promise<void>;
   refreshSession: () => Promise<void>;
   api: AxiosInstance;
 }
@@ -50,6 +51,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const checkSession = async () => {
     try {
+      // Check for demo session first
+      const demoSession = localStorage.getItem("demo_session");
+      if (demoSession) {
+        try {
+          const parsed = JSON.parse(demoSession);
+          // Demo sessions expire after 24 hours
+          const DEMO_SESSION_DURATION = 24 * 60 * 60 * 1000;
+          if (Date.now() - parsed.timestamp < DEMO_SESSION_DURATION) {
+            setUser(parsed.user);
+            setLoading(false);
+            return;
+          } else {
+            // Demo session expired, remove it
+            localStorage.removeItem("demo_session");
+          }
+        } catch (e) {
+          // Invalid demo session, remove it
+          localStorage.removeItem("demo_session");
+        }
+      }
+
       const session = await getSessionAPI();
       if (session?.user) {
         setUser(session.user);
@@ -124,10 +146,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       await signOutAPI();
       setUser(null);
+      // Clear demo session on logout
+      localStorage.removeItem("demo_session");
     } catch (error) {
       console.error("Logout failed:", error);
       // Still clear user state even if API call fails
       setUser(null);
+      // Clear demo session on logout
+      localStorage.removeItem("demo_session");
     }
   };
 
@@ -156,12 +182,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginAsDemo = async () => {
+    setLoading(true);
+    try {
+      // Create a demo user without requiring authentication
+      const demoUser: User = {
+        id: `demo-${Date.now()}`,
+        email: "demo@prolight.ai",
+        name: "Demo User",
+        role: "editor", // Give demo users editor role for full experience
+        avatar_url: undefined,
+      };
+      setUser(demoUser);
+      // Store demo session in localStorage so it persists
+      localStorage.setItem("demo_session", JSON.stringify({
+        user: demoUser,
+        timestamp: Date.now(),
+      }));
+    } catch (error) {
+      console.error("Demo login failed:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const refreshSession = async () => {
     await checkSession();
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, loginWithOAuth, refreshSession, api }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, loginWithOAuth, loginAsDemo, refreshSession, api }}>
       {children}
     </AuthContext.Provider>
   );

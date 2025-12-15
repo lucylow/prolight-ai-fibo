@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Github, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Github, Mail, Eye, EyeOff, Loader2, Sparkles } from "lucide-react";
 
 const REMEMBER_ME_KEY = "prolight_remember_email";
 const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -90,6 +90,24 @@ const SignIn = () => {
       setError(errorMessage);
       toast.error(errorMessage);
       setOauthLoading(null);
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      await auth.loginAsDemo();
+      toast.success("Welcome to the demo! Explore all features.");
+      navigate(from, { replace: true });
+    } catch (err: unknown) {
+      const errorMessage = err && typeof err === 'object' && 'message' in err 
+        ? String(err.message) 
+        : "Failed to start demo";
+      setError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -227,6 +245,45 @@ const SignIn = () => {
               Google
             </Button>
           </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
+          <Button
+            variant="default"
+            type="button"
+            onClick={handleDemoLogin}
+            disabled={loading || oauthLoading !== null}
+            className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Starting demo...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Try Demo
+              </>
+            )}
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Explore all features without signing up. Demo session expires in 24 hours.
+          </p>
+          <p className="text-xs text-center text-muted-foreground">
+            Don&apos;t have an account yet?{" "}
+            <Link to="/sign-up" className="text-primary hover:underline">
+              Sign up
+            </Link>
+            .
+          </p>
         </CardContent>
       </Card>
     </div>
@@ -234,4 +291,5 @@ const SignIn = () => {
 };
 
 export default SignIn;
+
 

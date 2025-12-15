@@ -6,7 +6,9 @@ import { validateEnv } from "./utils/env";
 
 // Unregister service workers in development to prevent caching issues
 if (import.meta.env.DEV) {
-  import("./utils/unregisterServiceWorker.dev");
+  import("./utils/unregisterServiceWorker.dev").catch((err) => {
+    console.warn("Failed to load service worker unregister utility:", err);
+  });
 }
 
 // Validate environment variables on startup
