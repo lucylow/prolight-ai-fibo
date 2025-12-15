@@ -1,7 +1,7 @@
 """
 Server-Sent Events API
 Real-time streaming of workflow updates.
-Uses Redis pub/sub if available, otherwise falls back to polling in-memory store.
+Uses Redis pub/sub with redis.asyncio if available, otherwise falls back to polling in-memory store.
 """
 
 from fastapi import APIRouter
