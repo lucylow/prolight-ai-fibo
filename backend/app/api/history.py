@@ -11,6 +11,40 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get("/history/stats")
+async def get_history_stats():
+    """
+    Get statistics about generation history.
+    
+    Returns:
+        History statistics
+    """
+    try:
+        history = MockDataManager.get_history(limit=100)
+        
+        # Calculate stats
+        total_generations = len(history)
+        total_cost = sum(h["cost_credits"] for h in history)
+        
+        # Group by preset
+        preset_counts = {}
+        for h in history:
+            preset = h.get("preset_used", "unknown")
+            preset_counts[preset] = preset_counts.get(preset, 0) + 1
+        
+        return {
+            "total_generations": total_generations,
+            "total_cost_credits": total_cost,
+            "average_cost_per_generation": total_cost / total_generations if total_generations > 0 else 0,
+            "preset_distribution": preset_counts,
+            "most_used_preset": max(preset_counts, key=preset_counts.get) if preset_counts else None
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/history", response_model=HistoryResponse)
 async def get_history(
     page: int = 1,
@@ -70,14 +104,19 @@ async def get_history(
 async def get_generation_detail(generation_id: str):
     """
     Get details of a specific generation.
-    
-    Args:
-        generation_id: ID of the generation
-        
-    Returns:
-        Generation details
+
+    This handler also handles the special "stats" segment which may be routed
+    here instead of the more specific `/history/stats` endpoint in some
+    configurations. When `generation_id == "stats"`, we delegate to
+    `get_history_stats` to return the expected statistics payload and a 200
+    status code rather than a 404.
     """
     try:
+        # If the dynamic route captured the "stats" segment, delegate to the
+        # dedicated stats endpoint to avoid returning a 404.
+        if generation_id == "stats":
+            return await get_history_stats()
+
         # Get history
         history = MockDataManager.get_history(limit=100)
         

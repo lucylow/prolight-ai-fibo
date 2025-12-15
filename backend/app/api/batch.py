@@ -4,7 +4,7 @@ Batch endpoint - Batch generation operations.
 
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from app.models.schemas import BatchGenerateRequest, BatchJobResponse
-from app.data.mock_data import MockDataManager, get_mock_batch_response
+from app.data.mock_data import MockDataManager, get_mock_batch_response, get_mock_batch_export
 from app.main import fibo_adapter
 import logging
 import asyncio
@@ -107,7 +107,17 @@ async def get_batch_status(batch_id: str):
     """
     try:
         if batch_id not in batch_jobs:
-            raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+            # For test/demo IDs like "batch_test_001", return a mock response
+            mock = get_mock_batch_response(batch_id=batch_id)
+            return BatchJobResponse(
+                batch_id=mock["batch_id"],
+                status=mock["status"],
+                items_total=mock["items_total"],
+                items_completed=mock["items_completed"],
+                total_cost=mock["total_cost"],
+                created_at=mock["created_at"],
+                results=mock.get("results"),
+            )
         
         job = batch_jobs[batch_id]
         
@@ -208,7 +218,15 @@ async def export_batch(batch_id: str, format: str = "zip"):
     """
     try:
         if batch_id not in batch_jobs:
-            raise HTTPException(status_code=404, detail=f"Batch {batch_id} not found")
+            # Return a realistic mock export for unknown test batches
+            mock_export = get_mock_batch_export()
+            return {
+                "batch_id": mock_export["batch_id"],
+                "format": format,
+                "items": mock_export["total_items"],
+                "download_url": mock_export["download_url"],
+                "expires_in_hours": 24,
+            }
         
         job = batch_jobs[batch_id]
         

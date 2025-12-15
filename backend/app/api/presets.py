@@ -11,6 +11,27 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+@router.get("/presets/categories")
+async def list_categories():
+    """
+    List all available preset categories.
+    
+    Returns:
+        List of category names
+    """
+    try:
+        presets = MockDataManager.get_presets()
+        categories = list(set(p["category"] for p in presets))
+        return {
+            "categories": sorted(categories),
+            "total": len(categories)
+        }
+    
+    except Exception as e:
+        logger.error(f"Error listing categories: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/presets", response_model=PresetListResponse)
 async def list_presets(
     category: str = None,
@@ -66,14 +87,22 @@ async def list_presets(
 async def get_preset(preset_id: str):
     """
     Get a specific preset by ID.
-    
-    Args:
-        preset_id: ID of the preset
-        
-    Returns:
-        PresetResponse with preset details
+
+    This handler also gracefully delegates the special "categories" path
+    segment to the `list_categories` endpoint. In some routing configurations,
+    the dynamic `/presets/{preset_id}` route can capture the static
+    `/presets/categories` path before the more specific handler is matched,
+    which would otherwise result in a 404. By checking for this sentinel
+    value here, we ensure `/api/presets/categories` always returns the
+    categories payload expected by clients and tests.
     """
     try:
+        # If the dynamic route captured the "categories" segment, delegate to
+        # the dedicated categories endpoint so callers still get the correct
+        # response shape and a 200 status code.
+        if preset_id == "categories":
+            return await list_categories()
+
         preset = MockDataManager.get_preset_by_id(preset_id)
         if not preset:
             raise HTTPException(status_code=404, detail=f"Preset {preset_id} not found")
@@ -91,27 +120,6 @@ async def get_preset(preset_id: str):
         raise
     except Exception as e:
         logger.error(f"Error getting preset: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.get("/presets/categories")
-async def list_categories():
-    """
-    List all available preset categories.
-    
-    Returns:
-        List of category names
-    """
-    try:
-        presets = MockDataManager.get_presets()
-        categories = list(set(p["category"] for p in presets))
-        return {
-            "categories": sorted(categories),
-            "total": len(categories)
-        }
-    
-    except Exception as e:
-        logger.error(f"Error listing categories: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
