@@ -1,8 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Palette, Check } from 'lucide-react';
+import { Palette, Check, Eye, EyeOff } from 'lucide-react';
 import { useLighting } from '@/hooks/useLighting';
 import { toast } from 'sonner';
+import PresetDemo from '@/components/presets/PresetDemo';
+import FIBOJsonViewer from '@/components/presets/FIBOJsonViewer';
+import FIBOExplanation from '@/components/presets/FIBOExplanation';
 
 const presets = [
   {
@@ -81,6 +84,8 @@ const presets = [
 
 const Presets = () => {
   const { loadPreset } = useLighting();
+  const [expandedPreset, setExpandedPreset] = useState<string | null>(null);
+  const [showDemos, setShowDemos] = useState(true);
 
   const handleLoadPreset = (preset: typeof presets[0]) => {
     loadPreset({
@@ -88,6 +93,10 @@ const Presets = () => {
       cameraSettings: preset.cameraSettings,
     });
     toast.success(`Loaded ${preset.name} preset`);
+  };
+
+  const togglePresetExpansion = (presetId: string) => {
+    setExpandedPreset(expandedPreset === presetId ? null : presetId);
   };
 
   return (
@@ -102,31 +111,56 @@ const Presets = () => {
           Lighting Presets
         </h1>
         <p className="text-lg text-muted-foreground">
-          Professional lighting setups used by photographers worldwide
+          Professional lighting setups powered by FIBO Interactive
         </p>
       </motion.div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* FIBO Explanation Section */}
+      <FIBOExplanation />
+
+      {/* Toggle for showing/hiding demos */}
+      <div className="flex items-center justify-end mb-6">
+        <button
+          onClick={() => setShowDemos(!showDemos)}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors text-sm"
+        >
+          {showDemos ? (
+            <>
+              <EyeOff className="w-4 h-4" />
+              Hide Interactive Demos
+            </>
+          ) : (
+            <>
+              <Eye className="w-4 h-4" />
+              Show Interactive Demos
+            </>
+          )}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {presets.map((preset, i) => (
           <motion.div
             key={preset.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="glass-card p-6 hover:-translate-y-2 transition-all duration-300 cursor-pointer group"
-            onClick={() => handleLoadPreset(preset)}
+            className="glass-card p-6 hover:-translate-y-2 transition-all duration-300 group"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-xl font-semibold">{preset.name}</h3>
                 <p className="text-sm text-muted-foreground">{preset.description}</p>
               </div>
-              <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="w-10 h-10 rounded-full gradient-primary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                onClick={() => handleLoadPreset(preset)}
+                title="Load preset"
+              >
                 <Check className="w-5 h-5" />
               </div>
             </div>
             
-            <div className="space-y-2 text-sm">
+            <div className="space-y-2 text-sm mb-4">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Key Intensity</span>
                 <span className="text-primary">{Math.round(preset.lightingSetup.key.intensity * 100)}%</span>
@@ -142,6 +176,39 @@ const Presets = () => {
                 </span>
               </div>
             </div>
+
+            {/* Interactive Demo Section */}
+            {showDemos && (
+              <div className="mt-4 space-y-4">
+                <button
+                  onClick={() => togglePresetExpansion(preset.id)}
+                  className="w-full py-2 px-4 rounded-lg bg-primary/10 hover:bg-primary/20 transition-colors text-sm font-medium text-primary"
+                >
+                  {expandedPreset === preset.id ? 'Hide' : 'Show'} Interactive Demo
+                </button>
+
+                {expandedPreset === preset.id && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="space-y-4"
+                  >
+                    <PresetDemo preset={preset} />
+                    <FIBOJsonViewer preset={preset} />
+                  </motion.div>
+                )}
+              </div>
+            )}
+
+            {/* Load Preset Button */}
+            <button
+              onClick={() => handleLoadPreset(preset)}
+              className="w-full mt-4 py-2 px-4 rounded-lg gradient-primary text-white font-medium hover:opacity-90 transition-opacity"
+            >
+              Load Preset
+            </button>
           </motion.div>
         ))}
       </div>

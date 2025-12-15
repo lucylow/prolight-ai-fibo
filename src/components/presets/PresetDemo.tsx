@@ -2,7 +2,6 @@ import React, { useRef, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Sphere, Environment, Text } from '@react-three/drei';
 import { motion } from 'framer-motion';
-import { Play, Pause, RotateCcw } from 'lucide-react';
 import * as THREE from 'three';
 import type { LightingSetup } from '@/utils/fiboLightingUtils';
 
@@ -151,23 +150,44 @@ const Scene = ({ lightingSetup }: { lightingSetup: LightingSetup }) => {
         color={getColorTemperatureColor(lightingSetup.ambient?.colorTemperature || 5000)}
       />
       <SubjectModel />
-      {lightingSetup.key?.enabled && (
+      {lightingSetup.key?.enabled && lightingSetup.key && (
         <LightSource
-          config={lightingSetup.key}
+          config={{
+            direction: lightingSetup.key.direction,
+            intensity: lightingSetup.key.intensity,
+            colorTemperature: lightingSetup.key.colorTemperature,
+            softness: lightingSetup.key.softness,
+            distance: lightingSetup.key.distance || 1.5,
+            enabled: lightingSetup.key.enabled,
+          }}
           position={lightPositions.key}
           label="Key Light"
         />
       )}
-      {lightingSetup.fill?.enabled && (
+      {lightingSetup.fill?.enabled && lightingSetup.fill && (
         <LightSource
-          config={lightingSetup.fill}
+          config={{
+            direction: lightingSetup.fill.direction,
+            intensity: lightingSetup.fill.intensity,
+            colorTemperature: lightingSetup.fill.colorTemperature,
+            softness: lightingSetup.fill.softness,
+            distance: lightingSetup.fill.distance || 2.0,
+            enabled: lightingSetup.fill.enabled,
+          }}
           position={lightPositions.fill}
           label="Fill Light"
         />
       )}
-      {lightingSetup.rim?.enabled && (
+      {lightingSetup.rim?.enabled && lightingSetup.rim && (
         <LightSource
-          config={lightingSetup.rim}
+          config={{
+            direction: lightingSetup.rim.direction,
+            intensity: lightingSetup.rim.intensity,
+            colorTemperature: lightingSetup.rim.colorTemperature,
+            softness: lightingSetup.rim.softness,
+            distance: lightingSetup.rim.distance || 1.0,
+            enabled: lightingSetup.rim.enabled,
+          }}
           position={lightPositions.rim}
           label="Rim Light"
         />
@@ -183,32 +203,12 @@ const Scene = ({ lightingSetup }: { lightingSetup: LightingSetup }) => {
 };
 
 const PresetDemo: React.FC<PresetDemoProps> = ({ preset }) => {
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [rotation, setRotation] = useState(0);
-
   return (
     <div className="w-full space-y-4">
       <div className="flex items-center justify-between mb-2">
         <h4 className="text-sm font-semibold text-muted-foreground">Interactive 3D Preview</h4>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-            title={isPlaying ? 'Pause rotation' : 'Play rotation'}
-          >
-            {isPlaying ? (
-              <Pause className="w-4 h-4" />
-            ) : (
-              <Play className="w-4 h-4" />
-            )}
-          </button>
-          <button
-            onClick={() => setRotation(0)}
-            className="p-2 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-            title="Reset view"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+        <div className="text-xs text-muted-foreground">
+          Drag to rotate • Scroll to zoom
         </div>
       </div>
       
