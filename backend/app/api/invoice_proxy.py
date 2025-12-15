@@ -2,18 +2,18 @@
 Invoice PDF proxy endpoint.
 Proxies Stripe invoice PDFs with authentication checks.
 """
+import os
+import stripe
 import requests
 from fastapi import APIRouter, Depends, HTTPException, Header
 from fastapi.responses import StreamingResponse, RedirectResponse
 from typing import Optional
 from sqlalchemy.orm import Session
-import logging
 
 from app.db import SessionLocal
 from app.models.billing import Invoice, User
-from app.auth.role_middleware import get_current_user, require_role
+from app.auth.role_middleware import get_current_user
 from app.core.config import settings
-from app.services.stripe_client import get_stripe_client
 
 router = APIRouter(prefix="/api/billing", tags=["Invoices"])
 logger = logging.getLogger(__name__)
