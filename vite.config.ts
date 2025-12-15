@@ -11,7 +11,10 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
   },
   plugins: [
-    react(),
+    react({
+      // Exclude MDX files from React SWC processing
+      exclude: /\.mdx?$/,
+    }),
     mdx(),
     mode === "development" && componentTagger()
   ].filter(Boolean),
