@@ -17,11 +17,31 @@ import { toast } from 'sonner';
 // FIBO JSON + AGENT STATE
 // ============================================================================
 
-interface AgentFIBO extends Partial<FIBOPrompt> {
+interface AgentLight {
+  direction: string;
+  intensity: number;
+  colorTemperature: number;
+  softness: number;
+  enabled: boolean;
+  distance: number;
+}
+
+interface AgentLighting {
+  mainLight: AgentLight;
+  fillLight?: AgentLight;
+  rimLight?: AgentLight;
+  ambientLight?: {
+    intensity: number;
+    colorTemperature: number;
+  };
+}
+
+interface AgentFIBO {
   generation_id: string;
   model_version: "FIBO-v2.3";
   seed: number;
-  lighting: FIBOLighting;
+  camera?: any;
+  lighting: AgentLighting;
 }
 
 interface AgentIteration {
@@ -29,7 +49,7 @@ interface AgentIteration {
   fibo: AgentFIBO;
   user_instruction: string;
   llm_critique: string;
-  score: number; // 1-10 professional rating
+  score: number;
   iteration: number;
 }
 
@@ -45,19 +65,19 @@ const AgenticLoop: React.FC = () => {
     model_version: "FIBO-v2.3",
     seed: 123456,
     camera: {
-      shot_type: 'medium shot',
-      camera_angle: 'eye-level',
+      shotType: 'medium shot',
+      cameraAngle: 'eye-level',
       fov: 50,
-      lens_type: 'portrait',
+      lensType: 'portrait',
       aperture: 'f/2.8',
-      focus_distance_m: 2.0,
+      focusDistance_m: 2.0,
       pitch: 0,
       yaw: 0,
       roll: 0,
       seed: 123456,
     },
     lighting: {
-      main_light: {
+      mainLight: {
         direction: 'front-right',
         intensity: 1.2,
         colorTemperature: 5600,
@@ -65,7 +85,7 @@ const AgenticLoop: React.FC = () => {
         enabled: true,
         distance: 3.0,
       },
-      fill_light: {
+      fillLight: {
         direction: 'front-left',
         intensity: 0.6,
         colorTemperature: 5600,
@@ -73,7 +93,7 @@ const AgenticLoop: React.FC = () => {
         enabled: true,
         distance: 4.0,
       },
-      rim_light: {
+      rimLight: {
         direction: 'back',
         intensity: 0.8,
         colorTemperature: 4000,
@@ -95,37 +115,42 @@ const AgenticLoop: React.FC = () => {
     setIsAgentRunning(true);
     
     try {
-      // Step 1: LLM translates instruction → FIBO lighting diff
-      const lightingDiff = await translateFeedback(currentFIBO as FIBOPrompt, targetInstruction);
+      // Convert to FIBOPrompt format for the hook
+      const fiboPrompt = {
+        lighting: currentFIBO.lighting as any,
+        camera: currentFIBO.camera,
+      } as FIBOPrompt;
       
-      // Step 2: Apply minimal diff to current FIBO lighting
-      const newLighting: FIBOLighting = {
-        main_light: {
-          ...currentFIBO.lighting.main_light,
-          ...lightingDiff.main_light,
-          ...lightingDiff.mainLight, // Backward compatibility
-        } as FIBOLight,
-        fill_light: lightingDiff.fill_light || lightingDiff.fillLight
+      const lightingDiff = await translateFeedback(fiboPrompt, targetInstruction);
+      
+      // Apply diff - handle both snake_case and camelCase
+      const newLighting: AgentLighting = {
+        mainLight: {
+          ...currentFIBO.lighting.mainLight,
+          ...(lightingDiff as any).main_light,
+          ...(lightingDiff as any).mainLight,
+        },
+        fillLight: (lightingDiff as any).fill_light || (lightingDiff as any).fillLight
           ? {
-              ...currentFIBO.lighting.fill_light,
-              ...lightingDiff.fill_light,
-              ...lightingDiff.fillLight,
-            } as FIBOLight
-          : currentFIBO.lighting.fill_light,
-        rim_light: lightingDiff.rim_light || lightingDiff.rimLight
-          ? {
-              ...currentFIBO.lighting.rim_light,
-              ...lightingDiff.rim_light,
-              ...lightingDiff.rimLight,
-            } as FIBOLight
-          : currentFIBO.lighting.rim_light,
-        ambient_light: lightingDiff.ambient_light || lightingDiff.ambientLight
-          ? {
-              ...currentFIBO.lighting.ambient_light,
-              ...lightingDiff.ambient_light,
-              ...lightingDiff.ambientLight,
+              ...currentFIBO.lighting.fillLight,
+              ...(lightingDiff as any).fill_light,
+              ...(lightingDiff as any).fillLight,
             }
-          : currentFIBO.lighting.ambient_light,
+          : currentFIBO.lighting.fillLight,
+        rimLight: (lightingDiff as any).rim_light || (lightingDiff as any).rimLight
+          ? {
+              ...currentFIBO.lighting.rimLight,
+              ...(lightingDiff as any).rim_light,
+              ...(lightingDiff as any).rimLight,
+            }
+          : currentFIBO.lighting.rimLight,
+        ambientLight: (lightingDiff as any).ambient_light || (lightingDiff as any).ambientLight
+          ? {
+              ...currentFIBO.lighting.ambientLight,
+              ...(lightingDiff as any).ambient_light,
+              ...(lightingDiff as any).ambientLight,
+            }
+          : currentFIBO.lighting.ambientLight,
       };
 
       const newFIBO: AgentFIBO = {
@@ -135,23 +160,20 @@ const AgenticLoop: React.FC = () => {
         seed: currentFIBO.seed + 1,
       };
 
-      // Step 3: Calculate professional critique score (1-10)
-      // Based on lighting balance, color temperature consistency, etc.
-      const keyIntensity = newLighting.main_light?.intensity || 1.0;
-      const fillIntensity = newLighting.fill_light?.intensity || 0.5;
-      const rimIntensity = newLighting.rim_light?.intensity || 0.5;
+      // Calculate professional critique score
+      const keyIntensity = newLighting.mainLight?.intensity || 1.0;
+      const fillIntensity = newLighting.fillLight?.intensity || 0.5;
+      const rimIntensity = newLighting.rimLight?.intensity || 0.5;
       const keyToFillRatio = keyIntensity / (fillIntensity || 0.1);
       
-      // Ideal ratio is 2:1 to 3:1 for professional lighting
       const ratioScore = keyToFillRatio >= 2 && keyToFillRatio <= 3 ? 2 : 1;
       const intensityScore = keyIntensity >= 0.8 && keyIntensity <= 1.5 ? 2 : 1;
       const rimScore = rimIntensity > 0.3 ? 1 : 0.5;
       const baseScore = 4;
       const score = Math.min(10, baseScore + ratioScore + intensityScore + rimScore + Math.random() * 2);
 
-      // Step 4: Add to iteration history
       const changedKeys = Object.keys(lightingDiff).filter(
-        key => lightingDiff[key as keyof typeof lightingDiff]
+        key => (lightingDiff as any)[key]
       );
       const iteration: AgentIteration = {
         id: newFIBO.generation_id,
@@ -162,20 +184,10 @@ const AgenticLoop: React.FC = () => {
         iteration: iterations.length + 1,
       };
 
-      setIterations(prev => [iteration, ...prev.slice(0, 9)]); // Keep last 10
+      setIterations(prev => [iteration, ...prev.slice(0, 9)]);
       setCurrentFIBO(newFIBO);
       
       toast.success(`Iteration ${iteration.iteration} complete! Score: ${score.toFixed(1)}/10`);
-      
-      // Step 5: Auto-continue if score < 9 (optional, can be disabled)
-      // if (score < 9.5 && iterations.length < 20) {
-      //   setTimeout(() => {
-      //     const autoInstructions = [
-      //       "more dramatic", "softer shadows", "golden hour", "studio clean", "high key"
-      //     ];
-      //     setTargetInstruction(autoInstructions[Math.floor(Math.random() * autoInstructions.length)]);
-      //   }, 500);
-      // }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       toast.error(`Agent iteration failed: ${errorMessage}`);
@@ -230,7 +242,7 @@ const AgenticLoop: React.FC = () => {
       <div style={historyPanel}>
         <h3>📈 Agent Iterations (Score Progress)</h3>
         <div style={iterationGrid}>
-          {iterations.map((iter, i) => (
+          {iterations.map((iter) => (
             <IterationCard 
               key={iter.id} 
               iteration={iter} 
@@ -264,7 +276,6 @@ const AgenticLoop: React.FC = () => {
 // ============================================================================
 
 const FIBO3DLivePreview: React.FC<{ fibo: AgentFIBO }> = ({ fibo }) => {
-  // Convert direction string to position
   const directionToPosition = (direction: string, distance: number = 4): [number, number, number] => {
     const dirMap: Record<string, [number, number, number]> = {
       'front': [0, 0, distance],
@@ -281,62 +292,55 @@ const FIBO3DLivePreview: React.FC<{ fibo: AgentFIBO }> = ({ fibo }) => {
     return dirMap[direction] || [0, 0, distance];
   };
 
-  // Convert color temperature to HSL (simplified approximation)
   const tempToHue = (temp: number) => {
-    if (temp < 4000) return 30; // Warm
-    if (temp < 5000) return 50; // Neutral-warm
-    return 200; // Cool
+    if (temp < 4000) return 30;
+    if (temp < 5000) return 50;
+    return 200;
   };
 
-  const mainLight = fibo.lighting.main_light || fibo.lighting.mainLight;
-  const fillLight = fibo.lighting.fill_light || fibo.lighting.fillLight;
-  const rimLight = fibo.lighting.rim_light || fibo.lighting.rimLight;
+  const mainLight = fibo.lighting.mainLight;
+  const fillLight = fibo.lighting.fillLight;
+  const rimLight = fibo.lighting.rimLight;
 
   return (
     <>
-      {/* Main/Key Light */}
       {mainLight && mainLight.enabled !== false && (
         <directionalLight
-          position={directionToPosition(mainLight.direction as string, mainLight.distance || 4)}
+          position={directionToPosition(mainLight.direction, mainLight.distance || 4)}
           intensity={(mainLight.intensity || 1.0) * 2.5}
           color={`hsl(${tempToHue(mainLight.colorTemperature || 5600)}, 70%, 85%)`}
           castShadow
         />
       )}
       
-      {/* Fill Light */}
       {fillLight && fillLight.enabled !== false && (
         <directionalLight
-          position={directionToPosition(fillLight.direction as string, fillLight.distance || 4)}
+          position={directionToPosition(fillLight.direction, fillLight.distance || 4)}
           intensity={(fillLight.intensity || 0.5) * 1.5}
           color={`hsl(${tempToHue(fillLight.colorTemperature || 5600)}, 70%, 85%)`}
         />
       )}
       
-      {/* Rim Light */}
       {rimLight && rimLight.enabled !== false && (
         <directionalLight
-          position={directionToPosition(rimLight.direction as string, rimLight.distance || 4)}
+          position={directionToPosition(rimLight.direction, rimLight.distance || 4)}
           intensity={(rimLight.intensity || 0.5) * 2.0}
           color={`hsl(${tempToHue(rimLight.colorTemperature || 4000)}, 70%, 85%)`}
         />
       )}
       
-      {/* Ambient Light */}
-      {fibo.lighting.ambient_light && (
+      {fibo.lighting.ambientLight && (
         <ambientLight
-          intensity={(fibo.lighting.ambient_light.intensity || 0.3) * 0.5}
-          color={`hsl(${tempToHue(fibo.lighting.ambient_light.colorTemperature || 5600)}, 30%, 50%)`}
+          intensity={(fibo.lighting.ambientLight.intensity || 0.3) * 0.5}
+          color={`hsl(${tempToHue(fibo.lighting.ambientLight.colorTemperature || 5600)}, 30%, 50%)`}
         />
       )}
       
-      {/* Subject */}
       <mesh rotation={[0, 0.3, 0]} castShadow>
         <sphereGeometry args={[1, 64, 64]} />
         <meshStandardMaterial color="#f8d7c8" roughness={0.5} />
       </mesh>
       
-      {/* Ground plane for shadows */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.5, 0]} receiveShadow>
         <planeGeometry args={[10, 10]} />
         <meshStandardMaterial color="#1a1a1a" />
@@ -501,36 +505,29 @@ const jsonPanel: React.CSSProperties = {
 };
 
 const jsonCode: React.CSSProperties = {
-  background: '#0f172a',
   padding: '1rem',
-  borderRadius: '12px',
+  background: 'rgba(0, 0, 0, 0.4)',
+  borderRadius: '8px',
+  fontSize: '0.75rem',
   overflow: 'auto',
-  fontSize: '0.875rem',
-  color: '#a5b4fc',
-  fontFamily: 'monospace',
-  marginTop: '1rem',
-  marginBottom: '1rem',
-  maxHeight: '400px'
+  maxHeight: '200px'
 };
 
 const copyJsonBtn: React.CSSProperties = {
-  width: '100%',
-  padding: '0.75rem',
-  background: 'linear-gradient(135deg, #667eea 0%, #48bb78 100%)',
-  color: 'white',
-  border: 'none',
-  borderRadius: '12px',
-  fontWeight: 600,
-  cursor: 'pointer',
-  fontSize: '1rem',
-  transition: 'all 0.2s'
+  marginTop: '1rem',
+  padding: '0.5rem 1rem',
+  background: 'rgba(102, 126, 234, 0.2)',
+  border: '1px solid rgba(102, 126, 234, 0.3)',
+  borderRadius: '8px',
+  color: '#e0e7ff',
+  cursor: 'pointer'
 };
 
 const emptyState: React.CSSProperties = {
+  padding: '2rem',
   textAlign: 'center',
-  padding: '3rem',
-  color: '#64748b',
-  fontSize: '1rem'
+  color: '#a5b4fc',
+  fontStyle: 'italic'
 };
 
 export default AgenticLoop;

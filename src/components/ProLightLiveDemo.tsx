@@ -12,7 +12,7 @@ import { useProlightStore } from '@/stores/useProlightStore';
 import { useProlightProStore } from '@/stores/useProlightProStore';
 import { useBriaAPI } from '@/hooks/useBriaAPI';
 import { buildFIBOJson } from '@/utils/fiboBuilder';
-import { Sparkles, Lock, Unlock, RefreshCw, Copy, Check } from 'lucide-react';
+import { Sparkles, Lock, Unlock, RefreshCw, Copy, Check, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export default function ProLightLiveDemo() {
@@ -191,8 +191,8 @@ export default function ProLightLiveDemo() {
               onClick={handleGenerateNew}
               disabled={isGenerating || isLoading}
               className="flex-1 bg-[#667eea] hover:bg-[#5568d3] text-white"
-              loading={isGenerating || isLoading}
             >
+              {(isGenerating || isLoading) && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               <Sparkles className="w-4 h-4" />
               Generate New
             </Button>

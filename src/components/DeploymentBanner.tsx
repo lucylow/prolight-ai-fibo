@@ -2,18 +2,19 @@ import React from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+declare const __BUILD_TIME__: string | undefined;
+declare const __COMMIT_HASH__: string | undefined;
+
 /**
  * Deployment verification banner - only visible in development or when explicitly enabled
  */
 export const DeploymentBanner: React.FC = () => {
   const [isVisible, setIsVisible] = React.useState(false);
   const [isDismissed, setIsDismissed] = React.useState(() => {
-    // Check if user has dismissed it before
     return localStorage.getItem('deployment-banner-dismissed') === 'true';
   });
 
   React.useEffect(() => {
-    // Only show in development or if explicitly enabled via env var
     const isDev = import.meta.env.DEV || import.meta.env.MODE === 'development';
     const showBanner = import.meta.env.VITE_SHOW_DEPLOY_BANNER === 'true';
     setIsVisible((isDev || showBanner) && !isDismissed);
@@ -64,4 +65,3 @@ export const DeploymentBanner: React.FC = () => {
     </div>
   );
 };
-

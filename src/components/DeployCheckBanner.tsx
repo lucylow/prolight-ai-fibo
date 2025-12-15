@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+declare const __COMMIT_HASH__: string | undefined;
 const CLIENT_COMMIT = import.meta.env.VITE_COMMIT_HASH || (typeof __COMMIT_HASH__ !== "undefined" ? __COMMIT_HASH__ : "unknown");
 
 type DeployStatus = {
