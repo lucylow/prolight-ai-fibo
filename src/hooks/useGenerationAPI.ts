@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useLightingStore } from '@/stores/lightingStore';
 import { apiClient } from '@/services/apiClient';
-import type { GenerateRequest } from '@/types/fibo';
+import type { GenerateRequest, LightingAnalysis as APILightingAnalysis } from '@/types/fibo';
 import { toast } from 'sonner';
 
 /**
@@ -71,7 +71,6 @@ export const useGenerationAPI = () => {
 
   /**
    * Parse direction string to 3D position
-   * Maps directions like "45 degrees camera-right" to {x, y, z}
    */
   const parsePosition = (direction: string): { x: number; y: number; z: number } => {
     const directionMap: Record<string, { x: number; y: number; z: number }> = {
@@ -87,7 +86,6 @@ export const useGenerationAPI = () => {
       'underneath': { x: 0, y: -1, z: 0 },
     };
 
-    // Try to match direction keywords
     const lowerDir = direction.toLowerCase();
     for (const [key, pos] of Object.entries(directionMap)) {
       if (lowerDir.includes(key)) {
@@ -95,12 +93,10 @@ export const useGenerationAPI = () => {
       }
     }
 
-    // Parse angle-based directions like "45 degrees camera-right"
     const angleMatch = lowerDir.match(/(\d+)\s*degrees?\s*(camera-)?(\w+)/);
     if (angleMatch) {
       const angle = parseInt(angleMatch[1]);
       const side = angleMatch[3];
-      
       const rad = (angle * Math.PI) / 180;
       const distance = 2;
       
@@ -111,8 +107,21 @@ export const useGenerationAPI = () => {
       }
     }
 
-    // Default to front
     return { x: 0, y: 1.5, z: 2 };
+  };
+
+  /**
+   * Convert API analysis to store format
+   */
+  const convertAnalysisToStore = (apiAnalysis?: APILightingAnalysis) => {
+    if (!apiAnalysis) return undefined;
+    return {
+      keyFillRatio: apiAnalysis.key_to_fill_ratio || 0,
+      lightingStyle: apiAnalysis.mood_assessment || 'custom',
+      totalExposure: apiAnalysis.color_temperature_consistency || 0,
+      contrastScore: apiAnalysis.color_temperature_consistency || 0,
+      professionalRating: apiAnalysis.professional_rating || 0,
+    };
   };
 
   /**
@@ -153,8 +162,8 @@ export const useGenerationAPI = () => {
       setGenerationResult({
         image_url: result.image_url || '',
         image_id: result.generation_id || '',
-        fibo_json: result.fibo_json || {},
-        lightingAnalysis: result.analysis || {},
+        fibo_json: result.fibo_json ? JSON.parse(JSON.stringify(result.fibo_json)) : undefined,
+        lightingAnalysis: convertAnalysisToStore(result.analysis),
         generation_metadata: {
           duration_seconds: result.duration_seconds,
           cost_credits: result.cost_credits,
@@ -186,42 +195,35 @@ export const useGenerationAPI = () => {
     setLoading(true);
 
     try {
-      // Parse lighting description to create lights
-      const lights: Light[] = [
-        {
-          id: 'key',
-          type: 'directional',
-          position: { x: 1, y: 2, z: 3 },
-          intensity: 0.8,
-          color_temperature: 5600,
-          softness: 0.3,
-          enabled: true,
-        },
-      ];
-
       const request: GenerateRequest = {
-        scene_prompt: `${sceneDescription}. Lighting: ${lightingDescription}`,
-        lights,
-        num_results: 1,
-        sync: true,
+        scene_description: `${sceneDescription}. Lighting: ${lightingDescription}`,
+        lighting_setup: convertLightingToAPI(),
+        camera_settings: cameraSettings,
+        render_settings: {
+          resolution: [2048, 2048],
+          colorSpace: 'ACEScg',
+          bitDepth: 16,
+          aov: ['beauty'],
+          samples: 40,
+        },
+        use_mock: false,
       };
 
       console.log('Generating from NL:', request);
 
-      const result = await generateImage(request);
-
-      if (!result.ok) {
-        throw new Error(result.error || 'Generation failed');
-      }
+      const result = await apiClient.generate(request);
 
       console.log('NL Generation result:', result);
 
       setGenerationResult({
         image_url: result.image_url || '',
-        image_id: result.request_id || '',
-        fibo_json: result.structured_prompt || {},
-        lightingAnalysis: result.meta || {},
-        generation_metadata: result.meta || {},
+        image_id: result.generation_id || '',
+        fibo_json: result.fibo_json ? JSON.parse(JSON.stringify(result.fibo_json)) : undefined,
+        lightingAnalysis: convertAnalysisToStore(result.analysis),
+        generation_metadata: {
+          duration_seconds: result.duration_seconds,
+          cost_credits: result.cost_credits,
+        },
       });
 
       toast.success('Image generated from description!');
@@ -242,21 +244,20 @@ export const useGenerationAPI = () => {
    */
   const analyzeLighting = async () => {
     try {
-      const lights = convertLightingToAPI();
+      const lighting = convertLightingToAPI();
       
-      // Calculate lighting ratios
-      const keyLight = lights.find(l => l.id === 'key');
-      const fillLight = lights.find(l => l.id === 'fill');
+      const keyIntensity = lighting.mainLight?.intensity || 0;
+      const fillIntensity = lighting.fillLight?.intensity || 0;
       
-      const ratio = keyLight && fillLight 
-        ? (keyLight.intensity / fillLight.intensity).toFixed(1)
+      const ratio = fillIntensity > 0 
+        ? (keyIntensity / fillIntensity).toFixed(1)
         : 'N/A';
 
       const analysis = {
         ratio,
         style: parseFloat(ratio) >= 4 ? 'Dramatic' : parseFloat(ratio) >= 2 ? 'Classical Portrait' : 'Soft Lighting',
         rating: parseFloat(ratio) >= 2 && parseFloat(ratio) <= 4 ? 8.5 : 7.0,
-        lights: lights.length,
+        lights: Object.keys(lighting).filter(k => k.includes('Light')).length,
       };
 
       console.log('Analysis result:', analysis);
