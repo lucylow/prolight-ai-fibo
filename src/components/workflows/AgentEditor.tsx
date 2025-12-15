@@ -4,6 +4,7 @@
 
 import React, { useEffect, useState } from "react";
 import type { Agent, AgentState } from "@/types/agentic";
+import { agentService } from "@/services/agentService";
 
 interface AgentEditorProps {
   agent: Agent;
@@ -29,29 +30,20 @@ export function AgentEditor({
 
   async function save() {
     try {
-      const USE_MOCK = true;
-      if (USE_MOCK) {
-        // in mock mode simply update local mock array
-        const mockAgents = (window as unknown as { mockAgents?: Agent[] }).mockAgents;
-        if (mockAgents) {
-          const a = mockAgents.find((m) => m.id === agent.id);
-          if (a) Object.assign(a, local);
-        }
-        setEditing(false);
-        onUpdate();
-        return;
-      }
-      const response = await fetch(`/api/agents/${agent.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(local),
-        credentials: "same-origin",
+      await agentService.updateAgent({
+        id: agent.id,
+        name: local.name,
+        description: local.description,
+        systemPrompt: local.systemPrompt,
+        steps: local.steps,
+        tools: local.tools,
       });
-      if (!response.ok) throw new Error("Failed to save");
       setEditing(false);
       onUpdate();
     } catch (err) {
-      alert("Failed to save agent: " + (err instanceof Error ? err.message : String(err)));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("Failed to save agent:", errorMessage);
+      alert(`Failed to save agent: ${errorMessage}`);
     }
   }
 
@@ -146,4 +138,5 @@ export function AgentEditor({
     </div>
   );
 }
+
 

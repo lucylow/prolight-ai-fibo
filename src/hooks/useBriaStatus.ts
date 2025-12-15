@@ -34,6 +34,7 @@ import {
   type BriaStatusResponse,
   type StartPollResponse,
 } from '../services/briaStatusService';
+import { errorService } from '@/services/errorService';
 
 export interface UseBriaStatusOptions {
   autoPoll?: boolean;
@@ -220,24 +221,52 @@ export function useBriaStatusForRequest(
     }
 
     // Auto-fetch status
-    hook.getStatus(requestId).catch(console.error);
+    hook.getStatus(requestId).catch((error) => {
+      errorService.logError(error, {
+        component: 'useBriaStatusForRequest',
+        action: 'auto_fetch_status',
+        metadata: { requestId },
+      }).catch((logErr) => {
+        console.error('Failed to log error:', logErr);
+      });
+    });
 
     // Auto-start polling if enabled
     if (options.autoPoll) {
-      hook.startPoll(requestId).catch(console.error);
+      hook.startPoll(requestId).catch((error) => {
+        errorService.logError(error, {
+          component: 'useBriaStatusForRequest',
+          action: 'auto_start_poll',
+          metadata: { requestId },
+        }).catch((logErr) => {
+          console.error('Failed to log error:', logErr);
+        });
+      });
     }
 
     // Auto-subscribe if enabled
     if (options.autoSubscribe) {
       const unsubscribe = hook.subscribe(requestId, {
         onUpdate: (status) => {
-          console.log('Status update:', status);
+          // Optional: log status updates in development
+          if (import.meta.env.DEV) {
+            console.log('Status update:', status);
+          }
         },
         onError: (error) => {
-          console.error('Status error:', error);
+          errorService.logError(error, {
+            component: 'useBriaStatusForRequest',
+            action: 'subscribe_error',
+            metadata: { requestId },
+          }).catch((logErr) => {
+            console.error('Failed to log subscribe error:', logErr);
+          });
         },
         onComplete: () => {
-          console.log('Status completed');
+          // Optional: log completion in development
+          if (import.meta.env.DEV) {
+            console.log('Status completed');
+          }
         },
       });
 
@@ -249,4 +278,5 @@ export function useBriaStatusForRequest(
 
   return hook;
 }
+
 

@@ -20,9 +20,11 @@ class Settings(BaseSettings):
     API_TITLE: str = "ProLight AI API"
     API_DESCRIPTION: str = "Professional lighting simulator powered by FIBO"
     
-    # FIBO Configuration
-    FIBO_API_URL: str = "https://api.bria.ai/v1/models/fibo"
+    # FIBO/Bria Configuration
+    FIBO_API_URL: str = "https://engine.prod.bria-api.com/v2"
     FIBO_API_KEY: Optional[str] = None
+    BRIA_API_TOKEN: Optional[str] = None  # Preferred over FIBO_API_KEY
+    BRIA_API_URL: str = "https://engine.prod.bria-api.com/v2"
     USE_MOCK_FIBO: bool = True
     
     # Gemini Configuration (for natural language processing)

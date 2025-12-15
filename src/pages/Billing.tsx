@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { 
   getSubscription, 
   getCreditStatus, 
@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import PaymentMethods from "@/components/PaymentMethods";
 
 export default function BillingDashboard() {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -273,8 +274,11 @@ export default function BillingDashboard() {
         </Card>
       )}
 
+      {/* Payment Methods */}
+      <PaymentMethods />
+
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid md:grid-cols-3 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Need More Credits?</CardTitle>
@@ -289,6 +293,25 @@ export default function BillingDashboard() {
               className="w-full"
             >
               View Plans
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Transaction History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-400 mb-4">
+              View all your invoices, payments, and transaction history.
+            </p>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/transactions")}
+              className="w-full"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              View Transactions
             </Button>
           </CardContent>
         </Card>
@@ -325,4 +348,5 @@ export default function BillingDashboard() {
     </div>
   );
 }
+
 

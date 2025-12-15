@@ -1,69 +1,100 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Sparkles, Lightbulb, Camera, Zap } from 'lucide-react';
+import { Loader2, Sparkles, Lightbulb, Camera, Zap, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { generateImage, type GenerateResponse } from '@/lib/api';
+interface GenerationResult extends GenerateResponse {
+  image_url?: string;
+  structured_prompt?: Record<string, unknown>;
+  meta?: {
+    seed?: number;
+    [key: string]: unknown;
+  };
+}
 
 const AgenticWorkflow = () => {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<GenerationResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
+  const validatePrompt = useCallback((text: string): string | null => {
+    const trimmed = text.trim();
+    if (!trimmed) {
+      return "Please enter a scene description";
+    }
+    if (trimmed.length < 10) {
+      return "Scene description should be at least 10 characters";
+    }
+    if (trimmed.length > 1000) {
+      return "Scene description should be less than 1000 characters";
+    }
+    return null;
+  }, []);
+
+  const handleGenerate = useCallback(async () => {
+    const validationError = validatePrompt(prompt);
+    if (validationError) {
       toast({
-        title: "Error",
-        description: "Please enter a scene description",
+        title: "Validation Error",
+        description: validationError,
         variant: "destructive",
       });
+      setError(validationError);
       return;
     }
 
+    setError(null);
     setLoading(true);
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scene_prompt: prompt,
-          lights: [
-            {
-              id: 'key',
-              position: { x: 1, y: 2, z: 3 },
-              intensity: 0.8,
-              color_temperature: 5600,
-              softness: 0.3,
-              enabled: true
-            }
-          ],
-          sync: true
-        })
-      });
+    setResult(null);
 
-      const data = await response.json();
+    try {
+      const response = await generateImage({
+        scene_prompt: prompt.trim(),
+        lights: [
+          {
+            id: 'key',
+            position: { x: 1, y: 2, z: 3 },
+            intensity: 0.8,
+            color_temperature: 5600,
+            softness: 0.3,
+            enabled: true
+          }
+        ],
+        sync: true,
+        num_results: 1,
+      });
       
-      if (data.ok) {
-        setResult(data);
+      if (response.ok && response.image_url) {
+        setResult(response as GenerationResult);
         toast({
           title: "Success!",
           description: "Image generated successfully",
         });
       } else {
-        throw new Error(data.error || 'Generation failed');
+        throw new Error(response.error || 'Generation failed');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : "Failed to generate image. Please try again.";
+      
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: error.message || "Failed to generate image",
+        description: errorMessage,
         variant: "destructive",
       });
+      
+      console.error('Generation error:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [prompt, validatePrompt, toast]);
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -90,13 +121,28 @@ const AgenticWorkflow = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Textarea
-              placeholder="e.g., a vintage watch on a wooden table with dramatic lighting"
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={6}
-              className="resize-none"
-            />
+            <div className="space-y-2">
+              <Textarea
+                placeholder="e.g., a vintage watch on a wooden table with dramatic lighting"
+                value={prompt}
+                onChange={(e) => {
+                  setPrompt(e.target.value);
+                  setError(null);
+                }}
+                rows={6}
+                className="resize-none"
+                disabled={loading}
+              />
+              {error && (
+                <div className="flex items-center gap-2 text-sm text-destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <span>{error}</span>
+                </div>
+              )}
+              <div className="text-xs text-muted-foreground text-right">
+                {prompt.length}/1000 characters
+              </div>
+            </div>
             
             <div className="space-y-2">
               <p className="text-sm font-medium">Workflow Steps:</p>
@@ -163,35 +209,49 @@ const AgenticWorkflow = () => {
               </div>
             )}
 
-            {result && (
+            {result && !loading && (
               <div className="space-y-4">
                 {result.image_url && (
-                  <div className="relative rounded-lg overflow-hidden border">
+                  <div className="relative rounded-lg overflow-hidden border group">
                     <img 
                       src={result.image_url} 
-                      alt="Generated" 
-                      className="w-full h-auto"
+                      alt="Generated scene" 
+                      className="w-full h-auto transition-opacity"
+                      loading="lazy"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        setError('Failed to load generated image');
+                      }}
                     />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors" />
                   </div>
                 )}
 
                 {result.structured_prompt && (
                   <div className="space-y-2">
                     <p className="text-sm font-medium">Structured Prompt:</p>
-                    <div className="bg-muted rounded-lg p-4 text-xs font-mono overflow-x-auto">
-                      <pre>{JSON.stringify(result.structured_prompt, null, 2)}</pre>
+                    <div className="bg-muted rounded-lg p-4 text-xs font-mono overflow-x-auto max-h-64 overflow-y-auto">
+                      <pre className="whitespace-pre-wrap break-words">
+                        {JSON.stringify(result.structured_prompt, null, 2)}
+                      </pre>
                     </div>
                   </div>
                 )}
 
                 {result.meta && (
-                  <div className="flex gap-2 flex-wrap">
-                    <Badge variant="secondary">
-                      Status: {result.status}
+                  <div className="flex gap-2 flex-wrap items-center">
+                    <Badge variant="secondary" className="capitalize">
+                      {result.status || 'completed'}
                     </Badge>
                     {result.meta.seed && (
                       <Badge variant="outline">
-                        Seed: {result.meta.seed}
+                        Seed: {String(result.meta.seed)}
+                      </Badge>
+                    )}
+                    {result.request_id && (
+                      <Badge variant="outline" className="font-mono text-xs">
+                        ID: {result.request_id.slice(0, 8)}...
                       </Badge>
                     )}
                   </div>

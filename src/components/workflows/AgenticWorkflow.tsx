@@ -7,64 +7,22 @@
  * - Provides UI: Agent list, Agent editor, Runner (start/stop), live logs, results
  */
 
-import React, { useEffect, useState, useRef } from "react";
-import type { Agent, RunLog, AgentState } from "@/types/agentic";
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import type { Agent, RunLog, AgentState, SSEEvent } from "@/types/agentic";
 import { AgentEditor } from "./AgentEditor";
+import { agentService } from "@/services/agentService";
 
-// Local mock toggle for development when backend isn't available
-const USE_MOCK = true;
-
-// ---------- Utility functions ----------
-async function fetchJson(url: string, opts: RequestInit = {}) {
-  const res = await fetch(url, { credentials: "same-origin", ...opts });
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${text}`);
-  }
-  return res.json();
+// ---------- SSE Stream Manager ----------
+interface StreamManager {
+  eventSource: EventSource | null;
+  reconnectAttempts: number;
+  reconnectDelay: number;
+  maxReconnectAttempts: number;
+  isManualClose: boolean;
 }
 
-// ---------- Mock server functions (for local dev) ----------
-const mockAgents: Agent[] = [
-  {
-    id: "agent-1",
-    name: "Marketing Copy Agent",
-    description: "Generate multi-variant ad copy + imagery briefs",
-    systemPrompt: "You are a helpful marketing assistant. Generate short ad copy variants.",
-    steps: [
-      { id: "s1", type: "llm", prompt: "Create 5 headline variants" },
-      { id: "s2", type: "tool", tool: "image_gen", input: { headline: "{{s1.output}}" } },
-    ],
-    tools: [
-      { id: "image_gen", name: "Image Generator", type: "generation" },
-    ],
-  },
-  {
-    id: "agent-2",
-    name: "ProLight Relight Agent",
-    description: "Professional product relighting with HITL approval",
-    systemPrompt: "You are a professional lighting assistant. Analyze images and propose relighting enhancements.",
-    steps: [
-      { id: "s1", type: "tool", tool: "analyze_lighting", input: {} },
-      { id: "s2", type: "llm", prompt: "Propose relighting plan based on analysis" },
-      { id: "s3", type: "tool", tool: "relight", input: { key_ev: 1.1, fill_ev: 0.6 } },
-    ],
-    tools: [
-      { id: "analyze_lighting", name: "Lighting Analyzer", type: "analysis" },
-      { id: "relight", name: "Relight Tool", type: "editing" },
-    ],
-  },
-];
-
-async function mockFetchAgents(): Promise<Agent[]> {
-  await new Promise((r) => setTimeout(r, 200));
-  return mockAgents;
-}
-
-async function mockCreateRun(agentId: string): Promise<{ runId: string }> {
-  await new Promise((r) => setTimeout(r, 300));
-  return { runId: `mock-run-${Date.now()}` };
-}
+const DEFAULT_RECONNECT_DELAY = 1000;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 // ---------- Main Component ----------
 export default function AgenticWorkflow() {
@@ -78,238 +36,337 @@ export default function AgenticWorkflow() {
   const esRef = useRef<EventSource | { close: () => void } | null>(null);
   const [runStatus, setRunStatus] = useState<AgentState | null>(null);
 
+  const streamManagerRef = useRef<StreamManager>({
+    eventSource: null,
+    reconnectAttempts: 0,
+    reconnectDelay: DEFAULT_RECONNECT_DELAY,
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+    isManualClose: false,
+  });
+
   useEffect(() => {
     loadAgents();
+    
+    // Cleanup on unmount
+    return () => {
+      closeStream();
+    };
   }, []);
 
-  async function loadAgents() {
+  const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
-      const list = USE_MOCK
-        ? await mockFetchAgents()
-        : await fetchJson("/api/agents");
+      const list = await agentService.listAgents();
       setAgents(list);
-      if (list.length > 0 && !selectedId) setSelectedId(list[0].id);
+      if (list.length > 0 && !selectedId) {
+        setSelectedId(list[0].id);
+      }
     } catch (err) {
       console.error("Failed to load agents", err);
-      // Fallback: empty list
+      setAgents([]);
     } finally {
       setLoading(false);
     }
-  }
+  }, [selectedId]);
 
-  function selectAgent(id: string) {
+  const closeStream = useCallback(() => {
+    const manager = streamManagerRef.current;
+    if (manager.eventSource) {
+      manager.isManualClose = true;
+      manager.eventSource.close();
+      manager.eventSource = null;
+      manager.reconnectAttempts = 0;
+    }
+  }, []);
+
+  const selectAgent = useCallback((id: string) => {
     setSelectedId(id);
     // Clear run logs when switching
     setRunLogs([]);
     setRunId(null);
     setRunStatus(null);
-    if (esRef.current) {
-      esRef.current.close();
-      esRef.current = null;
-    }
-  }
+    closeStream();
+  }, [closeStream]);
 
-  async function createAgent(agent: Omit<Agent, "id">) {
-    // optimistic UI add; backend should return id
+  const createAgent = useCallback(async (agent: Omit<Agent, "id">) => {
     try {
-      if (USE_MOCK) {
-        const newAgent: Agent = {
-          ...agent,
-          id: `agent-${Date.now()}`,
-        };
-        mockAgents.push(newAgent);
-        await loadAgents();
-        setSelectedId(newAgent.id);
-        return;
-      }
-      const created = await fetchJson("/api/agents", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(agent),
+      const created = await agentService.createAgent({
+        name: agent.name,
+        description: agent.description,
+        systemPrompt: agent.systemPrompt,
+        steps: agent.steps,
+        tools: agent.tools,
       });
       await loadAgents();
       setSelectedId(created.id);
     } catch (err) {
-      alert("Failed to create agent: " + (err instanceof Error ? err.message : String(err)));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      console.error("Failed to create agent:", errorMessage);
+      alert(`Failed to create agent: ${errorMessage}`);
     }
-  }
+  }, [loadAgents]);
 
-  async function startRun(agentId: string) {
+  const startRun = useCallback(async (agentId: string) => {
     setRunLogs([]);
     setRunStatus("EXECUTING");
+    
     try {
-      const payload = USE_MOCK
-        ? await mockCreateRun(agentId)
-        : await fetchJson(`/api/agents/${agentId}/run`, { method: "POST" });
+      const payload = await agentService.startRun({ agentId });
       const id = payload.runId;
       setRunId(id);
-      setRunStatus("EXECUTING");
-      // open SSE stream
+      setRunStatus(payload.status || "EXECUTING");
+      // Open SSE stream
       openRunStream(id);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to start run:", err);
       setRunStatus("FAILED");
+      const errorMessage = err instanceof Error ? err.message : String(err);
       setRunLogs((l) => [
         ...l,
         {
           t: Date.now(),
           type: "error",
-          message: err instanceof Error ? err.message : String(err),
+          message: errorMessage,
         },
       ]);
     }
-  }
+  }, []);
 
-  function openRunStream(runId: string) {
-    if (USE_MOCK) {
-      // fake streaming events
-      let i = 0;
-      const steps = [
-        "Agent initialized",
-        "Step 1: Writing prompt...",
-        "Tool call: image_gen invoked",
-        "Tool result: image_abc123 created",
-        "Finalizing outputs",
-        "Run complete",
-      ];
+  const openRunStream = useCallback((runId: string) => {
+    const manager = streamManagerRef.current;
+    
+    // Close existing stream if any
+    if (manager.eventSource) {
+      manager.eventSource.close();
+    }
+
+    manager.isManualClose = false;
+    manager.reconnectAttempts = 0;
+
+    const attemptReconnect = () => {
+      if (manager.isManualClose || manager.reconnectAttempts >= manager.maxReconnectAttempts) {
+        if (manager.reconnectAttempts >= manager.maxReconnectAttempts) {
+          setRunLogs((l) => [
+            ...l,
+            {
+              t: Date.now(),
+              type: "error",
+              message: "Max reconnection attempts reached",
+            },
+          ]);
+          setRunStatus("FAILED");
+        }
+        return;
+      }
+
+      manager.reconnectAttempts++;
+      const delay = manager.reconnectDelay * Math.pow(2, manager.reconnectAttempts - 1);
+
       setRunLogs((l) => [
         ...l,
         {
           t: Date.now(),
-          type: "status",
-          message: "streaming (mock)",
+          type: "log",
+          message: `Reconnecting... (attempt ${manager.reconnectAttempts}/${manager.maxReconnectAttempts})`,
         },
       ]);
-      const iv = setInterval(() => {
-        if (i >= steps.length) {
-          setRunStatus("COMPLETED");
-          clearInterval(iv);
-          return;
+
+      setTimeout(() => {
+        if (!manager.isManualClose) {
+          openRunStream(runId);
         }
+      }, delay);
+    };
+
+    try {
+      const sseUrl = agentService.getStreamUrl(runId);
+      const es = new EventSource(sseUrl, { withCredentials: true });
+      manager.eventSource = es;
+      esRef.current = es;
+
+      es.onopen = () => {
+        manager.reconnectAttempts = 0; // Reset on successful connection
+        setRunLogs((l) => [
+          ...l,
+          {
+            t: Date.now(),
+            type: "status",
+            message: "Stream connected",
+          },
+        ]);
+      };
+
+      es.onmessage = (ev) => {
+        try {
+          const payload = JSON.parse(ev.data) as SSEEvent;
+          handleRunEvent(payload);
+        } catch (err) {
+          console.warn("Invalid SSE message", ev.data, err);
+          setRunLogs((l) => [
+            ...l,
+            {
+              t: Date.now(),
+              type: "error",
+              message: "Failed to parse stream event",
+            },
+          ]);
+        }
+      };
+
+      es.onerror = (err) => {
+        console.error("SSE error", err);
+        
+        if (es.readyState === EventSource.CLOSED) {
+          // Connection closed
+          if (!manager.isManualClose) {
+            attemptReconnect();
+          }
+        } else if (es.readyState === EventSource.CONNECTING) {
+          // Connection lost, will attempt reconnect
+          setRunLogs((l) => [
+            ...l,
+            {
+              t: Date.now(),
+              type: "log",
+              message: "Connection lost, attempting to reconnect...",
+            },
+          ]);
+        }
+      };
+    } catch (err) {
+      console.error("Failed to open stream", err);
+      attemptReconnect();
+    }
+  }, []);
+
+  const handleRunEvent = useCallback((ev: SSEEvent) => {
+    const { type, state, message, data } = ev;
+    
+    switch (type) {
+      case "LOG":
         setRunLogs((logs) => [
           ...logs,
           {
             t: Date.now(),
             type: "log",
-            message: steps[i],
+            message: message || "",
           },
         ]);
-        i++;
-      }, 800);
-      esRef.current = { close: () => clearInterval(iv) };
-      return;
+        break;
+        
+      case "STATE_CHANGE":
+        if (state) {
+          setRunStatus(state);
+          setRunLogs((logs) => [
+            ...logs,
+            {
+              t: Date.now(),
+              type: "status",
+              message: `State changed to: ${state}`,
+            },
+          ]);
+          
+          if (state === "COMPLETED" || state === "FAILED") {
+            // Fetch final result on completion
+            if (runId) {
+              safeFetchResult(runId);
+            }
+            // Close stream on terminal states
+            closeStream();
+          }
+        }
+        break;
+        
+      case "PROGRESS":
+        setRunLogs((logs) => [
+          ...logs,
+          {
+            t: Date.now(),
+            type: "log",
+            message: message || `Progress: ${ev.pct || 0}%`,
+          },
+        ]);
+        break;
+        
+      case "PROPOSAL":
+        setRunLogs((logs) => [
+          ...logs,
+          {
+            t: Date.now(),
+            type: "proposal",
+            message: JSON.stringify(ev.proposal || {}),
+          },
+        ]);
+        break;
+        
+      case "ERROR":
+        setRunLogs((logs) => [
+          ...logs,
+          {
+            t: Date.now(),
+            type: "error",
+            message: message || ev.reason || "An error occurred",
+          },
+        ]);
+        setRunStatus("FAILED");
+        closeStream();
+        break;
+        
+      default:
+        console.warn("Unknown event type:", type);
     }
+  }, [runId, closeStream]);
 
-    const sseUrl = `/api/runs/${runId}/stream`;
-    const es = new EventSource(sseUrl, { withCredentials: true });
-    esRef.current = es;
-
-    es.onmessage = (ev) => {
-      try {
-        const payload = JSON.parse(ev.data);
-        handleRunEvent(payload);
-      } catch (err) {
-        console.warn("Invalid SSE message", ev.data);
-      }
-    };
-
-    es.onerror = (err) => {
-      console.error("SSE error", err);
-      setRunLogs((l) => [
-        ...l,
-        {
-          t: Date.now(),
-          type: "error",
-          message: "Stream error or closed",
-        },
-      ]);
-      setRunStatus((s) => (s === "EXECUTING" ? "FAILED" : s));
-      // Keep the SSE open; backend may close on completion
-    };
-  }
-
-  function handleRunEvent(ev: { type: string; data: Record<string, unknown> }) {
-    const { type, data } = ev;
-    if (type === "log") {
-      setRunLogs((logs) => [
-        ...logs,
-        {
-          t: Date.now(),
-          type: "log",
-          message: (data.message as string) || "",
-        },
-      ]);
-    } else if (type === "status") {
-      setRunStatus((data.status as AgentState) || null);
-      setRunLogs((logs) => [
-        ...logs,
-        {
-          t: Date.now(),
-          type: "status",
-          message: `Status: ${data.status}`,
-        },
-      ]);
-      if (data.status === "COMPLETED") {
-        // Optional: fetch final result
-        safeFetchResult(runId!);
-      }
-    } else if (type === "result") {
-      setRunLogs((logs) => [
-        ...logs,
-        {
-          t: Date.now(),
-          type: "result",
-          message: JSON.stringify(data),
-        },
-      ]);
-    }
-  }
-
-  async function safeFetchResult(runId: string) {
+  const safeFetchResult = useCallback(async (runId: string) => {
     try {
-      const res = await fetchJson(`/api/runs/${runId}`);
+      const res = await agentService.getRunStatus(runId);
       setRunLogs((logs) => [
         ...logs,
         {
           t: Date.now(),
           type: "result",
-          message: JSON.stringify(res),
+          message: JSON.stringify(res.result || res),
         },
       ]);
     } catch (err) {
       console.warn("Failed fetching run result", err);
+      setRunLogs((logs) => [
+        ...logs,
+        {
+          t: Date.now(),
+          type: "error",
+          message: "Failed to fetch final result",
+        },
+      ]);
     }
-  }
+  }, []);
 
-  async function stopRun(runId: string) {
-    if (USE_MOCK) {
+  const stopRun = useCallback(async (runId: string) => {
+    try {
+      closeStream();
+      await agentService.stopRun(runId);
+      setRunStatus("STOPPED");
       setRunLogs((l) => [
         ...l,
         {
           t: Date.now(),
           type: "status",
-          message: "Mock stop requested",
+          message: "Run stopped by user",
         },
       ]);
-      setRunStatus("STOPPED");
-      if (esRef.current) esRef.current.close();
-      return;
-    }
-    try {
-      await fetchJson(`/api/runs/${runId}/stop`, { method: "POST" });
-      setRunStatus("STOPPED");
     } catch (err) {
+      console.error("Failed to stop run", err);
+      const errorMessage = err instanceof Error ? err.message : String(err);
       setRunLogs((l) => [
         ...l,
         {
           t: Date.now(),
           type: "error",
-          message: err instanceof Error ? err.message : String(err),
+          message: `Failed to stop run: ${errorMessage}`,
         },
       ]);
     }
-  }
+  }, [closeStream]);
 
   const selectedAgent = agents.find((a) => a.id === selectedId) || null;
 
@@ -408,8 +465,8 @@ export default function AgenticWorkflow() {
                 </button>
                 <button
                   onClick={() => runId && stopRun(runId)}
-                  disabled={!runId}
-                  className="px-3 py-2 bg-amber-400 text-black rounded disabled:opacity-50"
+                  disabled={!runId || runStatus === "STOPPED" || runStatus === "COMPLETED" || runStatus === "FAILED"}
+                  className="px-3 py-2 bg-amber-400 text-black rounded disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Stop
                 </button>
@@ -447,4 +504,5 @@ export default function AgenticWorkflow() {
     </div>
   );
 }
+
 

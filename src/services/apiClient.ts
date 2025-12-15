@@ -56,13 +56,100 @@ class APIClient {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        // Try to parse error response body
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        let errorDetails: unknown = null;
+
+        try {
+          const errorBody = await response.json();
+          if (errorBody && typeof errorBody === 'object') {
+            errorMessage = errorBody.message || errorBody.detail || errorBody.error || errorMessage;
+            errorDetails = errorBody;
+          }
+        } catch {
+          // If JSON parsing fails, try to get text
+          try {
+            const errorText = await response.text();
+            if (errorText) {
+              errorMessage = errorText;
+            }
+          } catch {
+            // Ignore text parsing errors
+          }
+        }
+
+        // Create enhanced error with status code
+        const apiError = new Error(errorMessage) as Error & {
+          statusCode: number;
+          statusText: string;
+          details?: unknown;
+          code?: string;
+          retryable?: boolean;
+        };
+        apiError.statusCode = response.status;
+        apiError.statusText = response.statusText;
+        apiError.details = errorDetails;
+
+        // Determine error code based on status
+        if (response.status === 401 || response.status === 403) {
+          apiError.code = 'AUTH_ERROR';
+          apiError.retryable = false;
+        } else if (response.status === 404) {
+          apiError.code = 'NOT_FOUND';
+          apiError.retryable = false;
+        } else if (response.status === 429) {
+          apiError.code = 'RATE_LIMIT';
+          apiError.retryable = true;
+        } else if (response.status >= 500) {
+          apiError.code = 'SERVER_ERROR';
+          apiError.retryable = true;
+        } else if (response.status >= 400) {
+          apiError.code = 'CLIENT_ERROR';
+          apiError.retryable = false;
+        }
+
+        throw apiError;
       }
 
-      return await response.json();
+      // Parse JSON response
+      try {
+        return await response.json();
+      } catch (parseError) {
+        throw new Error(`Failed to parse response from ${endpoint}`);
+      }
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
-      throw error;
+      // Handle network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        const networkError = new Error('Network error. Please check your internet connection.') as Error & {
+          code: string;
+          retryable: boolean;
+        };
+        networkError.code = 'NETWORK_ERROR';
+        networkError.retryable = true;
+        networkError.cause = error;
+        console.error(`API request failed (network): ${endpoint}`, networkError);
+        throw networkError;
+      }
+
+      // Re-throw if it's already an enhanced error
+      if (error instanceof Error && 'statusCode' in error) {
+        console.error(`API request failed: ${endpoint}`, error);
+        throw error;
+      }
+
+      // Wrap unknown errors
+      const wrappedError = new Error(
+        error instanceof Error ? error.message : `API request failed: ${endpoint}`
+      ) as Error & {
+        code: string;
+        retryable: boolean;
+        cause?: unknown;
+      };
+      wrappedError.code = 'UNKNOWN_ERROR';
+      wrappedError.retryable = false;
+      wrappedError.cause = error;
+      console.error(`API request failed: ${endpoint}`, wrappedError);
+      throw wrappedError;
     }
   }
 

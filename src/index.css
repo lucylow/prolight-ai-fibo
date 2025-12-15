@@ -97,8 +97,13 @@
   }
 
   .gradient-text {
-    @apply bg-clip-text text-transparent;
+    /* Fallback readable color */
+    @apply text-primary;
+
+    /* Gradient text where supported, without making text fully transparent */
     background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
   }
 }
 

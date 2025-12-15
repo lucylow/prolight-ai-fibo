@@ -46,19 +46,33 @@ export default function PricingPage() {
     setLoading(plan.id);
 
     try {
-      const { checkout_url } = await createCheckoutSession(
-        plan.name,
-        `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
-        `${window.location.origin}/cancel`
-      );
+      // Use mock checkout session for demo
+      const { createMockCheckoutSession } = await import("@/services/mockStripeService");
+      const session = await createMockCheckoutSession({
+        priceId: plan.stripe_price_id || `price_${plan.id}`,
+        successUrl: `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/cancel`,
+        mode: "subscription",
+      });
 
-      // Redirect to Stripe Checkout
-      window.location.href = checkout_url;
+      // Redirect to mock checkout page
+      navigate(`/checkout?session_id=${session.id}`);
     } catch (error: unknown) {
       console.error("Checkout error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to start checkout";
-      toast.error(errorMessage);
-      setLoading(null);
+      
+      // Fallback to real checkout if available
+      try {
+        const { checkout_url } = await createCheckoutSession(
+          plan.name,
+          `${window.location.origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+          `${window.location.origin}/cancel`
+        );
+        window.location.href = checkout_url;
+      } catch (fallbackError: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to start checkout";
+        toast.error(errorMessage);
+        setLoading(null);
+      }
     }
   };
 
@@ -213,4 +227,5 @@ export default function PricingPage() {
     </div>
   );
 }
+
 

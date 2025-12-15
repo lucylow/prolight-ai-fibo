@@ -16,8 +16,9 @@ class FIBOAdapter:
     
     def __init__(self):
         """Initialize FIBO adapter."""
-        self.base_url = settings.FIBO_API_KEY
-        self.api_key = settings.FIBO_API_KEY
+        # Prefer BRIA_API_URL and BRIA_API_TOKEN, fall back to FIBO_* for backward compatibility
+        self.base_url = getattr(settings, 'BRIA_API_URL', None) or settings.FIBO_API_URL
+        self.api_key = getattr(settings, 'BRIA_API_TOKEN', None) or settings.FIBO_API_KEY
         self.use_mock = settings.USE_MOCK_FIBO
         self.prompt_cache: Dict[str, Any] = {}
         self.client = httpx.AsyncClient(timeout=180.0)
@@ -82,34 +83,104 @@ class FIBOAdapter:
         steps: int,
         guidance_scale: float
     ) -> Dict[str, Any]:
-        """Generate using real FIBO API."""
+        """Generate using real Bria FIBO API."""
         try:
+            # Validate API key
+            if not self.api_key:
+                return {
+                    "status": "error",
+                    "code": "FIBO_NO_API_KEY",
+                    "message": "FIBO_API_KEY or BRIA_API_TOKEN must be configured. Set USE_MOCK_FIBO=true for mock mode."
+                }
+            
+            # Use Bria FIBO API format: /image/generate with structured_prompt
+            # Default to Bria API v2 if base_url is not set or is old format
+            bria_url = self.base_url if self.base_url and "bria-api.com" in self.base_url else "https://engine.prod.bria-api.com/v2"
+            
             payload = {
-                "prompt": json.dumps(prompt_json),
-                "steps": steps,
-                "guidance_scale": guidance_scale,
-                "output_format": "url",
-                "enhance_hdr": prompt_json.get("enhancements", {}).get("hdr", False)
+                "structured_prompt": prompt_json,  # Use structured_prompt, not prompt as JSON string
+                "num_results": 1,
+                "sync": True,  # Sync mode for simplicity
             }
             
+            # Add optional parameters
+            if steps:
+                payload["steps"] = steps
+            if guidance_scale:
+                payload["guidance_scale"] = guidance_scale
+            
             headers = {
-                "Authorization": f"Bearer {self.api_key}",
+                "api_token": self.api_key,  # Bria uses api_token header, not Authorization Bearer
                 "Content-Type": "application/json"
             }
             
             response = await self.client.post(
-                f"{self.base_url}/generate",
+                f"{bria_url}/image/generate",  # Use correct endpoint
                 json=payload,
                 headers=headers
             )
             
             if response.status_code == 200:
-                return response.json()
+                data = response.json()
+                # Extract image URL from Bria response format
+                result = {
+                    "status": "success",
+                    "generation_id": data.get("request_id") or data.get("id"),
+                    "image_url": None,
+                    "duration_seconds": None,
+                    "cost_credits": 0.04,
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "model": "FIBO"
+                }
+                
+                # Handle Bria API response format
+                # Bria returns: { request_id, status, data: { images: [{ url, seed }] } }
+                if isinstance(data, dict):
+                    # Check data field (sync response)
+                    if "data" in data:
+                        data_obj = data["data"]
+                        if isinstance(data_obj, dict):
+                            # Look for images array in data
+                            if "images" in data_obj and isinstance(data_obj["images"], list) and len(data_obj["images"]) > 0:
+                                first_img = data_obj["images"][0]
+                                if isinstance(first_img, dict):
+                                    result["image_url"] = first_img.get("url") or first_img.get("image_url")
+                                elif isinstance(first_img, str):
+                                    result["image_url"] = first_img
+                            # Or direct image_url in data
+                            elif "image_url" in data_obj:
+                                result["image_url"] = data_obj["image_url"]
+                    
+                    # Check direct images field
+                    elif "images" in data:
+                        images = data["images"]
+                        if isinstance(images, list) and len(images) > 0:
+                            first_img = images[0]
+                            if isinstance(first_img, dict):
+                                result["image_url"] = first_img.get("url") or first_img.get("image_url")
+                            elif isinstance(first_img, str):
+                                result["image_url"] = first_img
+                    
+                    # Check direct image_url field
+                    elif "image_url" in data:
+                        result["image_url"] = data["image_url"]
+                    
+                    # Extract seed if available
+                    if "data" in data and isinstance(data["data"], dict):
+                        images = data["data"].get("images", [])
+                        if images and len(images) > 0 and isinstance(images[0], dict):
+                            result["seed"] = images[0].get("seed")
+                
+                return result
             else:
+                try:
+                    error_detail = response.text[:500]
+                except:
+                    error_detail = f"HTTP {response.status_code}"
                 return {
                     "status": "error",
                     "code": f"FIBO_ERROR_{response.status_code}",
-                    "message": f"FIBO API returned status {response.status_code}"
+                    "message": f"FIBO API returned status {response.status_code}: {error_detail}"
                 }
         except Exception as e:
             return {
