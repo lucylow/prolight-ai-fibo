@@ -1,3 +1,4 @@
+// @ts-nocheck - Deno edge function uses URL imports (not Node.js modules)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -162,7 +163,9 @@ function analyzeColorTemperatures(lightingSetup: Record<string, LightSettings>) 
       averageTemperature: 5600, 
       temperatureRange: "5600K-5600K",
       harmonyScore: 1.0, 
-      harmonyAssessment: "neutral" 
+      harmonyAssessment: "neutral",
+      warmthDescription: "neutral",
+      temperatures: []
     };
   }
   
@@ -203,7 +206,7 @@ function analyzeShadowCharacteristics(lightingSetup: Record<string, LightSetting
   const fill = lightingSetup.fill;
   
   if (!key || !key.enabled) {
-    return { shadowIntensity: 0.1, shadowSoftness: 0.5, shadowCharacter: "soft" };
+    return { shadowIntensity: 0.1, shadowSoftness: 0.5, shadowCharacter: "soft", transitionQuality: "gradual" };
   }
   
   const fillIntensity = fill?.enabled ? fill.intensity : 0.1;
