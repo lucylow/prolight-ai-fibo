@@ -427,7 +427,7 @@ export const useProlightProStore = create<ProLightProStore>()(
 // 3. FIBO STRUCTURE BUILDER
 // ============================================================================
 
-function buildFIBOStructure(params: FIBOGenerationParams): Record<string, any> {
+function buildFIBOStructure(params: FIBOGenerationParams): Record<string, unknown> {
   const { camera, lighting, composition, post_processing, image_style, prompt } = params;
 
   return {
@@ -694,7 +694,7 @@ const CameraControlPanel: React.FC = () => {
             onChange={(e) =>
               store.setCameraSettings({
                 ...store.currentCamera,
-                metering_mode: e.target.value as any,
+                metering_mode: e.target.value as CameraSettings['metering_mode'],
               })
             }
             style={styles.select}
@@ -789,21 +789,21 @@ const LightingControlPanel: React.FC = () => {
     }
   };
 
-  const updateKeyLight = (field: string, value: any) => {
+  const updateKeyLight = (field: string, value: unknown) => {
     store.setLightingPreset({
       ...store.currentLighting,
       key_light: { ...store.currentLighting.key_light, [field]: value },
     });
   };
 
-  const updateFillLight = (field: string, value: any) => {
+  const updateFillLight = (field: string, value: unknown) => {
     store.setLightingPreset({
       ...store.currentLighting,
       fill_light: { ...store.currentLighting.fill_light, [field]: value },
     });
   };
 
-  const updateRimLight = (field: string, value: any) => {
+  const updateRimLight = (field: string, value: unknown) => {
     store.setLightingPreset({
       ...store.currentLighting,
       rim_light: { ...store.currentLighting.rim_light, [field]: value },
@@ -1153,10 +1153,10 @@ const ProLightProDifferentiator: React.FC = () => {
       </header>
 
       <div style={styles.tabBar}>
-        {['camera', 'lighting', 'fibo', 'batch'].map((tab) => (
+        {(['camera', 'lighting', 'fibo', 'batch'] as const).map((tab) => (
           <button
             key={tab}
-            onClick={() => store.setActiveTab(tab as any)}
+            onClick={() => store.setActiveTab(tab)}
             style={{
               ...styles.tabButton,
               ...(store.activeTab === tab ? styles.tabButtonActive : {}),

@@ -164,7 +164,7 @@ export default function ProLightProControls() {
               </div>
               <Slider
                 value={[lightConfig.fill_ratio]}
-                onValueChange={([value]) => onUpdate({ fill_ratio: value } as any)}
+                onValueChange={([value]) => onUpdate({ fill_ratio: value } as Partial<typeof lighting.key>)}
                 min={0}
                 max={1}
                 step={0.1}

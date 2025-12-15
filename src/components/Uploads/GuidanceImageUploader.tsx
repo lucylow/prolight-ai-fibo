@@ -118,10 +118,13 @@ export const GuidanceImageUploader: React.FC<GuidanceImageUploaderProps> = ({
           });
 
           toast.success(`Uploaded ${file.name}`);
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error("Upload failed:", error);
-          const errorMessage =
-            error.response?.data?.message || error.message || "Upload failed";
+          const errorMessage = error instanceof Error
+            ? error.message
+            : (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data && typeof error.response.data.message === 'string'
+              ? error.response.data.message
+              : "Upload failed");
           
           setUploads((prev) => {
             const next = new Map(prev);
@@ -276,4 +279,5 @@ export const GuidanceImageUploader: React.FC<GuidanceImageUploaderProps> = ({
     </div>
   );
 };
+
 

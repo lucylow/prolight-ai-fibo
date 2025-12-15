@@ -83,9 +83,14 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       onSave?.(newWorkflow);
       
       toast.success("Plan generated successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to generate plan:", error);
-      toast.error(error.response?.data?.message || error.message || "Failed to generate plan");
+      const errorMessage = error instanceof Error
+        ? error.message
+        : (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data && typeof error.response.data.message === 'string'
+          ? error.response.data.message
+          : "Failed to generate plan");
+      toast.error(errorMessage);
     } finally {
       setIsGeneratingPlan(false);
     }
@@ -109,9 +114,14 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
       setCurrentWorkflow(updated);
       onSave?.(updated);
       toast.success("Workflow saved");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to save workflow:", error);
-      toast.error(error.response?.data?.message || error.message || "Failed to save workflow");
+      const errorMessage = error instanceof Error
+        ? error.message
+        : (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data && typeof error.response.data.message === 'string'
+          ? error.response.data.message
+          : "Failed to save workflow");
+      toast.error(errorMessage);
     }
   }, [workflow, steps, onSave, upsertWorkflow, setCurrentWorkflow]);
 
@@ -288,4 +298,5 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({
     </div>
   );
 };
+
 

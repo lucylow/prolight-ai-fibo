@@ -33,8 +33,22 @@ interface MainLayoutProps {
   children: React.ReactNode;
 }
 
+type NavItem = {
+  path: string;
+  label: string;
+  icon: React.ComponentType;
+  auth?: boolean;
+  role?: string;
+  description: string;
+};
+
 // Navigation structure with grouped items - organized by user journey
-const navigationGroups = {
+const navigationGroups: {
+  create: NavItem[];
+  learn: NavItem[];
+  company: NavItem[];
+  account: NavItem[];
+} = {
   // Primary actions - tools for creating and managing lighting
   create: [
     { path: '/studio', label: 'Studio', icon: FlaskConical, auth: false, description: 'Create lighting setups' },
@@ -152,7 +166,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const filteredSearchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
-    return allNavItems.filter((item: any) => {
+    return allNavItems.filter((item: NavItem) => {
       if (item.auth && !auth.user) return false;
       if (item.role && auth.user?.role !== item.role) return false;
       return (
