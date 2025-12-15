@@ -62,38 +62,51 @@ ProLight AI is an **AI-powered professional lighting simulator** that revolution
 
 ---
 
+## 🤖 AI & FIBO Capabilities
+
+### What Makes ProLight AI Different?
+
+ProLight AI leverages **BRIA FIBO (Fine-grained Image Boosting Optimization)**—a revolutionary JSON-native architecture that transforms how AI generates images. Instead of relying on ambiguous text prompts that produce inconsistent results, FIBO uses structured JSON parameters for **deterministic, reproducible image generation**.
+
+### Core AI Features
+
+#### 1. **FIBO JSON-Native Generation**
+- **Structured Parameters**: Every aspect of lighting, camera, and composition is controlled through precise JSON schemas
+- **Deterministic Results**: Same parameters + seed = identical output every time
+- **Professional Control**: Camera settings, lighting parameters, and composition controls are all programmatically defined
+- **Type-Safe**: Full TypeScript support with validation ensures parameter correctness
+
+#### 2. **Natural Language to FIBO Conversion**
+- **Google Gemini AI Integration**: Describe your lighting setup in plain English
+- **Intelligent Parsing**: AI automatically converts descriptions to structured FIBO JSON
+- **Context Understanding**: Gemini understands photographic terminology and lighting concepts
+- **Multi-Modal Input**: Supports both natural language and direct parameter control
+
+#### 3. **AI-Powered Lighting Analysis**
+- **Professional Rating System**: AI evaluates lighting quality on a 1-10 scale
+- **Intelligent Recommendations**: Get expert suggestions for improving your lighting setup
+- **Color Harmony Analysis**: AI assesses temperature consistency and mood
+- **Style Classification**: Automatically identifies lighting styles (Rembrandt, Butterfly, etc.)
+
+#### 4. **Deterministic Image Generation**
+- **Seed-Based Reproducibility**: Generate identical images with the same seed value
+- **Parameter Disentanglement**: Modify individual lighting elements without affecting others
+- **Iterative Refinement**: Fine-tune parameters for perfect results
+- **Commercial Licensing**: Fully licensed for commercial use
+
+### FIBO vs. Traditional AI Generators
+
+| Feature | Traditional AI | ProLight AI (FIBO) |
+|---------|---------------|---------------------|
+| **Input Method** | Text prompts | Structured JSON |
+| **Reproducibility** | Variable results | Deterministic (same params = same output) |
+| **Parameter Control** | Limited | Precise, granular control |
+| **Professional Use** | Unpredictable | Production-ready |
+| **Lighting Control** | Text description | Precise parameters (intensity, temperature, etc.) |
+
+---
+
 ## 🚀 Quick Start
-
-### Lovable Deployment (Recommended)
-
-**Fastest way to get ProLight AI running:**
-
-1. **Import to Lovable**
-   - Go to [Lovable.dev](https://lovable.dev)
-   - Click "New Project" → "Import from Repository"
-   - Connect your GitHub repository
-
-2. **Configure Environment Variables**
-   
-   In Lovable project settings → Environment Variables, add:
-   ```bash
-   # Required - Supabase Configuration
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key-here
-   
-   # Required - BRIA API
-   BRIA_API_KEY=your_bria_api_key_here
-   
-   # Optional - Google Gemini (for natural language)
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-3. **Deploy**
-   - Click **"Deploy"** in Lovable dashboard
-   - Wait for build (~2-3 minutes)
-   - Your app will be live!
-
-**📖 Detailed Lovable Guide**: See [LOVABLE_DEPLOYMENT.md](./docs/LOVABLE_DEPLOYMENT.md) for complete setup instructions.
 
 ### Local Development
 
@@ -156,16 +169,17 @@ The application will be available at `http://localhost:8080`.
 - **Professional Presets**: Butterfly, Rembrandt, dramatic fashion, soft portrait, split lighting, and clamshell setups
 - **Lighting Ratio Analysis**: Real-time key-to-fill ratio calculation with professional style classification
 
-### 🤖 **FIBO JSON-Native Integration**
+### 🤖 **FIBO JSON-Native AI Integration**
 
-- **Structured JSON Generation**: Convert natural language to precise FIBO JSON schemas via Gemini AI
-- **Deterministic Results**: Same parameters + seed = identical output every time
-- **Parameter Disentanglement**: Modify individual lighting elements without affecting others
-- **Three Operation Modes**: 
-  - **Generate**: Direct lighting parameter control
-  - **Refine**: Iterative parameter adjustment
-  - **Inspire**: Natural language to structured conversion
-- **FIBO Schema Compliance**: Full adherence to BRIA FIBO specification with validation
+- **AI-Powered Structured Generation**: Google Gemini AI converts natural language to precise FIBO JSON schemas
+- **Deterministic AI Results**: Same parameters + seed = identical output every time (unlike text-based AI generators)
+- **Intelligent Parameter Control**: AI-assisted parameter disentanglement—modify individual lighting elements without affecting others
+- **Three AI Operation Modes**: 
+  - **Generate**: Direct FIBO parameter control with AI validation
+  - **Refine**: AI-powered iterative parameter optimization
+  - **Inspire**: Natural language to FIBO JSON conversion via Gemini AI
+- **FIBO Schema Compliance**: Full adherence to BRIA FIBO specification with AI-powered validation
+- **Commercial AI Licensing**: Fully licensed FIBO model for commercial use
 
 ### 📊 **Advanced Analysis**
 
@@ -364,36 +378,7 @@ curl -X POST http://localhost:54321/functions/v1/generate-lighting \
 
 ## 🚀 Deployment
 
-### Lovable Cloud (Recommended)
-
-**Fastest deployment option with automatic builds and hosting:**
-
-1. **Import Project**
-   - Go to [Lovable.dev](https://lovable.dev)
-   - Click "New Project" → "Import from Repository"
-   - Connect your GitHub repository
-
-2. **Configure Environment Variables**
-   
-   In Lovable project settings → Environment Variables:
-   ```bash
-   # Required
-   VITE_SUPABASE_URL=https://your-project.supabase.co
-   VITE_SUPABASE_ANON_KEY=your-anon-key-here
-   BRIA_API_KEY=your_bria_api_key_here
-   
-   # Optional
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-3. **Deploy**
-   - Click **"Deploy"** button
-   - Wait for build (~2-3 minutes)
-   - Your app is live!
-
-**📖 Complete Guide**: See [LOVABLE_DEPLOYMENT.md](./LOVABLE_DEPLOYMENT.md)
-
-### Vercel + Supabase
+### Vercel + Supabase (Recommended)
 
 **Frontend Deployment (Vercel):**
 
@@ -447,6 +432,7 @@ docker run -d \
 - **Railway**: See [Deployment Guide](./docs/DEPLOYMENT.md)
 - **Heroku**: See [Deployment Guide](./docs/DEPLOYMENT.md)
 - **AWS/GCP/Azure**: See [Deployment Guide](./docs/DEPLOYMENT.md)
+- **Lovable**: See [LOVABLE_DEPLOYMENT.md](./LOVABLE_DEPLOYMENT.md) for alternative deployment option
 
 ---
 
@@ -715,11 +701,11 @@ graph TB
 | **Build Tool** | Vite | 5.4.19 | Next-generation frontend tooling |
 | **Edge Runtime** | Deno | 1.40 | TypeScript-native runtime for edge functions |
 | **Edge Functions** | Supabase Edge Functions | Latest | Serverless functions on Deno |
-| **AI/ML** | BRIA FIBO API | v2 | Structured image generation |
-| **NLP** | Google Gemini | Latest | Natural language processing |
+| **AI/ML** | BRIA FIBO API | v2 | Structured, deterministic image generation |
+| **NLP** | Google Gemini | Latest | Natural language to FIBO JSON conversion |
 | **Database** | Supabase PostgreSQL | Latest | Relational database with real-time |
 | **Storage** | Supabase Storage | Latest | Object storage for images |
-| **Deployment** | Vercel / Lovable | Latest | Frontend deployment platform |
+| **Deployment** | Vercel | Latest | Frontend deployment platform |
 
 ---
 
@@ -1056,8 +1042,8 @@ If you encounter issues not covered here:
 - **[Video Editing Integration](./VIDEO_EDITING_QUICKSTART.md)** - Video editing features
 
 ### Deployment Guides
-- **[Lovable Deployment Guide](./LOVABLE_DEPLOYMENT.md)** - Complete Lovable setup
-- **[Lovable Edge Functions Setup](./docs/LOVABLE_EDGE_FUNCTIONS_SETUP.md)** - Edge function configuration
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Complete deployment instructions
+- **[FIBO Integration Guide](./docs/FIBO_INTEGRATION.md)** - Deep dive into FIBO architecture
 
 ### Backend Documentation
 - **[Backend README](./backend/README.md)** - Backend setup and API documentation
