@@ -70,7 +70,7 @@ const Invoices = () => {
     try {
       // Try server-side API first (supports cursor-based pagination)
       try {
-        const params: Record<string, any> = {
+        const params: Record<string, string | number | undefined> = {
           limit: perPage,
         };
         
@@ -95,7 +95,7 @@ const Invoices = () => {
           const items = response.data.items;
           
           // Normalize invoice data
-          const normalizedInvoices: Invoice[] = items.map((inv: any) => ({
+          const normalizedInvoices: Invoice[] = items.map((inv: Record<string, unknown>) => ({
             id: inv.id || inv.stripe_invoice_id || `inv_${Date.now()}`,
             number: inv.number || inv.invoice_number || inv.id?.substring(0, 12),
             stripe_invoice_id: inv.stripe_invoice_id || inv.id,
@@ -134,9 +134,12 @@ const Invoices = () => {
           setTotal(response.data.total || normalizedInvoices.length);
           return;
         }
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         // If API endpoint doesn't exist, fall back to mock data
-        if (apiError.response?.status !== 404) {
+        const status = apiError && typeof apiError === 'object' && 'response' in apiError
+          ? (apiError as { response?: { status?: number } }).response?.status
+          : undefined;
+        if (status !== 404) {
           throw apiError;
         }
       }

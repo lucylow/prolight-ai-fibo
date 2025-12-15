@@ -47,4 +47,7 @@ def enqueue_run(queue_name: str, payload: Dict[str, Any], priority: int = 1) -> 
     except Exception as e:
         logger.warning(f"Failed to enqueue task: {e}")
         return None
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes

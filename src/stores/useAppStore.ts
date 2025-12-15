@@ -40,7 +40,7 @@ export type CameraJson = {
 type AppStore = {
   cameraJson: CameraJson;
   setCameraJson: (json: CameraJson) => void;
-  updateCameraField: (path: string, value: any) => void;
+  updateCameraField: (path: string, value: unknown) => void;
   resetCameraJson: () => void;
 };
 
@@ -77,24 +77,27 @@ export const useAppStore = create<AppStore>((set, get) => ({
   
   setCameraJson: (json) => set({ cameraJson: json }),
   
-  updateCameraField: (path: string, value: any) => {
+  updateCameraField: (path: string, value: unknown) => {
     const cameraJson = { ...get().cameraJson };
     
     // Deep clone to avoid mutation
-    const deepClone = (obj: any): any => {
+    const deepClone = (obj: unknown): unknown => {
       if (obj === null || typeof obj !== "object") return obj;
       if (obj instanceof Array) return obj.map(deepClone);
-      return Object.keys(obj).reduce((acc, key) => {
-        acc[key] = deepClone(obj[key]);
-        return acc;
-      }, {} as any);
+      if (typeof obj === 'object') {
+        return Object.keys(obj).reduce((acc, key) => {
+          acc[key] = deepClone((obj as Record<string, unknown>)[key]);
+          return acc;
+        }, {} as Record<string, unknown>);
+      }
+      return obj;
     };
     
-    const cloned = deepClone(cameraJson);
+    const cloned = deepClone(cameraJson) as CameraJson;
     
     // Navigate to the nested path and set the value
     const parts = path.split(".");
-    let current: any = cloned;
+    let current: Record<string, unknown> = cloned as Record<string, unknown>;
     
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
@@ -128,4 +131,5 @@ export const useAppStore = create<AppStore>((set, get) => ({
  * ```
  */
 export default useAppStore;
+
 

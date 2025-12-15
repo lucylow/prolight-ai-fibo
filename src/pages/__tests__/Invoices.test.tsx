@@ -23,7 +23,7 @@ describe("Invoices", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useAuth as any).mockReturnValue({ api: mockApi });
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ api: mockApi });
   });
 
   it("renders invoices page", () => {
@@ -82,4 +82,5 @@ describe("Invoices", () => {
     );
   });
 });
+
 
