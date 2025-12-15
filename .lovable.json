@@ -5,6 +5,7 @@
     "/",
     "/sign-in",
     "/signout",
+    "/forgot-password",
     "/studio",
     "/presets",
     "/natural-language",
@@ -53,6 +54,7 @@
     "/bria/image-editing",
     "/bria/video-editing",
     "/bria/v1-generator",
-    "/demo/free-apis"
+    "/demo/free-apis",
+    "/agentic-workflows"
   ]
 }

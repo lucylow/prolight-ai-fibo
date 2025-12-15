@@ -65,7 +65,7 @@ class Subscription(Base):
 
     status = Column(String(64), nullable=False)
     price_id = Column(String(255), nullable=True)
-    stripe_subscription_item_id = Column(String(255), nullable=True, index=True)  # store this for usage reporting
+    subscription_item_id = Column(String(255), nullable=True)  # store this for usage reporting
     interval = Column(String(32), nullable=True)
 
     current_period_start = Column(DateTime, nullable=True)

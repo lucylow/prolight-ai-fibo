@@ -112,12 +112,14 @@ async def start_run(agent_id: str, run_data: RunCreate, background: BackgroundTa
         logger.warning(f"Failed to enqueue, running in background: {e}")
         background.add_task(run_workflow, ctx)
     
-    return RunResponse(
-        run_id=ctx.run_id,
-        agent_id=agent_id,
-        state=ctx.state.value,
-        created_at=ctx.created_at.isoformat(),
-    )
+    # Return runId for frontend compatibility
+    return {
+        "runId": ctx.run_id,  # Frontend expects runId
+        "run_id": ctx.run_id,  # Also include run_id for consistency
+        "agent_id": agent_id,
+        "state": ctx.state.value,
+        "created_at": ctx.created_at.isoformat(),
+    }
 
 
 @router.get("/{run_id}", response_model=RunDetailResponse)
@@ -163,4 +165,22 @@ async def approve_run(run_id: str, approval: RunApproveRequest):
         "run_id": run_id,
         "state": ctx.state.value,
         "approved": approval.approved,
+    }
+
+
+@router.post("/{run_id}/stop")
+async def stop_run(run_id: str):
+    """Stop a running workflow."""
+    if run_id not in _runs_store:
+        raise HTTPException(status_code=404, detail="Run not found")
+    
+    ctx = _runs_store[run_id]
+    ctx.state = WorkflowState.STOPPED
+    _runs_store[run_id] = ctx
+    
+    logger.info(f"Stopped run: {run_id}")
+    return {
+        "run_id": run_id,
+        "state": "STOPPED",
+        "message": "Run stopped successfully",
     }

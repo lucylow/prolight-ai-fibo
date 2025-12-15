@@ -5,7 +5,7 @@
 
 /**
  * Validates required environment variables
- * @throws Error if required variables are missing in production
+ * Note: In Lovable builds, env vars may be set at runtime, so we only warn, never throw
  */
 export function validateEnv(): void {
   const required = [
@@ -18,12 +18,11 @@ export function validateEnv(): void {
   if (missing.length > 0) {
     const message = `Missing required environment variables: ${missing.join(', ')}`;
     
-    if (import.meta.env.PROD) {
-      throw new Error(message);
-    } else {
-      console.warn(`[DEV] ${message}`);
-      console.warn('Some features may not work correctly without these variables.');
-    }
+    // Always warn, but never throw - Lovable may set env vars at runtime
+    // Throwing would break the build process
+    console.warn(`[ENV] ${message}`);
+    console.warn('Some features may not work correctly without these variables.');
+    console.warn('These can be set in Lovable project settings → Environment Variables.');
   }
 }
 

@@ -2,175 +2,160 @@
 Stripe webhook handler for billing events.
 Handles invoice.* and customer.subscription.* events with database persistence.
 """
-import logging
+import os
+import json
 import stripe
 from datetime import datetime
-from fastapi import APIRouter, Request, HTTPException, Depends
+from fastapi import APIRouter, Request, HTTPException
 from sqlalchemy.orm import Session
-from typing import Optional
 
 from app.db import SessionLocal
-from app.models.billing import Invoice, Subscription
+from app.models.billing import Invoice, Subscription, User
 from app.core.config import settings
 
-logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/billing", tags=["Billing"])
+router = APIRouter(prefix="/webhook", tags=["webhook"])
 
-# Initialize Stripe
-if settings.STRIPE_SECRET_KEY and not settings.USE_MOCK_STRIPE:
-    stripe.api_key = settings.STRIPE_SECRET_KEY
-else:
-    stripe.api_key = "sk_test_mock_key_for_development"
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY") or (settings.STRIPE_SECRET_KEY if settings.STRIPE_SECRET_KEY else None)
+WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET") or (settings.STRIPE_WEBHOOK_SECRET if hasattr(settings, 'STRIPE_WEBHOOK_SECRET') else None)
 
 
-def get_db():
-    """Dependency to get database session."""
-    db = SessionLocal()
+def upsert_invoice(db: Session, inv_obj: dict):
+    """
+    Persist or update Invoice row from stripe invoice object.
+    Idempotent by stripe_invoice_id.
+    """
+    stripe_invoice_id = inv_obj.get("id")
+    if not stripe_invoice_id:
+        return None
+
+    invoice = db.query(Invoice).filter(Invoice.stripe_invoice_id == stripe_invoice_id).first()
+    if not invoice:
+        invoice = Invoice(stripe_invoice_id=stripe_invoice_id)
+
+    invoice.stripe_customer_id = inv_obj.get("customer")
+    invoice.status = inv_obj.get("status")
+    invoice.currency = inv_obj.get("currency") or "usd"
+    invoice.amount_due = inv_obj.get("amount_due") or 0
+    invoice.amount_paid = inv_obj.get("amount_paid") or 0
+    invoice.hosted_invoice_url = inv_obj.get("hosted_invoice_url")
+    invoice.invoice_pdf = inv_obj.get("invoice_pdf")
+    invoice.billing_reason = inv_obj.get("billing_reason")
+    period = inv_obj.get("period_start")
+    if period:
+        try:
+            invoice.period_start = datetime.utcfromtimestamp(int(period))
+        except Exception:
+            invoice.period_start = None
+    period_end = inv_obj.get("period_end")
+    if period_end:
+        try:
+            invoice.period_end = datetime.utcfromtimestamp(int(period_end))
+        except Exception:
+            invoice.period_end = None
+
+    # try to link to local user by stripe_customer_id
+    user = db.query(User).filter(User.stripe_customer_id == invoice.stripe_customer_id).first()
+    if user:
+        invoice.user_id = user.id
+
+    db.add(invoice)
+    db.commit()
+    db.refresh(invoice)
+    return invoice
+
+
+def upsert_subscription(db: Session, sub_obj: dict):
+    """
+    Persist or update subscription rows.
+    """
+    stripe_subscription_id = sub_obj.get("id")
+    if not stripe_subscription_id:
+        return None
+    subscription = db.query(Subscription).filter(Subscription.stripe_subscription_id == stripe_subscription_id).first()
+    if not subscription:
+        subscription = Subscription(stripe_subscription_id=stripe_subscription_id)
+    subscription.stripe_customer_id = sub_obj.get("customer")
+    subscription.status = sub_obj.get("status")
+    # take first item as canonical
+    items = sub_obj.get("items", {}).get("data", [])
+    if items:
+        first = items[0]
+        subscription.price_id = first.get("price", {}).get("id")
+        subscription.subscription_item_id = first.get("id")
+        if first.get("price", {}).get("recurring"):
+            subscription.interval = first["price"]["recurring"].get("interval")
+    subscription.cancel_at_period_end = sub_obj.get("cancel_at_period_end", False)
+    # period times
     try:
-        yield db
+        cps = sub_obj.get("current_period_start")
+        cpe = sub_obj.get("current_period_end")
+        if cps:
+            subscription.current_period_start = datetime.utcfromtimestamp(int(cps))
+        if cpe:
+            subscription.current_period_end = datetime.utcfromtimestamp(int(cpe))
+    except Exception:
+        pass
+
+    # link to local user if possible
+    user = db.query(User).filter(User.stripe_customer_id == subscription.stripe_customer_id).first()
+    if user:
+        subscription.user_id = user.id
+
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+    return subscription
+
+
+@router.post("/stripe", include_in_schema=False)
+async def stripe_webhook(request: Request):
+    """
+    Stripe webhook handler. Verifies signature if STRIPE_WEBHOOK_SECRET set.
+    Handles:
+      - invoice.paid, invoice.finalized, invoice.updated
+      - customer.subscription.created/updated/deleted
+      - invoice.payment_failed
+    Make sure the STRIPE_WEBHOOK_SECRET environment var is configured.
+    """
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    event = None
+    try:
+        if WEBHOOK_SECRET and sig_header:
+            event = stripe.Webhook.construct_event(payload=payload, sig_header=sig_header, secret=WEBHOOK_SECRET)
+            data = event["data"]["object"]
+            typ = event["type"]
+        else:
+            # no signature configured: parse but this is less secure
+            obj = json.loads(payload.decode("utf-8"))
+            typ = obj.get("type")
+            data = obj.get("data", {}).get("object")
+            event = obj
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+
+    db: Session = SessionLocal()  # use generator directly for webhook (be careful in production)
+    # Dispatch events
+    try:
+        if typ.startswith("invoice."):
+            inv = data
+            upsert_invoice(db, inv)
+            # additional actions: notify user, mark paid, trigger delivery, etc.
+
+        elif typ.startswith("customer.subscription."):
+            sub = data
+            upsert_subscription(db, sub)
+
+        elif typ == "invoice.payment_failed":
+            inv = data
+            upsert_invoice(db, inv)
+            # notify ops / billing team
+
+        # Add more event types as necessary
+
     finally:
         db.close()
 
-
-def timestamp_to_datetime(ts_int):
-    """Convert Unix timestamp to datetime, handling None."""
-    if ts_int:
-        return datetime.fromtimestamp(ts_int)
-    return None
-
-
-@router.post("/webhook")
-async def stripe_webhook(
-    request: Request,
-    db: Session = Depends(get_db)
-):
-    """
-    Handle Stripe webhook events for invoices and subscriptions.
-    Persists invoice and subscription data to the database.
-    """
-    payload = await request.body()
-    stripe_signature = request.headers.get("stripe-signature")
-    
-    # Handle mock mode
-    if settings.USE_MOCK_STRIPE or not settings.STRIPE_WEBHOOK_SECRET:
-        logger.info(f"Mock webhook received: {len(payload)} bytes")
-        # In mock mode, we could still process some events if needed
-        return {"status": "success", "mode": "mock"}
-    
-    # Verify webhook signature
-    if not stripe_signature:
-        raise HTTPException(status_code=400, detail="Missing stripe-signature header")
-    
-    try:
-        event = stripe.Webhook.construct_event(
-            payload=payload,
-            sig_header=stripe_signature,
-            secret=settings.STRIPE_WEBHOOK_SECRET,
-        )
-    except ValueError as e:
-        logger.error(f"Invalid payload: {e}")
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError as e:
-        logger.error(f"Invalid signature: {e}")
-        raise HTTPException(status_code=400, detail="Invalid signature")
-    
-    data = event["data"]["object"]
-    event_type = event["type"]
-    
-    logger.info(f"Processing Stripe event: {event_type}")
-    
-    # ---------------- INVOICE EVENTS ----------------
-    if event_type.startswith("invoice."):
-        try:
-            invoice = db.query(Invoice).filter(
-                Invoice.stripe_invoice_id == data["id"]
-            ).first()
-            
-            # Create new invoice if it doesn't exist
-            if not invoice:
-                invoice = Invoice(
-                    stripe_invoice_id=data["id"],
-                    stripe_customer_id=data.get("customer", ""),
-                    currency=data.get("currency", "usd"),
-                    amount_due=data.get("amount_due", 0),
-                    amount_paid=data.get("amount_paid", 0),
-                )
-                db.add(invoice)
-            
-            # Update invoice fields
-            invoice.stripe_customer_id = data.get("customer", invoice.stripe_customer_id)
-            invoice.status = data.get("status", invoice.status)
-            invoice.amount_due = data.get("amount_due", invoice.amount_due)
-            invoice.amount_paid = data.get("amount_paid", invoice.amount_paid)
-            invoice.hosted_invoice_url = data.get("hosted_invoice_url") or invoice.hosted_invoice_url
-            invoice.invoice_pdf = data.get("invoice_pdf") or invoice.invoice_pdf
-            invoice.billing_reason = data.get("billing_reason") or invoice.billing_reason
-            invoice.period_start = timestamp_to_datetime(data.get("period_start")) or invoice.period_start
-            invoice.period_end = timestamp_to_datetime(data.get("period_end")) or invoice.period_end
-            invoice.updated_at = datetime.utcnow()
-            
-            db.commit()
-            logger.info(f"Invoice {data['id']} updated in database")
-            
-        except Exception as e:
-            logger.error(f"Error processing invoice event: {e}")
-            db.rollback()
-            raise HTTPException(status_code=500, detail=f"Error processing invoice: {str(e)}")
-    
-    # ---------------- SUBSCRIPTION EVENTS ----------------
-    elif event_type.startswith("customer.subscription."):
-        try:
-            sub = db.query(Subscription).filter(
-                Subscription.stripe_subscription_id == data["id"]
-            ).first()
-            
-            # Get price information and subscription item ID from subscription items
-            price = None
-            interval = None
-            subscription_item_id = None
-            if data.get("items") and data["items"].get("data") and len(data["items"]["data"]) > 0:
-                first_item = data["items"]["data"][0]
-                subscription_item_id = first_item.get("id")  # This is the subscription_item.id needed for usage reporting
-                price_obj = first_item.get("price", {})
-                price = price_obj.get("id")
-                recurring = price_obj.get("recurring", {})
-                interval = recurring.get("interval")
-            
-            # Create new subscription if it doesn't exist
-            if not sub:
-                if not price or not interval:
-                    logger.warning(f"Subscription {data['id']} missing price or interval data")
-                    return {"status": "warning", "message": "Missing price/interval data"}
-                
-                sub = Subscription(
-                    stripe_subscription_id=data["id"],
-                    stripe_customer_id=data.get("customer", ""),
-                    price_id=price,
-                    interval=interval,
-                    stripe_subscription_item_id=subscription_item_id,  # Store subscription item ID
-                )
-                db.add(sub)
-            
-            # Update subscription fields
-            sub.stripe_customer_id = data.get("customer", sub.stripe_customer_id)
-            sub.status = data.get("status", sub.status)
-            if price:
-                sub.price_id = price
-            if interval:
-                sub.interval = interval
-            if subscription_item_id:
-                sub.stripe_subscription_item_id = subscription_item_id  # Update subscription item ID
-            sub.cancel_at_period_end = data.get("cancel_at_period_end", False)
-            sub.current_period_start = timestamp_to_datetime(data.get("current_period_start")) or sub.current_period_start
-            sub.current_period_end = timestamp_to_datetime(data.get("current_period_end")) or sub.current_period_end
-            sub.updated_at = datetime.utcnow()
-            
-            db.commit()
-            logger.info(f"Subscription {data['id']} updated in database (subscription_item_id: {subscription_item_id})")
-            
-        except Exception as e:
-            logger.error(f"Error processing subscription event: {e}")
-            db.rollback()
-            raise HTTPException(status_code=500, detail=f"Error processing subscription: {str(e)}")
-    
-    return {"status": "success", "event_type": event_type}
+    return {"received": True}

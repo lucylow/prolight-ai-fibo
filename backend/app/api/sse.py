@@ -40,19 +40,38 @@ async def event_generator(run_id: str) -> AsyncGenerator[dict, None]:
                 
                 # Only send update if state changed
                 if current_state != last_state or current_update != last_update:
-                    event_data = {
-                        "run_id": run_id,
-                        "state": current_state,
-                        "plan": ctx.plan,
-                        "critique": ctx.critique,
-                        "result": ctx.result,
-                        "error": ctx.error,
-                        "updated_at": current_update,
+                    import json
+                    # Frontend expects: {type: "status", data: {status: "...", message: "..."}}
+                    event_payload = {
+                        "type": "status",
+                        "data": {
+                            "status": current_state.lower(),
+                            "message": f"Status: {current_state}",
+                            "run_id": run_id,
+                            "plan": ctx.plan,
+                            "critique": ctx.critique,
+                            "result": ctx.result,
+                            "error": ctx.error,
+                        }
                     }
                     
+                    # Also check for proposal/plan to send proposal event for HITL
+                    if ctx.plan and current_state in ["CRITIQUED", "PROPOSED"]:
+                        # Send proposal event for HITL - frontend expects proposal in data.proposal
+                        proposal_event = {
+                            "type": "proposal",
+                            "data": {
+                                "proposal": ctx.plan if isinstance(ctx.plan, dict) else {"plan": ctx.plan}
+                            }
+                        }
+                        yield {
+                            "event": "message",
+                            "data": json.dumps(proposal_event),
+                        }
+                    
                     yield {
-                        "event": "status",
-                        "data": str(event_data),
+                        "event": "message",
+                        "data": json.dumps(event_payload),
                     }
                     
                     last_state = current_state
@@ -60,9 +79,16 @@ async def event_generator(run_id: str) -> AsyncGenerator[dict, None]:
                     
                     # If completed or failed, close connection
                     if current_state in ["COMPLETED", "FAILED"]:
+                        complete_event = {
+                            "type": "status",
+                            "data": {
+                                "status": current_state.lower(),
+                                "message": f"Run {run_id} finished with state: {current_state}",
+                            }
+                        }
                         yield {
-                            "event": "complete",
-                            "data": f"Run {run_id} finished with state: {current_state}",
+                            "event": "message",
+                            "data": json.dumps(complete_event),
                         }
                         break
             else:

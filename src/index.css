@@ -342,18 +342,30 @@
 
   /* Better scrollbar styling */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
   }
 
   ::-webkit-scrollbar-track {
     @apply bg-muted/20;
+    border-radius: 10px;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-muted-foreground/30 rounded-full;
+    @apply bg-muted-foreground/30 rounded-full border-2 border-transparent;
+    background-clip: padding-box;
     @apply hover:bg-muted-foreground/50;
     transition: background-color 0.2s;
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    @apply bg-muted-foreground/70;
+  }
+
+  /* Firefox scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) hsl(var(--muted) / 0.2);
   }
 
   /* Smooth shimmer animation for skeletons */
@@ -617,6 +629,71 @@
     opacity: 0;
     transform: translateY(-12px);
     transition: opacity 200ms ease-in, transform 200ms ease-in;
+  }
+
+  /* Enhanced loading animations */
+  @keyframes shimmer-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.3), 0 0 40px hsl(var(--primary) / 0.2);
+    }
+    50% {
+      box-shadow: 0 0 30px hsl(var(--primary) / 0.5), 0 0 60px hsl(var(--primary) / 0.3);
+    }
+  }
+
+  .animate-shimmer-glow {
+    animation: shimmer-glow 2s ease-in-out infinite;
+  }
+
+  /* Better focus ring for better visibility */
+  .focus-ring-primary {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  /* Smooth gradient animations */
+  @keyframes gradient-x {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-gradient-x {
+    background-size: 200% 200%;
+    animation: gradient-x 3s ease infinite;
+  }
+
+  /* Better card hover effects */
+  .card-hover-effect {
+    @apply transition-all duration-300;
+    @apply hover:shadow-xl hover:-translate-y-1 hover:scale-[1.02];
+    @apply active:scale-[0.98];
+  }
+
+  /* Improved button ripple effect */
+  .button-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .button-ripple::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+
+  .button-ripple:active::after {
+    width: 300px;
+    height: 300px;
   }
 }
 

@@ -77,15 +77,15 @@ const Index = () => {
           
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6 sm:mb-8">
             <Link to="/studio" className="w-full sm:w-auto">
-              <Button size="lg" className="gradient-fibo rounded-full animate-pulse-glow group w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8">
-                <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> 
+              <Button size="lg" className="gradient-fibo rounded-full animate-pulse-glow group w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/40">
+                <Zap className="mr-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:rotate-12 transition-transform duration-200" /> 
                 <span className="whitespace-nowrap">Launch Simulator</span>
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
               </Button>
             </Link>
             <a href="#demo" className="w-full sm:w-auto">
-              <Button size="lg" variant="outline" className="rounded-full border-muted-foreground/30 hover:border-primary hover:text-primary backdrop-blur-sm w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8">
-                <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> <span className="whitespace-nowrap">Watch Demo</span>
+              <Button size="lg" variant="outline" className="rounded-full border-muted-foreground/30 hover:border-primary hover:text-primary backdrop-blur-sm w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 hover:scale-105 active:scale-95 transition-all duration-200 hover:shadow-lg hover:bg-accent/50">
+                <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform duration-200" /> <span className="whitespace-nowrap">Watch Demo</span>
               </Button>
             </a>
           </div>
@@ -122,15 +122,15 @@ const Index = () => {
               key={i} 
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="glass-card-premium p-6 sm:p-8 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group"
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ delay: i * 0.1, type: "spring", stiffness: 100 }}
+              className="glass-card-premium p-6 sm:p-8 hover:-translate-y-2 hover:shadow-2xl transition-all duration-300 group cursor-pointer active:scale-[0.98]"
             >
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl gradient-fibo flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 transition-transform">
-                <feature.icon className="h-6 w-6 sm:h-7 sm:w-7" />
+              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl gradient-fibo flex items-center justify-center mb-4 sm:mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 shadow-lg shadow-primary/20 group-hover:shadow-xl group-hover:shadow-primary/40">
+                <feature.icon className="h-6 w-6 sm:h-7 sm:w-7 group-hover:scale-110 transition-transform duration-300" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3">{feature.title}</h3>
-              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{feature.desc}</p>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2 sm:mb-3 group-hover:text-primary transition-colors duration-200">{feature.title}</h3>
+              <p className="text-sm sm:text-base text-muted-foreground leading-relaxed group-hover:text-foreground/80 transition-colors duration-200">{feature.desc}</p>
             </motion.div>
           ))}
         </div>
