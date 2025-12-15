@@ -5,6 +5,7 @@ This document describes the comprehensive implementation of Bria AI features for
 ## Overview
 
 The implementation includes:
+
 1. **Backend Bria Client** - Enhanced with all new API methods
 2. **Frontend Service & Hooks** - React hooks for Bria API calls
 3. **Frontend Pages** - Complete UI for all Bria features
@@ -13,6 +14,7 @@ The implementation includes:
 ## Features Implemented
 
 ### 1. Image Generation with Bria Models
+
 **Route:** `/bria/image-generation`
 
 - Generate images using Bria's pre-trained V1/V2 models
@@ -23,9 +25,11 @@ The implementation includes:
 - Multiple results generation
 
 **Components:**
+
 - `src/pages/bria/ImageGeneration.tsx`
 
 ### 2. Tailored Models
+
 **Route:** `/bria/tailored-models`
 
 - Train custom models that preserve visual IP
@@ -35,9 +39,11 @@ The implementation includes:
 - Consistent visual style preservation
 
 **Components:**
+
 - `src/pages/bria/TailoredModels.tsx`
 
 ### 3. Ads Generation
+
 **Route:** `/bria/ads-generation`
 
 - Automate ad creation at scale
@@ -47,9 +53,11 @@ The implementation includes:
 - Brand ID support for consistent branding
 
 **Components:**
+
 - `src/pages/bria/AdsGeneration.tsx`
 
 ### 4. Product Imagery Editing
+
 **Route:** `/bria/product-imagery`
 
 - Professional packshots creation
@@ -60,9 +68,11 @@ The implementation includes:
 - Lifestyle image creation
 
 **Components:**
+
 - `src/pages/bria/ProductImagery.tsx`
 
 ### 5. Image Editing & Transformation
+
 **Route:** `/bria/image-editing`
 
 - Remove background
@@ -76,9 +86,11 @@ The implementation includes:
 - Noise reduction
 
 **Components:**
+
 - `src/pages/bria/ImageEditing.tsx`
 
 ### 6. Video Editing
+
 **Route:** `/bria/video-editing`
 
 - 8K upscaling
@@ -88,14 +100,17 @@ The implementation includes:
 - Asynchronous job monitoring
 
 **Components:**
+
 - `src/pages/bria/VideoEditing.tsx`
 
 ## Backend Implementation
 
 ### Enhanced Bria Client
+
 **File:** `backend/clients/bria_client.py`
 
 New methods added:
+
 - `text_to_image()` - V1/V2 model generation
 - `train_tailored_model()` - Custom model training
 - `get_tailored_model_status()` - Training status
@@ -111,18 +126,22 @@ New methods added:
 ## Frontend Implementation
 
 ### Bria Service
+
 **File:** `src/services/briaClient.ts`
 
 Complete TypeScript service for Bria API calls:
+
 - Type-safe request/response interfaces
 - Error handling
 - Status polling
 - All Bria endpoints covered
 
 ### Bria Hook
+
 **File:** `src/hooks/useBria.ts`
 
 React hook providing:
+
 - `textToImage()` - Image generation
 - `onboardImage()` - Image onboarding
 - `editImage()` - Image editing
@@ -136,6 +155,7 @@ React hook providing:
 ## Edge Functions
 
 All edge functions are already implemented in `edge/bria/`:
+
 - `image-generate.ts` - Image generation
 - `image-onboard.ts` - Image onboarding
 - `image-edit.ts` - Image editing
@@ -149,8 +169,9 @@ All edge functions are already implemented in `edge/bria/`:
 ## Usage Examples
 
 ### Generate Image with V2 Model
+
 ```typescript
-import { useBria } from '@/hooks/useBria';
+import { useBria } from "@/hooks/useBria";
 
 const { textToImage } = useBria();
 
@@ -159,13 +180,14 @@ const result = await textToImage({
   model_version: "v2",
   num_results: 1,
   sync: false,
-  seed: 12345
+  seed: 12345,
 });
 ```
 
 ### Edit Product Image
+
 ```typescript
-import { useBria } from '@/hooks/useBria';
+import { useBria } from "@/hooks/useBria";
 
 const { onboardImage, productShotEdit } = useBria();
 
@@ -177,13 +199,14 @@ const assetId = onboardResult.data.asset_id;
 const editResult = await productShotEdit({
   asset_id: assetId,
   operation: "isolate",
-  params: {}
+  params: {},
 });
 ```
 
 ### Generate Ads
+
 ```typescript
-import { useBria } from '@/hooks/useBria';
+import { useBria } from "@/hooks/useBria";
 
 const { generateAds } = useBria();
 
@@ -192,18 +215,19 @@ const result = await generateAds({
   brand_id: "brand_123",
   branding_blocks: [
     { type: "logo", url: "https://example.com/logo.png" },
-    { type: "color", name: "primary", value: "#FF0000" }
+    { type: "color", name: "primary", value: "#FF0000" },
   ],
   sizes: [
     { width: 1200, height: 628 },
-    { width: 1080, height: 1080 }
-  ]
+    { width: 1080, height: 1080 },
+  ],
 });
 ```
 
 ## Routes
 
 All routes are accessible at:
+
 - `/bria/image-generation` - Image generation
 - `/bria/tailored-models` - Tailored models
 - `/bria/ads-generation` - Ads generation
@@ -214,6 +238,7 @@ All routes are accessible at:
 ## API Endpoints
 
 All frontend calls go through edge functions at `/edge/bria/`:
+
 - `/edge/bria/image-generate` - Image generation
 - `/edge/bria/image-onboard` - Image onboarding
 - `/edge/bria/image-edit` - Image editing
@@ -228,6 +253,7 @@ All frontend calls go through edge functions at `/edge/bria/`:
 ### Environment Variables
 
 Edge functions require these secrets in Lovable Cloud:
+
 - `BRIA_API_KEY` - Development API key
 - `PRODUCTION` - Production API key (optional)
 - `STAGING` - Staging API key (optional)
@@ -239,6 +265,7 @@ Bria API base URL: `https://engine.prod.bria-api.com/v2`
 ## Error Handling
 
 All functions include comprehensive error handling:
+
 - Authentication errors
 - Rate limiting
 - Network errors
@@ -246,6 +273,7 @@ All functions include comprehensive error handling:
 - Validation errors
 
 Error responses follow this structure:
+
 ```typescript
 {
   error: string;
@@ -258,6 +286,7 @@ Error responses follow this structure:
 ## Status Polling
 
 For asynchronous operations, use the status polling:
+
 ```typescript
 const { pollStatus } = useBria();
 
@@ -290,6 +319,6 @@ To test the implementation:
 ## Documentation
 
 For more details on Bria API:
+
 - Edge Functions README: `edge/bria/README.md`
 - Bria API Documentation: https://bria.ai/docs
-

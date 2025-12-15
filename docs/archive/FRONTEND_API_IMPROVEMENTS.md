@@ -5,6 +5,7 @@ This document outlines the comprehensive improvements made to the frontend integ
 ## Overview
 
 The frontend has been enhanced with:
+
 - **Unified API client** with retry logic and better error handling
 - **Enhanced status polling** with progress tracking and error recovery
 - **Improved UI/UX** with progress indicators, better error messages, and download capabilities
@@ -15,6 +16,7 @@ The frontend has been enhanced with:
 ### 1. Enhanced Bria Client (`src/services/enhancedBriaClient.ts`)
 
 **Features:**
+
 - Automatic retry with exponential backoff
 - Configurable timeout and retry attempts
 - Better error handling and error message extraction
@@ -22,6 +24,7 @@ The frontend has been enhanced with:
 - Enhanced polling with progress callbacks
 
 **Benefits:**
+
 - More reliable API calls
 - Better user experience during network issues
 - Consistent error handling across all APIs
@@ -29,6 +32,7 @@ The frontend has been enhanced with:
 ### 2. Enhanced Status Hook (`src/hooks/useEnhancedStatus.ts`)
 
 **Features:**
+
 - Automatic status polling with configurable intervals
 - Progress calculation based on elapsed time
 - Error recovery with retry mechanism
@@ -36,6 +40,7 @@ The frontend has been enhanced with:
 - Cleanup on unmount to prevent memory leaks
 
 **Benefits:**
+
 - Real-time status updates
 - Better user feedback
 - Automatic error recovery
@@ -43,6 +48,7 @@ The frontend has been enhanced with:
 ### 3. Ads Generation API (`src/pages/generate/AdsGenerator.tsx`)
 
 **Improvements:**
+
 - ✅ Enhanced status tracking with progress bar
 - ✅ Automatic result extraction when job completes
 - ✅ Download all functionality
@@ -51,6 +57,7 @@ The frontend has been enhanced with:
 - ✅ Elapsed time display
 
 **Features:**
+
 - Real-time progress tracking
 - Automatic asset display on completion
 - Batch download capability
@@ -58,12 +65,14 @@ The frontend has been enhanced with:
 ### 4. Image Onboarding (`src/components/ImageOnboarder.tsx`)
 
 **Current State:**
+
 - Already has comprehensive implementation
 - Supports URL, org_image_key, and file upload
 - Image preview functionality
 - List of registered visuals
 
 **Potential Future Enhancements:**
+
 - Drag-and-drop file upload
 - Batch image onboarding
 - Progress indicators for file uploads
@@ -71,12 +80,14 @@ The frontend has been enhanced with:
 ### 5. Video Editing (`src/pages/generate/VideoEditor.tsx`)
 
 **Improvements:**
+
 - ✅ Better SSE error handling
 - ✅ Improved fallback to polling
 - ✅ Enhanced error messages
 - ✅ Better status display
 
 **Features:**
+
 - Server-Sent Events (SSE) for real-time updates
 - Automatic fallback to polling if SSE fails
 - Upload progress tracking
@@ -85,6 +96,7 @@ The frontend has been enhanced with:
 ### 6. Tailored Generation (`src/pages/generate/TailoredGen.tsx`)
 
 **Improvements:**
+
 - ✅ Enhanced status polling integration
 - ✅ Progress tracking with visual indicators
 - ✅ Automatic result extraction
@@ -93,6 +105,7 @@ The frontend has been enhanced with:
 - ✅ Retry mechanism
 
 **Features:**
+
 - Real-time status updates
 - Progress bar showing estimated completion
 - Automatic image display on completion
@@ -100,6 +113,7 @@ The frontend has been enhanced with:
 ### 7. Product Shot Editing (`src/pages/generate/ProductEditor.tsx`)
 
 **Improvements:**
+
 - ✅ Enhanced status tracking
 - ✅ Progress indicators
 - ✅ Better onboarding flow
@@ -108,6 +122,7 @@ The frontend has been enhanced with:
 - ✅ Improved error messages
 
 **Features:**
+
 - Separate onboarding and editing states
 - Real-time progress tracking
 - Support for multiple operations (packshot, isolate, add_shadow, etc.)
@@ -115,6 +130,7 @@ The frontend has been enhanced with:
 ### 8. Image Editing (`src/pages/generate/ImageEditor.tsx`)
 
 **Improvements:**
+
 - ✅ Enhanced status polling
 - ✅ Progress tracking
 - ✅ Better onboarding integration
@@ -123,6 +139,7 @@ The frontend has been enhanced with:
 - ✅ Improved error handling
 
 **Features:**
+
 - Support for multiple editing operations
 - Real-time status updates
 - Better user feedback
@@ -130,10 +147,12 @@ The frontend has been enhanced with:
 ### 9. Image Generation
 
 **Status:**
+
 - Multiple implementations exist (ImageGeneration.tsx, ImageGenerationV2.tsx)
 - Consider consolidating for consistency
 
 **Recommendations:**
+
 - Use enhanced client for all image generation endpoints
 - Add status polling for async operations
 - Implement progress tracking
@@ -167,15 +186,22 @@ The frontend has been enhanced with:
 All improved components now follow these patterns:
 
 1. **State Management**
+
    ```typescript
    const [jobId, setJobId] = useState<string>();
-   const { status, isLoading, error, retry, progress, elapsedTime } = useEnhancedStatus(jobId, {
-     onComplete: (status) => { /* handle completion */ },
-     onError: (error) => { /* handle error */ },
-   });
+   const { status, isLoading, error, retry, progress, elapsedTime } =
+     useEnhancedStatus(jobId, {
+       onComplete: (status) => {
+         /* handle completion */
+       },
+       onError: (error) => {
+         /* handle error */
+       },
+     });
    ```
 
 2. **Error Handling**
+
    ```typescript
    try {
      const res = await enhancedBriaClient.generateAds({...});
@@ -190,6 +216,7 @@ All improved components now follow these patterns:
    ```
 
 3. **Progress Display**
+
    ```typescript
    {isStatusLoading && (
      <div className="space-y-2">
@@ -213,43 +240,47 @@ All improved components now follow these patterns:
 ## API Client Usage
 
 ### Basic Usage
+
 ```typescript
-import { enhancedBriaClient } from '@/services/enhancedBriaClient';
+import { enhancedBriaClient } from "@/services/enhancedBriaClient";
 
 // Generate ads
 const result = await enhancedBriaClient.generateAds({
-  brand_id: 'nike_brand',
-  template_id: 'summer_sale',
-  prompt: 'Summer sale advertisement',
+  brand_id: "nike_brand",
+  template_id: "summer_sale",
+  prompt: "Summer sale advertisement",
 });
 
 // Onboard image
-const onboardResult = await enhancedBriaClient.onboardImage('https://example.com/image.jpg');
+const onboardResult = await enhancedBriaClient.onboardImage(
+  "https://example.com/image.jpg",
+);
 
 // Edit image
 const editResult = await enhancedBriaClient.editImage({
-  asset_id: 'asset-123',
-  operation: 'remove_background',
+  asset_id: "asset-123",
+  operation: "remove_background",
 });
 
 // Poll status
-const status = await enhancedBriaClient.pollStatus('request-id', {
+const status = await enhancedBriaClient.pollStatus("request-id", {
   pollInterval: 2000,
   maxWait: 300000,
-  onProgress: (status) => console.log('Progress:', status),
+  onProgress: (status) => console.log("Progress:", status),
 });
 ```
 
 ### With Options
+
 ```typescript
 // Custom retry and timeout
 const result = await enhancedBriaClient.generateAds(
-  { brand_id: 'nike', template_id: 'sale' },
+  { brand_id: "nike", template_id: "sale" },
   {
     retries: 5,
     retryDelay: 2000,
     timeout: 120000,
-  }
+  },
 );
 ```
 
@@ -266,11 +297,12 @@ All APIs now provide consistent error handling:
 ## Status Polling
 
 ### Automatic Polling
+
 ```typescript
 const { status, isLoading, progress } = useEnhancedStatus(jobId, {
-  pollInterval: 2000,      // Poll every 2 seconds
-  maxWait: 300000,         // Max 5 minutes
-  autoStart: true,         // Start automatically
+  pollInterval: 2000, // Poll every 2 seconds
+  maxWait: 300000, // Max 5 minutes
+  autoStart: true, // Start automatically
   onComplete: (status) => {
     // Handle completion
   },
@@ -278,6 +310,7 @@ const { status, isLoading, progress } = useEnhancedStatus(jobId, {
 ```
 
 ### Manual Control
+
 ```typescript
 const { status, retry, cancel } = useEnhancedStatus(jobId, {
   autoStart: false,  // Don't start automatically
@@ -312,30 +345,36 @@ useEffect(() => {
 ### From Old API Client
 
 **Before:**
+
 ```typescript
-import { generateAds } from '@/api/bria';
-const res = await generateAds({ brand_id: 'nike' });
+import { generateAds } from "@/api/bria";
+const res = await generateAds({ brand_id: "nike" });
 ```
 
 **After:**
+
 ```typescript
-import { enhancedBriaClient } from '@/services/enhancedBriaClient';
-const res = await enhancedBriaClient.generateAds({ brand_id: 'nike' });
+import { enhancedBriaClient } from "@/services/enhancedBriaClient";
+const res = await enhancedBriaClient.generateAds({ brand_id: "nike" });
 ```
 
 ### From Old Status Hook
 
 **Before:**
+
 ```typescript
-import { useStatus } from '@/hooks/useStatus';
+import { useStatus } from "@/hooks/useStatus";
 const { status } = useStatus(jobId);
 ```
 
 **After:**
+
 ```typescript
-import { useEnhancedStatus } from '@/hooks/useEnhancedStatus';
+import { useEnhancedStatus } from "@/hooks/useEnhancedStatus";
 const { status, isLoading, progress, retry } = useEnhancedStatus(jobId, {
-  onComplete: (status) => { /* handle */ },
+  onComplete: (status) => {
+    /* handle */
+  },
 });
 ```
 
@@ -360,6 +399,7 @@ const { status, isLoading, progress, retry } = useEnhancedStatus(jobId, {
 ## Summary
 
 All major API integrations have been improved with:
+
 - ✅ Better error handling
 - ✅ Retry mechanisms
 - ✅ Progress tracking
@@ -369,4 +409,3 @@ All major API integrations have been improved with:
 - ✅ Better user feedback
 
 The frontend is now more robust, user-friendly, and maintainable.
-

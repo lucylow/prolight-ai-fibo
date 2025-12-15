@@ -5,6 +5,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ## 🎨 Component Enhancements
 
 ### 1. Button Component (`src/components/ui/button.tsx`)
+
 - ✅ Added loading state with spinner indicator
 - ✅ Enhanced hover effects with shadow and scale transitions
 - ✅ Improved active states with scale animation
@@ -13,11 +14,13 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 - ✅ Smooth transitions for all interactions
 
 **Usage:**
+
 ```tsx
 <Button loading={isLoading}>Submit</Button>
 ```
 
 ### 2. Input Component (`src/components/ui/input.tsx`)
+
 - ✅ Added error state styling
 - ✅ Helper text support with error styling
 - ✅ Enhanced focus states with primary color ring
@@ -25,33 +28,41 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 - ✅ Better border transitions
 
 **Usage:**
+
 ```tsx
 <Input error={hasError} helperText="Error message" />
 ```
 
 ### 3. Card Component (`src/components/ui/card.tsx`)
+
 - ✅ Added `interactive` prop for clickable cards
 - ✅ Added `hoverable` prop for hover effects
 - ✅ Enhanced hover animations with shadow and translate
 - ✅ Smooth transitions for all states
 
 **Usage:**
+
 ```tsx
-<Card interactive hoverable>Content</Card>
+<Card interactive hoverable>
+  Content
+</Card>
 ```
 
 ### 4. Skeleton Component (`src/components/ui/skeleton.tsx`)
+
 - ✅ Added shimmer animation effect
 - ✅ Better visual feedback during loading
 - ✅ Smooth gradient animation
 
 ### 5. Empty State Component (`src/components/ui/empty-state.tsx`)
+
 - ✅ New reusable empty state component
 - ✅ Icon support
 - ✅ Action button support
 - ✅ Customizable styling
 
 **Usage:**
+
 ```tsx
 <EmptyState
   icon={Inbox}
@@ -64,6 +75,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ## 🎯 Navigation Improvements
 
 ### MainLayout (`src/components/layout/MainLayout.tsx`)
+
 - ✅ Enhanced active state indicators with bottom border
 - ✅ Improved hover effects with icon scaling
 - ✅ Better mobile menu transitions
@@ -71,6 +83,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 - ✅ Enhanced backdrop blur for header
 
 ### Navbar (`src/components/Navbar.tsx`)
+
 - ✅ Improved active state styling
 - ✅ Better hover transitions
 - ✅ Enhanced mobile menu with smooth animations
@@ -80,6 +93,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ## 🔔 Toast Notifications
 
 ### Sonner Toaster (`src/components/ui/sonner.tsx`)
+
 - ✅ Enhanced styling with backdrop blur
 - ✅ Better shadow effects
 - ✅ Improved hover states for action buttons
@@ -88,6 +102,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 - ✅ Better positioning and duration
 
 ### Toast Component (`src/components/ui/toast.tsx`)
+
 - ✅ Enhanced shadow effects
 - ✅ Backdrop blur for better visibility
 - ✅ Improved action button interactions
@@ -96,6 +111,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ## 📐 Typography & Spacing
 
 ### Global Typography (`src/index.css`)
+
 - ✅ Consistent heading hierarchy (h1-h6)
 - ✅ Improved line heights for readability
 - ✅ Better paragraph spacing
@@ -105,6 +121,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ## 🎨 Visual Enhancements
 
 ### Global Styles (`src/index.css`)
+
 - ✅ Enhanced scrollbar styling (wider, smoother)
 - ✅ Better focus styles for all interactive elements
 - ✅ Improved link hover states
@@ -156,6 +173,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ## 📝 Usage Examples
 
 ### Loading Button
+
 ```tsx
 <Button loading={isSubmitting} onClick={handleSubmit}>
   Submit
@@ -163,6 +181,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ```
 
 ### Form with Validation
+
 ```tsx
 <Input
   error={!!errors.email}
@@ -173,6 +192,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ```
 
 ### Interactive Card
+
 ```tsx
 <Card interactive hoverable onClick={handleClick}>
   <CardHeader>
@@ -182,6 +202,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ```
 
 ### Empty State
+
 ```tsx
 <EmptyState
   icon={FileX}
@@ -189,7 +210,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
   description="Create your first lighting project to get started"
   action={{
     label: "Create Project",
-    onClick: () => navigate('/studio')
+    onClick: () => navigate("/studio"),
   }}
 />
 ```
@@ -208,6 +229,7 @@ This document outlines all the UI/UX enhancements made to improve the user exper
 ## 🔄 Migration Notes
 
 All improvements are backward compatible. Existing components will automatically benefit from:
+
 - Enhanced button hover states
 - Better input focus states
 - Improved card interactions
@@ -215,4 +237,3 @@ All improvements are backward compatible. Existing components will automatically
 - Enhanced scrollbar styling
 
 New features (like loading states, error props) are optional and can be added incrementally.
-

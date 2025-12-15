@@ -17,7 +17,7 @@ This implementation adds **voice control** to ProLight AI, allowing photographer
 ### Backend (`/backend/app/api/gemini.py`)
 
 - **Endpoint**: `POST /api/gemini/fibo`
-- **Request**: 
+- **Request**:
   ```json
   {
     "prompt": "soft key light from left, 85mm f/2.8",
@@ -27,9 +27,13 @@ This implementation adds **voice control** to ProLight AI, allowing photographer
 - **Response**:
   ```json
   {
-    "fibo": { /* FIBO JSON structure */ },
+    "fibo": {
+      /* FIBO JSON structure */
+    },
     "confidence": 0.85,
-    "parsed_elements": { /* Metadata */ }
+    "parsed_elements": {
+      /* Metadata */
+    }
   }
   ```
 
@@ -50,11 +54,13 @@ The component is integrated into the Studio page (`/src/pages/Studio.tsx`) and a
 ### 1. Backend Setup
 
 1. **Install dependencies** (already in `requirements.txt`):
+
    ```bash
    pip install requests google-genai
    ```
 
 2. **Set Gemini API Key** in `.env`:
+
    ```bash
    GEMINI_API_KEY=your_gemini_api_key_here
    # OR
@@ -72,6 +78,7 @@ The component is integrated into the Studio page (`/src/pages/Studio.tsx`) and a
 ### 2. Frontend Setup
 
 1. **Set API Base URL** (if not using default):
+
    ```bash
    VITE_API_BASE_URL=http://localhost:8000
    ```
@@ -119,13 +126,13 @@ The component is integrated into the Studio page (`/src/pages/Studio.tsx`) and a
 
 ## 📋 Voice Command Examples
 
-| Voice Command | FIBO Result |
-|--------------|-------------|
-| "soft key light from left" | Key light: intensity 0.9, direction front-left, softness 0.7 |
-| "dramatic rim lighting warm" | Rim light: intensity 1.4, color temp 3200K, direction back |
-| "85mm portrait f/2.8" | Camera: fov 28.5, aperture f/2.8, lens portrait |
-| "white seamless background" | Environment: white seamless studio background |
-| "studio three point lighting" | Key + Fill + Rim lights with balanced ratios |
+| Voice Command                 | FIBO Result                                                  |
+| ----------------------------- | ------------------------------------------------------------ |
+| "soft key light from left"    | Key light: intensity 0.9, direction front-left, softness 0.7 |
+| "dramatic rim lighting warm"  | Rim light: intensity 1.4, color temp 3200K, direction back   |
+| "85mm portrait f/2.8"         | Camera: fov 28.5, aperture f/2.8, lens portrait              |
+| "white seamless background"   | Environment: white seamless studio background                |
+| "studio three point lighting" | Key + Fill + Rim lights with balanced ratios                 |
 
 ## 🔧 Technical Details
 
@@ -152,19 +159,23 @@ The component is integrated into the Studio page (`/src/pages/Studio.tsx`) and a
 ## 🐛 Troubleshooting
 
 ### "Speech recognition not supported"
+
 - Use Chrome, Edge, or Safari
 - Ensure microphone permissions are granted
 
 ### "Gemini API key not configured"
+
 - Set `GEMINI_API_KEY` in backend `.env`
 - Restart backend server
 
 ### "Failed to convert to FIBO"
+
 - Check backend logs for Gemini API errors
 - Verify API key is valid
 - Check network connectivity
 
 ### Voice not being recognized
+
 - Check microphone permissions
 - Ensure browser supports Web Speech API
 - Try speaking more clearly or closer to microphone
@@ -174,6 +185,7 @@ The component is integrated into the Studio page (`/src/pages/Studio.tsx`) and a
 ### POST `/api/gemini/fibo`
 
 **Request Body**:
+
 ```typescript
 {
   prompt: string;           // Natural language description
@@ -182,6 +194,7 @@ The component is integrated into the Studio page (`/src/pages/Studio.tsx`) and a
 ```
 
 **Response**:
+
 ```typescript
 {
   fibo: Record<string, any>; // FIBO JSON structure
@@ -224,4 +237,3 @@ The component is integrated into the Studio page (`/src/pages/Studio.tsx`) and a
 ---
 
 **Built with**: Web Speech API, Google Gemini AI, React, TypeScript, FastAPI
-

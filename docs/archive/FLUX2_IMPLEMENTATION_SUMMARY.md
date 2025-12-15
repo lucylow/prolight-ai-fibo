@@ -41,21 +41,25 @@ Successfully integrated FLUX.2 (FIBO) image generation into ProLight AI, providi
 ## Key Features Implemented
 
 ### 1. Generate Mode
+
 - Create images from structured FIBO JSON prompts
 - Support for seed, steps, guidance parameters
 - Automatic FIBO JSON construction from lighting setup
 
 ### 2. Credit Management
+
 - Automatic credit checking before generation
 - Credit usage recording after successful generation
 - Configurable cost per image (default: $0.04)
 
 ### 3. Error Handling
+
 - Comprehensive error types (auth, rate limit, timeout, network)
 - User-friendly error messages
 - Retry logic for transient failures
 
 ### 4. Response Normalization
+
 - Handles multiple response formats (base64, URL, data URI)
 - Converts base64 to data URLs for frontend display
 - Preserves structured prompt in response
@@ -63,11 +67,13 @@ Successfully integrated FLUX.2 (FIBO) image generation into ProLight AI, providi
 ## API Integration
 
 ### Endpoint
+
 ```
 POST /flux2-generate
 ```
 
 ### Request Format
+
 ```typescript
 {
   prompt_json: FIBO_JSON,
@@ -80,6 +86,7 @@ POST /flux2-generate
 ```
 
 ### Response Format
+
 ```typescript
 {
   image_url?: string,
@@ -94,23 +101,25 @@ POST /flux2-generate
 ## Frontend Usage
 
 ### Hook Usage
+
 ```typescript
 const { generateWithFlux2FromSetup, isGenerating } = useGeneration();
 
 await generateWithFlux2FromSetup({
   seed: 12345,
   steps: 40,
-  guidance: 7.5
+  guidance: 7.5,
 });
 ```
 
 ### Direct API Call
+
 ```typescript
-import { generateWithFlux2 } from '@/services/supabaseEdgeClient';
+import { generateWithFlux2 } from "@/services/supabaseEdgeClient";
 
 await generateWithFlux2({
   prompt_json: fiboJson,
-  seed: 12345
+  seed: 12345,
 });
 ```
 
@@ -185,8 +194,8 @@ The integration automatically builds FIBO JSON from the lighting setup:
 ## Support
 
 For issues or questions:
+
 1. Check `FLUX2_INTEGRATION.md` for detailed documentation
 2. Verify environment variables are set correctly
 3. Check Supabase function logs for detailed error messages
 4. Review API provider documentation for endpoint changes
-

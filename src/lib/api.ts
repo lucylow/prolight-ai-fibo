@@ -18,7 +18,7 @@ export interface Light {
 export interface GenerateRequest {
   scene_prompt: string;
   lights: Light[];
-  subject_options?: Record<string, any>;
+  subject_options?: Record<string, unknown>;
   num_results?: number;
   sync?: boolean;
 }
@@ -28,8 +28,8 @@ export interface GenerateResponse {
   request_id?: string;
   status: string;
   image_url?: string;
-  structured_prompt?: Record<string, any>;
-  meta: Record<string, any>;
+  structured_prompt?: Record<string, unknown>;
+  meta: Record<string, unknown>;
   error?: string;
 }
 
@@ -37,8 +37,8 @@ export interface StatusResponse {
   ok: boolean;
   status: string;
   image_url?: string;
-  structured_prompt?: Record<string, any>;
-  meta: Record<string, any>;
+  structured_prompt?: Record<string, unknown>;
+  meta: Record<string, unknown>;
   error?: string;
 }
 

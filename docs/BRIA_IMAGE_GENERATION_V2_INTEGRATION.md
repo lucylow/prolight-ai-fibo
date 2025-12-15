@@ -60,6 +60,7 @@ const response = await service.textToImage({
 ```
 
 **Features:**
+
 - Support for text prompts
 - Optional structured prompts (FIBO JSON)
 - Reference images
@@ -84,6 +85,7 @@ const response = await service.imageToImage({
 ```
 
 **Features:**
+
 - Reference image upload
 - Transformation strength control (0.0-1.0)
 - Text-guided modifications
@@ -101,6 +103,7 @@ const response = await service.generateStructuredPrompt({
 ```
 
 **Use Cases:**
+
 - Inspect and edit JSON before generation
 - Version control for prompts
 - Hybrid deployments
@@ -116,18 +119,14 @@ const response = await service.generateProductShot(
   "Silver watch with leather strap",
   "Professional 3-point studio lighting",
   "white seamless backdrop",
-  { aspectRatio: "1:1", quality: "premium" }
+  { aspectRatio: "1:1", quality: "premium" },
 );
 
 // Multiple lighting variations
 const variations = await service.generateLightingVariations(
   "Silver watch",
   "white backdrop",
-  [
-    "3-point studio lighting",
-    "Soft window light",
-    "Dramatic rim lighting"
-  ]
+  ["3-point studio lighting", "Soft window light", "Dramatic rim lighting"],
 );
 
 // Complete workflow
@@ -136,8 +135,8 @@ const workflow = await service.completeProductPhotographyWorkflow(
   {
     lightingTypes: ["3-point", "window", "rim"],
     backgrounds: ["white", "gray"],
-    sync: true
-  }
+    sync: true,
+  },
 );
 ```
 
@@ -150,7 +149,7 @@ const results = await service.batchGeneration({
   prompts: [
     "Product shot with natural lighting",
     "Product shot with studio lighting",
-    "Product shot with dramatic lighting"
+    "Product shot with dramatic lighting",
   ],
   aspect_ratio: "1:1",
   sync: true,
@@ -188,11 +187,11 @@ All edge functions are located in `/edge/bria/`:
 ### Basic Text-to-Image
 
 ```typescript
-import { BriaImageGenerationV2Service } from '@/services/briaImageGenerationV2';
+import { BriaImageGenerationV2Service } from "@/services/briaImageGenerationV2";
 
 const service = new BriaImageGenerationV2Service({
-  apiToken: '', // Handled by edge functions
-  baseUrl: '/edge/bria',
+  apiToken: "", // Handled by edge functions
+  baseUrl: "/edge/bria",
 });
 
 const result = await service.textToImage({
@@ -227,18 +226,15 @@ const workflow = await service.completeProductPhotographyWorkflow(
     lightingTypes: [
       "Professional 3-point studio lighting",
       "Soft window light",
-      "Dramatic rim lighting"
+      "Dramatic rim lighting",
     ],
-    backgrounds: [
-      "white seamless backdrop",
-      "neutral gray background"
-    ],
-    sync: true
-  }
+    backgrounds: ["white seamless backdrop", "neutral gray background"],
+    sync: true,
+  },
 );
 
 // Returns array of variations with metadata
-workflow.variations.forEach(variation => {
+workflow.variations.forEach((variation) => {
   console.log(variation.lighting, variation.background, variation.imageUrl);
 });
 ```
@@ -280,6 +276,7 @@ Edge functions use Lovable Cloud secrets:
 ### API Base URL
 
 All v2 endpoints use:
+
 ```
 https://engine.prod.bria-api.com/v2
 ```
@@ -384,8 +381,8 @@ Potential enhancements:
 ## Support
 
 For issues or questions:
+
 - Check edge function logs in Lovable Cloud
 - Review API response errors
 - Consult BRIA API documentation
 - Check ProLight AI documentation
-

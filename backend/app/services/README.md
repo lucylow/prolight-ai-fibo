@@ -91,9 +91,11 @@ print(health)
 ## Service Components
 
 ### LightingGenerationService
+
 Main service class that orchestrates all lighting generation operations.
 
 **Key Methods:**
+
 - `generate_from_lighting_setup()`: Generate from structured lighting configuration
 - `generate_from_natural_language()`: Generate from natural language description
 - `refine_lighting()`: Refine existing generation with adjustments
@@ -101,9 +103,11 @@ Main service class that orchestrates all lighting generation operations.
 - `health_check()`: Check service and dependency health
 
 ### LightingAnalyzer
+
 Analyzes lighting setups and provides professional recommendations.
 
 **Features:**
+
 - Key-to-fill ratio calculation
 - Color temperature consistency analysis
 - Professional rating (1-10 scale)
@@ -111,11 +115,13 @@ Analyzes lighting setups and provides professional recommendations.
 - Intelligent recommendations
 
 ### LLMTranslator
+
 Translates natural language descriptions to structured lighting JSON.
 
 **Note:** Currently a stub implementation. Replace with actual Gemini/OpenAI integration.
 
 ### ImageStorageService
+
 Handles image storage and retrieval.
 
 **Note:** Currently a stub implementation. Replace with actual storage (S3, Supabase Storage, etc.).
@@ -200,4 +206,3 @@ async def generate_image(request: SceneRequest):
 4. Add caching for frequently used lighting setups
 5. Add rate limiting and authentication
 6. Add comprehensive tests
-

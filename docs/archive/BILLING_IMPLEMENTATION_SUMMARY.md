@@ -12,6 +12,7 @@ This document summarizes the complete billing and payment processing implementat
 - `@stripe/react-stripe-js` - React components for Stripe Elements
 
 **Installation:**
+
 ```bash
 npm install @stripe/stripe-js @stripe/react-stripe-js
 ```
@@ -21,11 +22,13 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 ## 🎨 Frontend Components Created
 
 ### 1. StripeProvider (`src/contexts/StripeProvider.tsx`)
+
 - Wraps app with Stripe Elements
 - Handles Stripe initialization
 - Integrated into `App.tsx`
 
 ### 2. CheckoutButton (`src/components/billing/CheckoutButton.tsx`)
+
 - **Features:**
   - One-time payments (`mode="payment"`)
   - Subscriptions (`mode="subscription"`)
@@ -35,6 +38,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 - **Props:** `planName`, `priceId`, `mode`, `successUrl`, `cancelUrl`, `label`, `variant`, `size`, `disabled`
 
 ### 3. BillingPortalButton (`src/components/billing/BillingPortalButton.tsx`)
+
 - **Features:**
   - Opens Stripe Customer Portal
   - Custom return URL
@@ -43,6 +47,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 - **Props:** `returnUrl`, `label`, `variant`, `size`, `showIcon`, `disabled`
 
 ### 4. Enhanced Invoices Page (`src/pages/Invoices.tsx`)
+
 - **Improvements:**
   - Cursor-based pagination (preferred)
   - Page-based pagination (fallback)
@@ -58,6 +63,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
 ## 🧪 Testing
 
 ### Unit Tests
+
 - ✅ `src/components/billing/__tests__/CheckoutButton.test.tsx`
   - Renders correctly
   - Loading states
@@ -72,6 +78,7 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
   - Custom return URLs
 
 ### Storybook Stories
+
 - ✅ `src/components/billing/CheckoutButton.stories.tsx`
   - Subscription mode
   - One-time payment
@@ -86,11 +93,13 @@ npm install @stripe/stripe-js @stripe/react-stripe-js
   - Disabled state
 
 **Run Storybook:**
+
 ```bash
 npm run storybook
 ```
 
 **Run Tests:**
+
 ```bash
 npm test src/components/billing
 ```
@@ -100,6 +109,7 @@ npm test src/components/billing
 ## 📚 Documentation
 
 ### Comprehensive Guide
+
 - ✅ `docs/BILLING.md` - Complete billing integration guide
   - Environment variables
   - Component usage
@@ -110,6 +120,7 @@ npm test src/components/billing
   - Troubleshooting
 
 ### Environment Validation
+
 - ✅ `src/utils/env.ts` - Environment variable validation
   - Validates required vars on startup
   - Helper functions for env access
@@ -122,6 +133,7 @@ npm test src/components/billing
 ### Environment Variables Required
 
 **Frontend (`.env.local`):**
+
 ```bash
 VITE_STRIPE_PUBLISHABLE_KEY=pk_test_...
 VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -129,6 +141,7 @@ VITE_API_BASE_URL=http://localhost:8000  # Optional
 ```
 
 **Backend (Supabase Edge Functions):**
+
 ```bash
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
@@ -138,6 +151,7 @@ SITE_URL=https://your-frontend.example.com
 ### App Integration
 
 **Updated Files:**
+
 - ✅ `src/App.tsx` - Wrapped with `StripeProvider`
 - ✅ `src/main.tsx` - Added environment validation
 
@@ -146,16 +160,19 @@ SITE_URL=https://your-frontend.example.com
 ## 🎯 Features Implemented
 
 ### ✅ One-Time Checkout
+
 - Server-side Checkout Sessions (PCI compliant)
 - Custom success/cancel URLs
 - Error handling & user feedback
 
 ### ✅ Subscription Management
+
 - Create subscriptions via Checkout
 - Customer Portal integration
 - Subscription status display
 
 ### ✅ Invoice Management
+
 - Paginated invoice list
 - Status filtering
 - Search functionality
@@ -163,6 +180,7 @@ SITE_URL=https://your-frontend.example.com
 - View hosted invoices
 
 ### ✅ User Experience
+
 - Loading states
 - Error messages
 - Toast notifications
@@ -174,11 +192,13 @@ SITE_URL=https://your-frontend.example.com
 ## 🔗 Integration Points
 
 ### Existing Services Used
+
 - `@/services/billingService` - Checkout & portal creation
 - `@/integrations/supabase/client` - Authentication
 - `@/lib/api` - API client with auth
 
 ### Backend Endpoints (Already Exist)
+
 - `supabase/functions/stripe-checkout` - Creates checkout sessions
 - `supabase/functions/stripe-portal` - Creates portal sessions
 - `supabase/functions/stripe-webhook` - Handles webhooks
@@ -188,6 +208,7 @@ SITE_URL=https://your-frontend.example.com
 ## 📋 Next Steps (Optional Enhancements)
 
 ### Future Improvements
+
 1. **Payment Method Management**
    - Save cards on file
    - Default payment method selection
@@ -228,18 +249,19 @@ SITE_URL=https://your-frontend.example.com
 ## 📖 Usage Examples
 
 ### Checkout Button
+
 ```tsx
 import CheckoutButton from "@/components/billing/CheckoutButton";
 
 // Subscription
-<CheckoutButton 
+<CheckoutButton
   planName="pro"
   mode="subscription"
   label="Subscribe to Pro"
 />
 
 // One-time payment
-<CheckoutButton 
+<CheckoutButton
   priceId="price_123"
   mode="payment"
   label="Buy Now"
@@ -247,13 +269,11 @@ import CheckoutButton from "@/components/billing/CheckoutButton";
 ```
 
 ### Billing Portal
+
 ```tsx
 import BillingPortalButton from "@/components/billing/BillingPortalButton";
 
-<BillingPortalButton 
-  returnUrl="/billing"
-  label="Manage Subscription"
-/>
+<BillingPortalButton returnUrl="/billing" label="Manage Subscription" />;
 ```
 
 ---
@@ -269,6 +289,7 @@ import BillingPortalButton from "@/components/billing/BillingPortalButton";
 ## 📝 Files Created/Modified
 
 ### New Files
+
 - `src/contexts/StripeProvider.tsx`
 - `src/components/billing/CheckoutButton.tsx`
 - `src/components/billing/BillingPortalButton.tsx`
@@ -280,6 +301,7 @@ import BillingPortalButton from "@/components/billing/BillingPortalButton";
 - `docs/BILLING.md`
 
 ### Modified Files
+
 - `package.json` - Added Stripe dependencies
 - `src/App.tsx` - Added StripeProvider wrapper
 - `src/main.tsx` - Added env validation
@@ -304,4 +326,3 @@ import BillingPortalButton from "@/components/billing/BillingPortalButton";
 
 **Implementation Date:** December 2024  
 **Status:** ✅ Complete and Ready for Testing
-

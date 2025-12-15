@@ -18,6 +18,7 @@ The agentic workflow has been enhanced with production-grade features including 
 - **Retryable Decorator**: Easy-to-use decorator for making functions retryable
 
 **Usage:**
+
 ```python
 from app.orchestration.retry import retry_with_backoff, RetryConfig
 
@@ -39,6 +40,7 @@ result = await retry_with_backoff(
 - **Version Control**: Track workflow versions for rollback
 
 **Features:**
+
 - Checkpoints created before critical operations
 - Automatic restoration on retry
 - State history for audit trails
@@ -54,6 +56,7 @@ result = await retry_with_backoff(
 - **Event Handling**: Robust error and event handling
 
 **Features:**
+
 - Configurable reconnection attempts (default: 10)
 - Heartbeat interval monitoring (default: 30s)
 - Graceful degradation on connection loss
@@ -69,12 +72,14 @@ result = await retry_with_backoff(
 - **Event Logging**: Structured event logging for analysis
 
 **Metrics Tracked:**
+
 - Workflow start/completion/failure counts
 - Agent call statistics (success/failure rates, durations)
 - State transition frequencies
 - Average workflow durations
 
 **Usage:**
+
 ```python
 from app.orchestration.observability import trace_agent_execution, get_metrics
 
@@ -98,6 +103,7 @@ print(metrics.get_metrics())
 - **Timeout Management**: Per-task timeout configuration
 
 **Benefits:**
+
 - Faster execution for independent operations
 - Better resource utilization
 - Improved throughput for analysis tasks
@@ -107,6 +113,7 @@ print(metrics.get_metrics())
 **Location:** `backend/app/orchestration/orchestrator.py`
 
 **Improvements:**
+
 - Integrated retry logic with checkpoint recovery
 - State history tracking
 - Metrics integration
@@ -118,6 +125,7 @@ print(metrics.get_metrics())
 **Location:** `backend/app/orchestration/agent_runner.py`
 
 **Improvements:**
+
 - Automatic tracing for all agent executions
 - Performance metrics collection
 - Better error context in logs
@@ -171,6 +179,7 @@ CREATED → [Planner] → PLANNED → [Critic] → CRITIQUED → [HITL] → APPR
 ## Configuration
 
 ### Retry Configuration
+
 ```python
 RetryConfig(
     max_attempts=3,
@@ -182,6 +191,7 @@ RetryConfig(
 ```
 
 ### SSE Configuration
+
 ```typescript
 {
   reconnectInterval: 3000,
@@ -203,12 +213,14 @@ RetryConfig(
 ### Backend Changes
 
 1. Import new modules:
+
 ```python
 from app.orchestration.retry import retry_with_backoff, RetryConfig
 from app.orchestration.observability import trace_agent_execution
 ```
 
 2. Use decorators for agents:
+
 ```python
 @trace_agent_execution("agent_name")
 async def my_agent(ctx):
@@ -216,6 +228,7 @@ async def my_agent(ctx):
 ```
 
 3. Configure retry in orchestrator:
+
 ```python
 retry_config = RetryConfig(max_attempts=5)
 ctx = await advance(ctx, retry_config=retry_config)
@@ -224,8 +237,9 @@ ctx = await advance(ctx, retry_config=retry_config)
 ### Frontend Changes
 
 1. Use enhanced SSE client:
+
 ```typescript
-import { EnhancedSSEClient } from '@/utils/agentic/enhancedSSE';
+import { EnhancedSSEClient } from "@/utils/agentic/enhancedSSE";
 
 const sse = new EnhancedSSEClient({
   url: `/api/runs/${runId}/stream`,
@@ -237,6 +251,7 @@ sse.connect();
 ## Testing
 
 All improvements include:
+
 - Error scenarios
 - Retry mechanisms
 - State recovery
@@ -246,6 +261,7 @@ All improvements include:
 ## Monitoring
 
 Monitor these metrics:
+
 - Workflow success/failure rates
 - Agent execution times
 - Retry frequencies
@@ -255,6 +271,7 @@ Monitor these metrics:
 ## Conclusion
 
 These improvements make the PROLIGHT AI agentic workflow production-ready with:
+
 - ✅ Robust error handling
 - ✅ State persistence
 - ✅ Enhanced observability
@@ -262,4 +279,3 @@ These improvements make the PROLIGHT AI agentic workflow production-ready with:
 - ✅ Improved reliability
 
 The system is now more resilient, observable, and performant while maintaining backward compatibility.
-

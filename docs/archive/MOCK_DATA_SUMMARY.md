@@ -44,6 +44,7 @@
 ## 📋 Complete API Coverage
 
 ### ✅ Core APIs
+
 - [x] Ads Generation API (Social, Display, Video)
 - [x] Image Onboarding API (Asset library integration)
 - [x] Video Editing API (Trim, enhance, crop, speed)
@@ -54,6 +55,7 @@
 - [x] Status Service API (Async polling)
 
 ### ✅ Extended Features
+
 - [x] Ad Templates & Brands
 - [x] Batch Operations
 - [x] Training Lifecycle
@@ -65,10 +67,12 @@
 - [x] Error Cases & Edge Cases
 
 ### ✅ Agentic Workflows
+
 - [x] Complete Product Campaign Orchestration
 - [x] Full Campaign Report Generation
 
 ### ✅ Seed Data
+
 - [x] Mock Users
 - [x] Mock Brands
 - [x] Mock Ad Templates
@@ -76,6 +80,7 @@
 - [x] Mock Tailored Models
 
 ### ✅ FIBO Integration
+
 - [x] Structured Prompt Examples
 - [x] Product Shot Templates
 - [x] Lighting Configurations
@@ -83,25 +88,27 @@
 ## 🚀 Quick Start
 
 ```typescript
-import { ProLightMocks } from '@/services/prolightMocks';
+import { ProLightMocks } from "@/services/prolightMocks";
 
 // Use any API
 const result = await ProLightMocks.adsGeneration({
   product_name: "Product Name",
-  campaign_type: 'social',
-  formats: ['facebook', 'instagram'],
-  aspect_ratios: ['1:1', '4:5'],
-  copy_variations: 4
+  campaign_type: "social",
+  formats: ["facebook", "instagram"],
+  aspect_ratios: ["1:1", "4:5"],
+  copy_variations: 4,
 });
 
 // Use agentic workflow
-const campaign = await ProLightMocks.agenticWorkflow
-  .completeProductCampaign("Product Description");
+const campaign = await ProLightMocks.agenticWorkflow.completeProductCampaign(
+  "Product Description",
+);
 ```
 
 ## 📖 Documentation
 
 See `docs/PROLIGHT_MOCK_DATA.md` for:
+
 - Complete API reference
 - Usage examples
 - Integration patterns
@@ -145,4 +152,3 @@ The mocks are designed to work seamlessly with your existing code:
 ---
 
 **All mock data is ready for use!** 🎉
-
