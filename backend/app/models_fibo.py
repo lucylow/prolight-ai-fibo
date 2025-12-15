@@ -88,6 +88,16 @@ class Camera(BaseModel):
         description="Lens type (e.g., '85mm', '100mm Macro')"
     )
 
+    @field_validator('aperture', mode='before')
+    @classmethod
+    def parse_aperture(cls, v):
+        """Parse aperture string to float if needed."""
+        if isinstance(v, str):
+            # Extract number from "f/2.8" format
+            if v.startswith('f/'):
+                return float(v[2:])
+            return float(v)
+        return v
 
 # ============================================================================
 # Lighting Models
@@ -131,17 +141,6 @@ class Light(BaseModel):
         default=None,
         description="Light identifier"
     )
-
-    @field_validator('aperture', mode='before')
-    @classmethod
-    def parse_aperture(cls, v):
-        """Parse aperture string to float if needed."""
-        if isinstance(v, str):
-            # Extract number from "f/2.8" format
-            if v.startswith('f/'):
-                return float(v[2:])
-            return float(v)
-        return v
 
 
 class Lighting(BaseModel):
@@ -353,4 +352,5 @@ def create_default_fibo_prompt(
         },
         render=Render(resolution=resolution)
     )
+
 

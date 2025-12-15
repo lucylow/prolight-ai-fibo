@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useMemo } from 'react';
-import { ResponsiveLine as LineChart, Serie } from '@nivo/line';
+import { ResponsiveLine as LineChart } from '@nivo/line';
 import { ResponsivePie as PieChart } from '@nivo/pie';
 import { ResponsiveHeatMap as HeatMap } from '@nivo/heatmap';
 
@@ -118,7 +118,7 @@ const MetricCard = ({ title, value, trend, color }: {
 // ============================================================================
 
 const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
-  const heatmapData = useMemo(() => {
+  const heatmapData = useMemo<any[]>(() => {
     if (!data?.generations || data.generations.length === 0) {
       return [];
     }
@@ -165,25 +165,27 @@ const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
       <h3 style={chartTitle}>Optimal Lighting Ratios</h3>
       <div style={{ height: 400 }}>
         <HeatMap
-          data={heatmapData}
+          // Nivo's HeatMap generic types are strict; we cast to any to match the runtime format
+          data={heatmapData as any}
           keys={keys}
           indexBy="id"
           margin={{ top: 60, right: 60, bottom: 60, left: 60 }}
           colors={{
+            // Use a built-in diverging color scheme compatible with current @nivo/heatmap types
             type: 'diverging',
-            scheme: 'rdylgn' as const,
+            scheme: 'red_yellow_green',
             minValue: 40,
-            maxValue: 100
-          }}
+            maxValue: 100,
+          } as any}
           axisTop={{
             tickSize: 5,
             tickPadding: 10,
-            tickRotation: -45
+            tickRotation: -45,
           }}
           axisRight={{
             tickSize: 5,
             tickPadding: 10,
-            tickRotation: 0
+            tickRotation: 0,
           }}
           axisBottom={{
             tickSize: 5,
@@ -213,7 +215,7 @@ const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
 // ============================================================================
 
 const ProScoreTrend = ({ data }: { data: AnalyticsData }) => {
-  const trendData: Serie[] = useMemo(() => {
+  const trendData = useMemo(() => {
     if (!data?.generations || data.generations.length === 0) {
       return [];
     }
@@ -247,15 +249,13 @@ const ProScoreTrend = ({ data }: { data: AnalyticsData }) => {
           axisTop={null}
           axisRight={null}
           axisBottom={{
-            orient: 'bottom',
             tickSize: 5,
             tickPadding: 5,
-            tickRotation: -45
+            tickRotation: -45,
           }}
           axisLeft={{
-            orient: 'left',
             tickSize: 5,
-            tickPadding: 5
+            tickPadding: 5,
           }}
           colors={{ scheme: 'category10' }}
           pointSize={10}

@@ -2,39 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useFIBOAgent } from '../hooks/useFIBOAgent';
 import { ProWorkflowUI } from './ProWorkflowUI';
 import type { FIBOPrompt, FIBOLighting, FIBOLight } from '@/types/fibo';
-
-interface FIBO {
-  generation_id: string;
-  model_version: string;
-  seed: number;
-  camera: { fov: number; aperture: number; focus_distance_m: number };
-  lighting: {
-    key_light: { intensity: number; color_temperature: number; position: number[]; softness: number };
-    fill_light: { intensity: number; color_temperature: number; position: number[]; softness: number };
-    rim_light: { intensity: number; color_temperature: number; position: number[]; softness: number };
-  };
-  render: { resolution: number[]; bit_depth: number };
-}
-
-interface AgentIteration {
-  id: string;
-  fibo: FIBO;
-  instruction: string;
-  score: number;
-  iteration: number;
-}
-
-interface ProSession {
-  client_name: string;
-  shoot_type: string;
-  images_culled: number;
-  target_look: string;
-  batch_size: number;
-  iterations: AgentIteration[];
-  final_json: FIBO;
-  delivery_ready: boolean;
-  time_saved_hours: number;
-}
+import type { ProSession, AgentIteration, FIBO } from '../types';
 
 const initialFIBO: FIBO = {
   generation_id: "pro_001",

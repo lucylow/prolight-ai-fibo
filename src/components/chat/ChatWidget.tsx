@@ -20,33 +20,8 @@ interface ChatWidgetProps {
   className?: string;
 }
 
-// Type definitions for Web Speech API
-interface SpeechRecognition extends EventTarget {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  onresult: (event: SpeechRecognitionEvent) => void;
-  onerror: (event: SpeechRecognitionErrorEvent) => void;
-  onend: () => void;
-}
-
-interface SpeechRecognitionEvent {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionErrorEvent {
-  error: string;
-  message: string;
-}
-
-interface WindowWithSpeechRecognition extends Window {
-  SpeechRecognition?: new () => SpeechRecognition;
-  webkitSpeechRecognition?: new () => SpeechRecognition;
-}
+// We intentionally use loose "any" typing for the Web Speech API to avoid
+// conflicts with varying browser/TypeScript DOM definitions.
 
 export function ChatWidget({
   conversationId,
@@ -62,7 +37,7 @@ export function ChatWidget({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
   const [speechSynthesisSupported, setSpeechSynthesisSupported] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any | null>(null);
   const synthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const {
@@ -93,7 +68,7 @@ export function ChatWidget({
 
   // Check browser support for speech APIs
   useEffect(() => {
-    const windowWithSpeech = window as WindowWithSpeechRecognition;
+    const windowWithSpeech = window as any;
     const SpeechRecognition = windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition;
     
     setSpeechRecognitionSupported(!!SpeechRecognition);
@@ -105,14 +80,14 @@ export function ChatWidget({
       recognition.interimResults = true;
       recognition.lang = 'en-US';
       
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
           .map((result) => result[0].transcript)
           .join('');
         setInput(transcript);
       };
       
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         
@@ -411,4 +386,5 @@ export function ChatWidget({
     </Card>
   );
 }
+
 

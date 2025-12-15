@@ -138,7 +138,6 @@ export function HITLApprovalPanel({
           <Button
             onClick={onApprove}
             disabled={loading}
-            loading={loading}
             className="flex-1 bg-teal-500 hover:bg-teal-600 text-black"
           >
             <CheckCircle2 className="w-4 h-4 mr-2" />
@@ -149,4 +148,5 @@ export function HITLApprovalPanel({
     </Card>
   );
 }
+
 

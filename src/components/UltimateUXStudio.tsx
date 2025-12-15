@@ -56,12 +56,10 @@ const InteractiveLight = ({
   type, 
   position, 
   onDrag, 
-  children 
 }: {
   type: 'key' | 'fill' | 'rim';
   position: LightPosition;
   onDrag: (type: string, x: number, y: number) => void;
-  children: React.ReactNode;
 }) => {
   const lightRef = useRef<THREE.DirectionalLight>(null);
   

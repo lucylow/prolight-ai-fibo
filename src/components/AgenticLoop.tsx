@@ -10,7 +10,7 @@ import { Environment, ContactShadows, OrbitControls } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
 import { useFIBOAgent } from '@/hooks/useFIBOAgent';
-import type { FIBOPrompt, FIBOLighting, FIBOLight } from '@/types/fibo';
+import type { FIBOPrompt, FIBOLighting, FIBOLight, FIBOCamera } from '@/types/fibo';
 import { toast } from 'sonner';
 
 // ============================================================================
@@ -40,7 +40,7 @@ interface AgentFIBO {
   generation_id: string;
   model_version: "FIBO-v2.3";
   seed: number;
-  camera?: any;
+  camera?: FIBOCamera;
   lighting: AgentLighting;
 }
 
@@ -116,10 +116,44 @@ const AgenticLoop: React.FC = () => {
     
     try {
       // Convert to FIBOPrompt format for the hook
-      const fiboPrompt = {
-        lighting: currentFIBO.lighting as any,
-        camera: currentFIBO.camera,
-      } as FIBOPrompt;
+      const fiboPrompt: FIBOPrompt = {
+        lighting: {
+          mainLight: currentFIBO.lighting.mainLight,
+          fillLight: currentFIBO.lighting.fillLight,
+          rimLight: currentFIBO.lighting.rimLight,
+          ambientLight: currentFIBO.lighting.ambientLight,
+          lightingStyle: '',
+        },
+        camera: currentFIBO.camera || {
+          shotType: 'medium shot',
+          cameraAngle: 'eye-level',
+          fov: 50,
+          lensType: 'portrait',
+          aperture: 'f/2.8',
+          focusDistance_m: 2.0,
+          pitch: 0,
+          yaw: 0,
+          roll: 0,
+          seed: 123456,
+        },
+        subject: {
+          mainEntity: '',
+          attributes: '',
+          action: '',
+        },
+        environment: {
+          setting: '',
+          timeOfDay: '',
+          weather: '',
+        },
+        render: {
+          resolution: [1024, 1024],
+          colorSpace: 'sRGB',
+          bitDepth: 16,
+          aov: [],
+          samples: 256,
+        },
+      };
       
       const lightingDiff = await translateFeedback(fiboPrompt, targetInstruction);
       
@@ -127,28 +161,24 @@ const AgenticLoop: React.FC = () => {
       const newLighting: AgentLighting = {
         mainLight: {
           ...currentFIBO.lighting.mainLight,
-          ...(lightingDiff as any).main_light,
-          ...(lightingDiff as any).mainLight,
+          ...(lightingDiff.main_light || lightingDiff.mainLight || {}),
         },
-        fillLight: (lightingDiff as any).fill_light || (lightingDiff as any).fillLight
+        fillLight: (lightingDiff.fill_light || lightingDiff.fillLight)
           ? {
               ...currentFIBO.lighting.fillLight,
-              ...(lightingDiff as any).fill_light,
-              ...(lightingDiff as any).fillLight,
+              ...(lightingDiff.fill_light || lightingDiff.fillLight || {}),
             }
           : currentFIBO.lighting.fillLight,
-        rimLight: (lightingDiff as any).rim_light || (lightingDiff as any).rimLight
+        rimLight: (lightingDiff.rim_light || lightingDiff.rimLight)
           ? {
               ...currentFIBO.lighting.rimLight,
-              ...(lightingDiff as any).rim_light,
-              ...(lightingDiff as any).rimLight,
+              ...(lightingDiff.rim_light || lightingDiff.rimLight || {}),
             }
           : currentFIBO.lighting.rimLight,
-        ambientLight: (lightingDiff as any).ambient_light || (lightingDiff as any).ambientLight
+        ambientLight: (lightingDiff.ambient_light || lightingDiff.ambientLight)
           ? {
               ...currentFIBO.lighting.ambientLight,
-              ...(lightingDiff as any).ambient_light,
-              ...(lightingDiff as any).ambientLight,
+              ...(lightingDiff.ambient_light || lightingDiff.ambientLight || {}),
             }
           : currentFIBO.lighting.ambientLight,
       };
@@ -173,7 +203,7 @@ const AgenticLoop: React.FC = () => {
       const score = Math.min(10, baseScore + ratioScore + intensityScore + rimScore + Math.random() * 2);
 
       const changedKeys = Object.keys(lightingDiff).filter(
-        key => (lightingDiff as any)[key]
+        key => lightingDiff[key as keyof typeof lightingDiff]
       );
       const iteration: AgentIteration = {
         id: newFIBO.generation_id,

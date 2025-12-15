@@ -83,8 +83,8 @@ export default function MoodPaletteEditor() {
         mood,
       });
       const newPatches = resp.data.patches || {};
-      const newLights = applyPatchesToLights(lights as any, newPatches);
-      setAllLights(newLights as any);
+      const newLights = applyPatchesToLights(lights, newPatches);
+      setAllLights(newLights);
       toast.success("Palette applied to lights");
     } catch (err) {
       console.error(err);

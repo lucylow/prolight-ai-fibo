@@ -33,7 +33,7 @@ export default function CompositionPanel() {
   const updateCamera = useLightingStore((s) => s.updateCamera);
 
   async function analyzeUrl() {
-    if (!urlInput) return toast.warn("Enter an image URL");
+    if (!urlInput) return toast.warning("Enter an image URL");
     setLoading(true);
     setImageUrl(urlInput);
     try {
@@ -80,7 +80,7 @@ export default function CompositionPanel() {
 
   async function useCurrentImage() {
     if (!currentImage?.image_url) {
-      toast.warn("No current image available");
+      toast.warning("No current image available");
       return;
     }
     setUrlInput(currentImage.image_url);
@@ -166,7 +166,7 @@ export default function CompositionPanel() {
   }
 
   async function acceptPreviewAndPersist() {
-    if (!selected || !imageUrl) return toast.warn("Select a crop first");
+    if (!selected || !imageUrl) return toast.warning("Select a crop first");
     try {
       // call apply with persist flag
       const resp = await api.post("/compose/apply", {

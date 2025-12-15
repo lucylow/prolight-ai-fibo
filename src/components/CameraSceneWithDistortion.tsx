@@ -56,7 +56,7 @@ const DistortionShader = {
 };
 
 function PostprocessingComposer() {
-  const composerRef = useRef<any>(null);
+  const composerRef = useRef<React.ElementRef<typeof EffectComposer>>(null);
 
   // Simplified version - just render the effect composer
   return <EffectComposer ref={composerRef}><></></EffectComposer>;
@@ -113,4 +113,5 @@ export default function CameraSceneWithDistortion() {
     </div>
   );
 }
+
 

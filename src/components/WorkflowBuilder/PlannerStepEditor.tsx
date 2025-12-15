@@ -98,7 +98,11 @@ export const PlannerStepEditor: React.FC<PlannerStepEditorProps> = ({
           </div>
           <div className="flex items-center gap-2">
             {step.locked_fields && step.locked_fields.length > 0 && (
-              <Lock className="w-4 h-4 text-muted-foreground" title="Some fields are locked" />
+              <Lock
+                className="w-4 h-4 text-muted-foreground"
+                aria-label="Some fields are locked"
+                role="img"
+              />
             )}
             <Button
               type="button"
@@ -152,4 +156,5 @@ export const PlannerStepEditor: React.FC<PlannerStepEditorProps> = ({
     </Card>
   );
 };
+
 

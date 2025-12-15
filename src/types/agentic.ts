@@ -97,6 +97,24 @@ export interface SSEEvent {
   data?: Record<string, unknown>;
 }
 
+export interface ProposalStep {
+  op: string;
+  confidence?: number;
+  // Allow arbitrary additional step fields from the agent
+  [key: string]: unknown;
+}
+
+export interface Proposal {
+  agent: string;
+  intent: string;
+  estimated_cost_usd: number;
+  steps: ProposalStep[];
+  risk_flags: string[];
+  determinism: DeterminismContext & Record<string, unknown>;
+  // Allow extra metadata fields without breaking type-checking
+  [key: string]: unknown;
+}
+
 export const UI_ROUTES: Record<AgentState, string> = {
   CREATED: "/workflows/upload",
   REGISTERED: "/workflows/analyze",
@@ -108,4 +126,5 @@ export const UI_ROUTES: Record<AgentState, string> = {
   FAILED: "/workflows/error",
   STOPPED: "/workflows/stopped",
 };
+
 

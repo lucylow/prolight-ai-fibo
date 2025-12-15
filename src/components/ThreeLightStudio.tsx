@@ -46,7 +46,6 @@ const ProductModel = ({ rotationSpeed = 0.01 }: { rotationSpeed?: number }) => {
             color="#ffedcc"
             emissive="#ffaa00"
             emissiveIntensity={0.1}
-            transmission={0.9}
           />
         </mesh>
       </group>
@@ -216,7 +215,6 @@ export const ThreeLightStudio = () => {
           position={[0, -0.5, 0]}
           scale={8}
           frames={100}
-          threshold={0.1}
           opacity={0.7}
         />
         <ContactShadows 
