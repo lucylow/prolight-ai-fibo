@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createAIGatewayClientFromEnv, AIGatewayErrorClass } from "../_shared/lovable-ai-gateway-client.ts";
 import { createErrorResponseWithLogging } from "../_shared/error-handling.ts";
+import { createFIBOClient } from "../_shared/fibo-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -329,46 +330,114 @@ Output ONLY the JSON object, nothing else.`,
     // Calculate lighting analysis from parsed JSON
     const lightingAnalysis = analyzeLightingFromJson(lightingJson);
 
-    // Build professional image prompt
-    const imagePrompt = buildNLImagePrompt(nlRequest, lightingJson, lightingAnalysis);
-    console.log("Image prompt:", imagePrompt);
+    // Build complete FIBO JSON structure
+    const completeFiboJson = {
+      subject: {
+        main_entity: nlRequest.subject,
+        attributes: ["professionally lit", "high quality", "detailed", "sharp focus"],
+        action: "posed for professional photograph",
+        mood: lightingJson.mood_description || "professional",
+        emotion: lightingJson.mood_description?.includes("dramatic") ? "intense" : "professional"
+      },
+      environment: {
+        setting: nlRequest.environment || "professional studio",
+        time_of_day: "controlled lighting",
+        lighting_conditions: "professional studio",
+        atmosphere: lightingJson.mood_description || "professional"
+      },
+      camera: {
+        shot_type: "medium shot",
+        camera_angle: "eye-level",
+        fov: 85,
+        lens_type: "portrait",
+        aperture: "f/2.8",
+        focus_distance_m: 2.0,
+        pitch: 0,
+        yaw: 0,
+        roll: 0,
+        seed: Math.floor(Math.random() * 1000000)
+      },
+      lighting: convertLightingToFiboFormat(lightingJson.lighting_setup),
+      style_medium: "photograph",
+      artistic_style: nlRequest.styleIntent || "professional studio photography",
+      color_palette: {
+        white_balance: `${lightingJson.lighting_setup?.key?.colorTemperature || 5600}K`,
+        mood: (lightingJson.lighting_setup?.key?.colorTemperature || 5600) < 4500 ? "warm" : 
+              (lightingJson.lighting_setup?.key?.colorTemperature || 5600) > 6000 ? "cool" : "neutral"
+      }
+    };
 
-    // Generate image using AI
+    // Generate image using FIBO client (with fallback to AI Gateway)
     let imageUrl: string | undefined;
     let textContent: string = "";
+    let generationModel: string = "unknown";
+    
     try {
-      const imageResult = await aiClient.generateImage(
-        imagePrompt,
-        "google/gemini-2.5-flash-image-preview"
-      );
-      imageUrl = imageResult.imageUrl;
-      textContent = imageResult.textContent;
-    } catch (error) {
-      if (error instanceof AIGatewayErrorClass) {
+      // Try FIBO first
+      const fiboClient = createFIBOClient({
+        preferBria: true,
+        preferFal: true,
+        timeout: 45000,
+        retries: 2,
+      });
+
+      const fiboResult = await fiboClient.generate({
+        structured_prompt: completeFiboJson,
+        num_results: 1,
+        sync: true,
+        steps: 50,
+        guidance_scale: 5.0,
+      });
+
+      if (fiboResult.status === 'success' && fiboResult.image_url) {
+        imageUrl = fiboResult.image_url;
+        generationModel = fiboResult.model || 'FIBO';
+        console.log(`Image generated using ${generationModel}`);
+      } else {
+        throw new Error(fiboResult.error || 'FIBO generation failed');
+      }
+    } catch (fiboError) {
+      console.warn("FIBO generation failed, falling back to AI Gateway:", fiboError);
+      
+      // Fallback to AI Gateway with text prompt
+      const imagePrompt = buildNLImagePrompt(nlRequest, lightingJson, lightingAnalysis);
+      console.log("Image prompt:", imagePrompt);
+
+      try {
+        const imageResult = await aiClient.generateImage(
+          imagePrompt,
+          "google/gemini-2.5-flash-image-preview"
+        );
+        imageUrl = imageResult.imageUrl;
+        textContent = imageResult.textContent;
+        generationModel = "google/gemini-2.5-flash-image-preview";
+      } catch (error) {
+        if (error instanceof AIGatewayErrorClass) {
+          const errorResponse = createErrorResponseWithLogging(error, {
+            functionName: 'natural-language-lighting',
+            action: 'generateImage',
+            errorCode: error.errorCode,
+            statusCode: error.statusCode,
+            retryable: error.retryable,
+            retryAfter: error.retryAfter,
+            metadata: error.details,
+          });
+          return new Response(JSON.stringify(errorResponse), {
+            status: errorResponse.statusCode,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         const errorResponse = createErrorResponseWithLogging(error, {
           functionName: 'natural-language-lighting',
           action: 'generateImage',
-          errorCode: error.errorCode,
-          statusCode: error.statusCode,
-          retryable: error.retryable,
-          retryAfter: error.retryAfter,
-          metadata: error.details,
+          errorCode: 'IMAGE_GENERATION_ERROR',
+          statusCode: 500,
         });
         return new Response(JSON.stringify(errorResponse), {
           status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const errorResponse = createErrorResponseWithLogging(error, {
-        functionName: 'natural-language-lighting',
-        action: 'generateImage',
-        errorCode: 'IMAGE_GENERATION_ERROR',
-        statusCode: 500,
-      });
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
     // Validate that we got an image
@@ -396,10 +465,11 @@ Output ONLY the JSON object, nothing else.`,
       fibo_json: lightingJson,
       lighting_analysis: lightingAnalysis,
       generation_metadata: {
-        model: "google/gemini-2.5-flash-image-preview",
+        model: generationModel,
         original_description: nlRequest.lightingDescription,
         translated_style: lightingJson.lighting_style,
         mood: lightingJson.mood_description,
+        used_fibo: generationModel.includes('FIBO'),
         timestamp: new Date().toISOString()
       }
     }), {
@@ -662,6 +732,66 @@ QUALITY REQUIREMENTS:
 - Professional studio photography standard
 
 Create an image that demonstrates FIBO's JSON-native and disentangled control capabilities, where lighting parameters precisely control the illumination while maintaining subject and composition consistency.`;
+}
+
+/**
+ * Convert normalized lighting setup to FIBO format
+ */
+function convertLightingToFiboFormat(lightingSetup: NormalizedLighting['lighting_setup']): Record<string, Record<string, unknown>> {
+  const fiboLighting: Record<string, Record<string, unknown>> = {};
+
+  if (lightingSetup.key?.enabled) {
+    fiboLighting.main_light = {
+      type: "area",
+      direction: lightingSetup.key.direction,
+      intensity: Math.max(0, Math.min(2.0, lightingSetup.key.intensity)),
+      colorTemperature: lightingSetup.key.colorTemperature,
+      color_temperature: lightingSetup.key.colorTemperature,
+      softness: Math.max(0, Math.min(1.0, lightingSetup.key.softness)),
+      distance: lightingSetup.key.distance,
+      falloff: "inverse_square",
+      enabled: true,
+    };
+  }
+
+  if (lightingSetup.fill?.enabled) {
+    fiboLighting.fill_light = {
+      type: "area",
+      direction: lightingSetup.fill.direction,
+      intensity: Math.max(0, Math.min(2.0, lightingSetup.fill.intensity)),
+      colorTemperature: lightingSetup.fill.colorTemperature,
+      color_temperature: lightingSetup.fill.colorTemperature,
+      softness: Math.max(0, Math.min(1.0, lightingSetup.fill.softness)),
+      distance: lightingSetup.fill.distance,
+      falloff: "inverse_square",
+      enabled: true,
+    };
+  }
+
+  if (lightingSetup.rim?.enabled) {
+    fiboLighting.rim_light = {
+      type: "area",
+      direction: lightingSetup.rim.direction,
+      intensity: Math.max(0, Math.min(2.0, lightingSetup.rim.intensity)),
+      colorTemperature: lightingSetup.rim.colorTemperature,
+      color_temperature: lightingSetup.rim.colorTemperature,
+      softness: Math.max(0, Math.min(1.0, lightingSetup.rim.softness)),
+      distance: lightingSetup.rim.distance,
+      falloff: "inverse_square",
+      enabled: true,
+    };
+  }
+
+  if (lightingSetup.ambient?.enabled) {
+    fiboLighting.ambient_light = {
+      intensity: Math.max(0, Math.min(1.0, lightingSetup.ambient.intensity)),
+      colorTemperature: lightingSetup.ambient.colorTemperature,
+      color_temperature: lightingSetup.ambient.colorTemperature,
+      enabled: true,
+    };
+  }
+
+  return fiboLighting;
 }
 
 function analyzeLightingFromJson(lightingJson: NormalizedLighting): LightingAnalysisResult {

@@ -257,11 +257,34 @@ const QuizQuestion = ({
   );
 };
 
-const CertificateBadge = ({ onClick }: { onClick: () => void }) => (
-  <div style={certificateBadge} onClick={onClick}>
-    🎉 Certificate Unlocked! Download Portfolio
-  </div>
-);
+const CertificateBadge = ({ onClick }: { onClick: () => void }) => {
+  const handleDownload = () => {
+    // Create a simple certificate download
+    const certificateData = {
+      title: "Photography Lighting Certificate",
+      date: new Date().toLocaleDateString(),
+      modules: Object.keys(EDUCATION_MODULES)
+    };
+    
+    const blob = new Blob([JSON.stringify(certificateData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'photography-lighting-certificate.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    onClick();
+  };
+
+  return (
+    <div style={certificateBadge} onClick={handleDownload}>
+      🎉 Certificate Unlocked! Download Portfolio
+    </div>
+  );
+};
 
 const PortfolioShot = ({
   module,
@@ -427,7 +450,7 @@ export const EducationTrainingStudio = () => {
           ))}
         </div>
         {certificateUnlocked && (
-          <CertificateBadge onClick={() => {}} />
+          <CertificateBadge onClick={() => console.log('Certificate downloaded!')} />
         )}
       </div>
 

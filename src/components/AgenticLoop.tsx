@@ -4,114 +4,34 @@
  * Perfect for "Best JSON-Native or Agentic Workflow" category
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, ContactShadows, OrbitControls } from '@react-three/drei';
 import { motion } from 'framer-motion';
 import * as THREE from 'three';
+import { useFIBOAgent } from '@/hooks/useFIBOAgent';
+import type { FIBOPrompt, FIBOLighting, FIBOLight } from '@/types/fibo';
+import { toast } from 'sonner';
 
 // ============================================================================
 // FIBO JSON + AGENT STATE
 // ============================================================================
 
-interface FIBO {
+interface AgentFIBO extends Partial<FIBOPrompt> {
   generation_id: string;
   model_version: "FIBO-v2.3";
   seed: number;
-  camera: { focal_length: number; aperture: number; iso: number };
-  lighting: {
-    key_light: { intensity: number; color_temperature: number; angle_horizontal: number; angle_vertical: number; softness: number };
-    fill_light: { intensity: number; color_temperature: number; angle_horizontal: number; angle_vertical: number; softness: number };
-    rim_light: { intensity: number; color_temperature: number; angle_horizontal: number; angle_vertical: number; softness: number };
-  };
+  lighting: FIBOLighting;
 }
 
 interface AgentIteration {
   id: string;
-  fibo: FIBO;
+  fibo: AgentFIBO;
   user_instruction: string;
   llm_critique: string;
   score: number; // 1-10 professional rating
   iteration: number;
 }
-
-// ============================================================================
-// LLM TRANSLATOR (Gemini/GPT-4o → FIBO JSON Diff)
-// ============================================================================
-
-const createLLMPrompt = (currentFIBO: FIBO, userInstruction: string): string => {
-  return `
-You are ProLight AI Agent. Translate natural language photography feedback into MINIMAL FIBO JSON CHANGES.
-
-RULES:
-1. ONLY modify lighting parameters (key_light, fill_light, rim_light)
-2. Return ONLY valid JSON diff: {"key_light": {...}, "fill_light": {...}} 
-3. NEVER change camera, seed, or other fields
-4. Use realistic photography terms → JSON values:
-   "more dramatic" → increase rim_light.intensity +0.3, decrease fill_light.intensity -0.2
-   "softer shadows" → increase fill_light.intensity +0.2, key_light.softness +0.1
-   "golden hour" → color_temperature 3200-4000
-   "studio clean" → all 5600K, even intensities
-
-EXAMPLE:
-User: "more dramatic rim lighting"
-Response: {
-  "rim_light": {"intensity": 1.6, "color_temperature": 3200},
-  "fill_light": {"intensity": 0.4}
-}
-
-Current FIBO: ${JSON.stringify(currentFIBO)}
-User instruction: "${userInstruction}"
-Return ONLY valid JSON diff:
-`;
-};
-
-const translateFeedbackToFIBO = async (currentFIBO: FIBO, instruction: string): Promise<Partial<FIBO['lighting']>> => {
-  // Mock LLM call - replace with real Gemini/OpenAI
-  const mockResponses: Record<string, Partial<FIBO['lighting']>> = {
-    "more dramatic": {
-      rim_light: { intensity: 1.8, color_temperature: 3200 },
-      fill_light: { intensity: 0.3 }
-    },
-    "softer": {
-      key_light: { softness: 0.6, intensity: 1.0 },
-      fill_light: { intensity: 0.9 }
-    },
-    "golden hour": {
-      key_light: { color_temperature: 3500 },
-      rim_light: { color_temperature: 3200, intensity: 1.4 }
-    },
-    "studio lighting": {
-      key_light: { intensity: 1.4, color_temperature: 5600 },
-      fill_light: { intensity: 0.8, color_temperature: 5600 },
-      rim_light: { intensity: 0.6, color_temperature: 5600 }
-    },
-    "dramatic rim lighting portrait": {
-      rim_light: { intensity: 1.8, color_temperature: 3200 },
-      fill_light: { intensity: 0.3 },
-      key_light: { intensity: 1.1 }
-    },
-    "consistent e-commerce lighting": {
-      key_light: { intensity: 1.4, color_temperature: 5600, softness: 0.5 },
-      fill_light: { intensity: 0.8, color_temperature: 5600, softness: 0.7 },
-      rim_light: { intensity: 0.5, color_temperature: 5600, softness: 0.6 }
-    }
-  };
-
-  // Check for partial matches
-  const lowerInstruction = instruction.toLowerCase();
-  for (const [key, value] of Object.entries(mockResponses)) {
-    if (lowerInstruction.includes(key)) {
-      // Simulate LLM delay + randomness
-      await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
-      return value;
-    }
-  }
-
-  // Default response
-  await new Promise(r => setTimeout(r, 800 + Math.random() * 400));
-  return mockResponses["studio lighting"];
-};
 
 // ============================================================================
 // AGENTIC ITERATION ENGINE
@@ -282,11 +202,16 @@ const AgenticLoop: React.FC = () => {
           />
           <button 
             onClick={runAgentIteration}
-            disabled={isAgentRunning || !targetInstruction}
-            style={iterateBtn(isAgentRunning)}
+            disabled={isAgentRunning || isTranslating || !targetInstruction}
+            style={iterateBtn(isAgentRunning || isTranslating)}
           >
-            {isAgentRunning ? '🤖 Refining...' : '🚀 Iterate'}
+            {isAgentRunning || isTranslating ? '🤖 Refining...' : '🚀 Iterate'}
           </button>
+          {error && (
+            <div style={{ color: '#ef4444', marginTop: '0.5rem', fontSize: '0.875rem' }}>
+              ⚠️ {error}
+            </div>
+          )}
         </div>
       </div>
 
@@ -338,25 +263,23 @@ const AgenticLoop: React.FC = () => {
 // 3D PREVIEW & COMPONENTS
 // ============================================================================
 
-const FIBO3DLivePreview: React.FC<{ fibo: FIBO }> = ({ fibo }) => {
-  // Calculate light positions from angles
-  const keyPos = [
-    Math.cos(fibo.lighting.key_light.angle_horizontal * Math.PI/180) * 6,
-    -Math.sin(fibo.lighting.key_light.angle_vertical * Math.PI/180) * 5,
-    4
-  ];
-  
-  const fillPos = [
-    Math.cos(fibo.lighting.fill_light.angle_horizontal * Math.PI/180) * 4,
-    -Math.sin(fibo.lighting.fill_light.angle_vertical * Math.PI/180) * 3,
-    2
-  ];
-  
-  const rimPos = [
-    Math.cos(fibo.lighting.rim_light.angle_horizontal * Math.PI/180) * 5,
-    Math.sin(fibo.lighting.rim_light.angle_vertical * Math.PI/180) * 4,
-    -3
-  ];
+const FIBO3DLivePreview: React.FC<{ fibo: AgentFIBO }> = ({ fibo }) => {
+  // Convert direction string to position
+  const directionToPosition = (direction: string, distance: number = 4): [number, number, number] => {
+    const dirMap: Record<string, [number, number, number]> = {
+      'front': [0, 0, distance],
+      'front-right': [distance * 0.7, 0, distance * 0.7],
+      'front-left': [-distance * 0.7, 0, distance * 0.7],
+      'right': [distance, 0, 0],
+      'left': [-distance, 0, 0],
+      'back-right': [distance * 0.7, 0, -distance * 0.7],
+      'back-left': [-distance * 0.7, 0, -distance * 0.7],
+      'back': [0, 0, -distance],
+      'top': [0, distance, 0],
+      'bottom': [0, -distance, 0],
+    };
+    return dirMap[direction] || [0, 0, distance];
+  };
 
   // Convert color temperature to HSL (simplified approximation)
   const tempToHue = (temp: number) => {
@@ -365,31 +288,50 @@ const FIBO3DLivePreview: React.FC<{ fibo: FIBO }> = ({ fibo }) => {
     return 200; // Cool
   };
 
+  const mainLight = fibo.lighting.main_light || fibo.lighting.mainLight;
+  const fillLight = fibo.lighting.fill_light || fibo.lighting.fillLight;
+  const rimLight = fibo.lighting.rim_light || fibo.lighting.rimLight;
+
   return (
     <>
-      {/* Key Light */}
-      <directionalLight
-        position={keyPos as [number, number, number]}
-        intensity={fibo.lighting.key_light.intensity * 2.5}
-        color={`hsl(${tempToHue(fibo.lighting.key_light.color_temperature)}, 70%, 85%)`}
-      />
+      {/* Main/Key Light */}
+      {mainLight && mainLight.enabled !== false && (
+        <directionalLight
+          position={directionToPosition(mainLight.direction as string, mainLight.distance || 4)}
+          intensity={(mainLight.intensity || 1.0) * 2.5}
+          color={`hsl(${tempToHue(mainLight.colorTemperature || 5600)}, 70%, 85%)`}
+          castShadow
+        />
+      )}
       
       {/* Fill Light */}
-      <directionalLight
-        position={fillPos as [number, number, number]}
-        intensity={fibo.lighting.fill_light.intensity * 1.5}
-        color={`hsl(${tempToHue(fibo.lighting.fill_light.color_temperature)}, 70%, 85%)`}
-      />
+      {fillLight && fillLight.enabled !== false && (
+        <directionalLight
+          position={directionToPosition(fillLight.direction as string, fillLight.distance || 4)}
+          intensity={(fillLight.intensity || 0.5) * 1.5}
+          color={`hsl(${tempToHue(fillLight.colorTemperature || 5600)}, 70%, 85%)`}
+        />
+      )}
       
       {/* Rim Light */}
-      <directionalLight
-        position={rimPos as [number, number, number]}
-        intensity={fibo.lighting.rim_light.intensity * 2.0}
-        color={`hsl(${tempToHue(fibo.lighting.rim_light.color_temperature)}, 70%, 85%)`}
-      />
+      {rimLight && rimLight.enabled !== false && (
+        <directionalLight
+          position={directionToPosition(rimLight.direction as string, rimLight.distance || 4)}
+          intensity={(rimLight.intensity || 0.5) * 2.0}
+          color={`hsl(${tempToHue(rimLight.colorTemperature || 4000)}, 70%, 85%)`}
+        />
+      )}
+      
+      {/* Ambient Light */}
+      {fibo.lighting.ambient_light && (
+        <ambientLight
+          intensity={(fibo.lighting.ambient_light.intensity || 0.3) * 0.5}
+          color={`hsl(${tempToHue(fibo.lighting.ambient_light.colorTemperature || 5600)}, 30%, 50%)`}
+        />
+      )}
       
       {/* Subject */}
-      <mesh rotation={[0, 0.3, 0]}>
+      <mesh rotation={[0, 0.3, 0]} castShadow>
         <sphereGeometry args={[1, 64, 64]} />
         <meshStandardMaterial color="#f8d7c8" roughness={0.5} />
       </mesh>

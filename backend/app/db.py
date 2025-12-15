@@ -58,7 +58,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Import all models to register them with Base
-from app.models import poses, composition_model, billing, user, generation, marketplace
+from app.models import poses, composition_model, billing, user, generation, marketplace, image_generation
 
 # Create all tables (including those defined with declarative_base)
 Base.metadata.create_all(bind=engine)

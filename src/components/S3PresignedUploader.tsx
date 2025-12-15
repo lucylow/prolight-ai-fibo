@@ -116,10 +116,13 @@ export default function S3PresignedUploader({
         onComplete?.(result);
         setProgress(0);
         return result;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Upload failed:", err);
-        const errorMessage =
-          err.response?.data?.message || err.message || "Upload failed";
+        const errorMessage = err instanceof Error
+          ? err.message
+          : (err && typeof err === 'object' && 'response' in err && err.response && typeof err.response === 'object' && 'data' in err.response && err.response.data && typeof err.response.data === 'object' && 'message' in err.response.data && typeof err.response.data.message === 'string'
+            ? err.response.data.message
+            : "Upload failed");
         toast.error(`Failed to upload ${file.name}: ${errorMessage}`);
         setErrors((prev) => new Map(prev).set(file.name, errorMessage));
         return null;
@@ -225,4 +228,5 @@ export default function S3PresignedUploader({
     </div>
   );
 }
+
 

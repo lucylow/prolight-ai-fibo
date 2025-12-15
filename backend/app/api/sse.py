@@ -41,12 +41,39 @@ async def event_generator(run_id: str) -> AsyncGenerator[dict, None]:
                 # Only send update if state changed
                 if current_state != last_state or current_update != last_update:
                     import json
+                    
+                    # Send log event for state changes
+                    state_messages = {
+                        "CREATED": "Workflow created",
+                        "PLANNED": "Planning completed",
+                        "CRITIQUED": "Critique completed - awaiting approval",
+                        "APPROVED": "Approved - ready for execution",
+                        "EXECUTING": "Executing workflow",
+                        "COMPLETED": "Workflow completed successfully",
+                        "FAILED": f"Workflow failed: {ctx.error or 'Unknown error'}",
+                        "STOPPED": "Workflow stopped",
+                    }
+                    
+                    log_message = state_messages.get(current_state, f"State: {current_state}")
+                    
+                    # Send log event
+                    log_event = {
+                        "type": "log",
+                        "data": {
+                            "message": log_message
+                        }
+                    }
+                    yield {
+                        "event": "message",
+                        "data": json.dumps(log_event),
+                    }
+                    
                     # Frontend expects: {type: "status", data: {status: "...", message: "..."}}
                     event_payload = {
                         "type": "status",
                         "data": {
                             "status": current_state.lower(),
-                            "message": f"Status: {current_state}",
+                            "message": log_message,
                             "run_id": run_id,
                             "plan": ctx.plan,
                             "critique": ctx.critique,
@@ -57,11 +84,29 @@ async def event_generator(run_id: str) -> AsyncGenerator[dict, None]:
                     
                     # Also check for proposal/plan to send proposal event for HITL
                     if ctx.plan and current_state in ["CRITIQUED", "PROPOSED"]:
+                        # Transform plan to Proposal format expected by frontend
+                        plan_dict = ctx.plan if isinstance(ctx.plan, dict) else {}
+                        proposal = {
+                            "agent": ctx.metadata.get("agent_id", "unknown"),
+                            "intent": plan_dict.get("intent", ctx.input_data.get("intent", "enhance")),
+                            "steps": plan_dict.get("steps", []),
+                            "estimated_cost_usd": plan_dict.get("estimated_cost_usd", 0.0),
+                            "outputs": plan_dict.get("outputs", []),
+                            "determinism": plan_dict.get("determinism", {
+                                "seed": 0,
+                                "prompt_hash": "",
+                                "model_version": "bria-edit-2025.1"
+                            }),
+                            "risk_flags": plan_dict.get("risk_flags", []),
+                            "request_id": ctx.run_id,
+                            "timestamp": ctx.updated_at.isoformat(),
+                        }
+                        
                         # Send proposal event for HITL - frontend expects proposal in data.proposal
                         proposal_event = {
                             "type": "proposal",
                             "data": {
-                                "proposal": ctx.plan if isinstance(ctx.plan, dict) else {"plan": ctx.plan}
+                                "proposal": proposal
                             }
                         }
                         yield {

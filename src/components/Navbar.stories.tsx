@@ -4,7 +4,7 @@ import Navbar from './Navbar';
 import { AuthProvider } from '../contexts/AuthContext';
 
 // Mock auth context for Storybook
-const MockAuthProvider = ({ children, user }: { children: React.ReactNode; user?: any }) => {
+const MockAuthProvider = ({ children, user }: { children: React.ReactNode; user?: unknown }) => {
   return (
     <AuthProvider>
       {children}
@@ -36,4 +36,5 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => <Navbar />,
 };
+
 

@@ -80,4 +80,17 @@ export function isProduction(): boolean {
   return import.meta.env.PROD;
 }
 
+/**
+ * Gets OpenAI API key from environment
+ */
+export function getOpenAIApiKey(): string | undefined {
+  return import.meta.env.VITE_OPENAI_API_KEY || import.meta.env.OPENAI_API_KEY;
+}
+
+/**
+ * Gets Gemini API key from environment
+ */
+export function getGeminiApiKey(): string | undefined {
+  return import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.GEMINI_API_KEY || import.meta.env.VITE_GOOGLE_API_KEY;
+}
 

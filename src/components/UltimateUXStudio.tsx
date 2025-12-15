@@ -342,7 +342,8 @@ export const UltimateUXStudio = () => {
   const canvasContainer: React.CSSProperties = {
     width: '100vw',
     height: 'calc(100vh - 160px)',
-    marginTop: '80px'
+    marginTop: '80px',
+    position: 'relative'
   };
 
   const bottomControls: React.CSSProperties = {
@@ -448,10 +449,10 @@ export const UltimateUXStudio = () => {
           
           <OrbitControls enablePan={false} />
         </Canvas>
+        
+        {/* Live Metrics Overlay */}
+        <LiveMetrics lighting={lighting} />
       </div>
-      
-      {/* Live Metrics Overlay */}
-      <LiveMetrics lighting={lighting} />
 
       {/* Bottom Controls */}
       <div style={bottomControls}>

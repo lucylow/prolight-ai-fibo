@@ -98,7 +98,7 @@ async def process_image_remove_bg(
                 return data['result']['image_url']
             elif data.get('status_url'):
                 # Async response - poll for result
-                return await poll_bria_status(data['status_url'], http_client)
+                return await poll_bria_status(data['status_url'], http_client, client.api_token)
             else:
                 raise Exception("No image URL in response")
     except Exception as e:
@@ -139,7 +139,7 @@ async def process_image_upscale(
                 return data['result']['image_url']
             elif data.get('status_url'):
                 # Async response - poll for result
-                return await poll_bria_status(data['status_url'], http_client)
+                return await poll_bria_status(data['status_url'], http_client, client.api_token)
             else:
                 raise Exception("No image URL in response")
     except Exception as e:
@@ -184,13 +184,13 @@ async def process_video_remove_bg(
         raise
 
 
-async def poll_bria_status(status_url: str, http_client) -> str:
+async def poll_bria_status(status_url: str, http_client, api_token: str) -> str:
     """Poll Bria status URL until completion."""
     max_attempts = 60
     for attempt in range(max_attempts):
         await asyncio.sleep(2)
         response = await http_client.get(status_url, headers={
-            "api_token": getattr(settings, 'BRIA_API_TOKEN', '')
+            "api_token": api_token
         })
         response.raise_for_status()
         data = response.json()

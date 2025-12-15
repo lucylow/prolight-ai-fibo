@@ -44,9 +44,14 @@ export const RunControls: React.FC<RunControlsProps> = ({
 
       updateRunStatus(run.run_id, newStatus);
       toast.success(`Run ${action}ed successfully`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Failed to ${action} run:`, error);
-      toast.error(error.response?.data?.message || error.message || `Failed to ${action} run`);
+      const errorMessage = error instanceof Error 
+        ? error.message 
+        : (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'data' in error.response && error.response.data && typeof error.response.data === 'object' && 'message' in error.response.data && typeof error.response.data.message === 'string'
+          ? error.response.data.message
+          : `Failed to ${action} run`);
+      toast.error(errorMessage);
     } finally {
       setIsActioning(false);
     }
@@ -146,4 +151,5 @@ export const RunControls: React.FC<RunControlsProps> = ({
     </div>
   );
 };
+
 

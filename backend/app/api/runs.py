@@ -58,24 +58,34 @@ _runs_store: Dict[str, WorkflowContext] = {}
 async def run_workflow(ctx: WorkflowContext):
     """Background task to run workflow."""
     try:
-        # Planner
-        ctx = await advance(ctx)
+        logger.info(f"Starting workflow {ctx.run_id}")
         _runs_store[ctx.run_id] = ctx
         
-        # Critic
+        # Planner
+        logger.info(f"Workflow {ctx.run_id}: Running planner agent")
         ctx = await advance(ctx)
         _runs_store[ctx.run_id] = ctx
+        logger.info(f"Workflow {ctx.run_id}: Planner completed, state: {ctx.state}")
+        
+        # Critic
+        logger.info(f"Workflow {ctx.run_id}: Running critic agent")
+        ctx = await advance(ctx)
+        _runs_store[ctx.run_id] = ctx
+        logger.info(f"Workflow {ctx.run_id}: Critic completed, state: {ctx.state}")
         
         # Pause here for HITL - workflow will wait for approval
         if ctx.state == WorkflowState.CRITIQUED:
             logger.info(f"Workflow {ctx.run_id} waiting for human approval")
+            _runs_store[ctx.run_id] = ctx
             return
         
         # Once human approves:
+        logger.info(f"Workflow {ctx.run_id}: Human approved, proceeding to execution")
         ctx = await advance(ctx, human_approved=True)
         _runs_store[ctx.run_id] = ctx
         
         # Execute
+        logger.info(f"Workflow {ctx.run_id}: Running executor agent")
         ctx = await advance(ctx)
         _runs_store[ctx.run_id] = ctx
         
@@ -119,6 +129,22 @@ async def start_run(agent_id: str, run_data: RunCreate, background: BackgroundTa
         "agent_id": agent_id,
         "state": ctx.state.value,
         "created_at": ctx.created_at.isoformat(),
+    }
+
+
+@router.get("/{run_id}/status")
+async def get_run_status(run_id: str):
+    """Get run status (lightweight endpoint)."""
+    if run_id not in _runs_store:
+        raise HTTPException(status_code=404, detail="Run not found")
+    
+    ctx = _runs_store[run_id]
+    return {
+        "run_id": ctx.run_id,
+        "state": ctx.state.value if isinstance(ctx.state, WorkflowState) else ctx.state,
+        "status": ctx.state.value.lower() if isinstance(ctx.state, WorkflowState) else str(ctx.state).lower(),
+        "error": ctx.error,
+        "updated_at": ctx.updated_at.isoformat(),
     }
 
 
@@ -184,4 +210,5 @@ async def stop_run(run_id: str):
         "state": "STOPPED",
         "message": "Run stopped successfully",
     }
+
 

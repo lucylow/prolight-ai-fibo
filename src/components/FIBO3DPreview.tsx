@@ -30,7 +30,7 @@ export const FIBO3DPreview: React.FC<{ fibo: FIBO }> = ({ fibo }) => (
       />
 
       {/* Product/Wedding Subject */}
-      <mesh rotation-y={0.3}>
+      <mesh rotation={[0, 0.3, 0]}>
         <sphereGeometry args={[1, 64, 64]} />
         <meshStandardMaterial 
           color="#f8d7c8" 

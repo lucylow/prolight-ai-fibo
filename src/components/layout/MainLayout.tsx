@@ -136,7 +136,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const getVisibleItems = useCallback(<T extends typeof navigationGroups.create[0]>(items: T[]): T[] => {
     return items.filter(item => {
       if (item.auth && !auth.user) return false;
-      if (item.role && auth.user?.role !== item.role) return false;
+      if ('role' in item && item.role && auth.user?.role !== item.role) return false;
       return true;
     });
   }, [auth.user]);
@@ -152,7 +152,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const filteredSearchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
-    return allNavItems.filter(item => {
+    return allNavItems.filter((item: any) => {
       if (item.auth && !auth.user) return false;
       if (item.role && auth.user?.role !== item.role) return false;
       return (
@@ -222,34 +222,51 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         className={cn(
-          "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background group",
+          "flex items-center gap-3.5 px-4 py-3.5 rounded-xl transition-all duration-200",
+          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background",
+          "group relative overflow-hidden",
           active
-            ? "bg-primary text-primary-foreground shadow-md"
-            : "text-foreground hover:bg-muted/70 hover:shadow-sm active:scale-[0.98]"
+            ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 border border-primary/30"
+            : "text-foreground hover:bg-muted/80 hover:shadow-md active:scale-[0.98] border border-transparent hover:border-border/50"
         )}
         aria-current={active ? 'page' : undefined}
         role="menuitem"
         tabIndex={0}
       >
         <div className={cn(
-          "p-2 rounded-lg transition-all duration-200",
-          active ? "bg-primary-foreground/20" : "bg-muted/50 group-hover:bg-muted"
+          "p-2.5 rounded-lg transition-all duration-200 shrink-0",
+          active 
+            ? "bg-primary-foreground/20 shadow-sm" 
+            : "bg-muted/60 group-hover:bg-muted group-hover:scale-110"
         )}>
-          <Icon className="w-5 h-5 shrink-0" aria-hidden="true" />
+          <Icon className={cn(
+            "w-5 h-5 transition-transform duration-200",
+            active ? "scale-110" : "group-hover:scale-110"
+          )} aria-hidden="true" />
         </div>
-        <div className="flex flex-col flex-1 min-w-0">
-          <span className="font-medium text-sm">{item.label}</span>
+        <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+          <span className={cn(
+            "font-semibold text-sm leading-tight",
+            active ? "text-primary-foreground" : "text-foreground"
+          )}>{item.label}</span>
           {item.description && (
             <span className={cn(
-              "text-xs mt-0.5 truncate",
-              active ? "text-primary-foreground/80" : "text-muted-foreground"
+              "text-xs truncate leading-tight",
+              active ? "text-primary-foreground/70" : "text-muted-foreground"
             )}>
               {item.description}
             </span>
           )}
         </div>
         {active && (
-          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground shrink-0 animate-pulse" />
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="w-2 h-2 rounded-full bg-primary-foreground shrink-0 shadow-sm"
+          />
+        )}
+        {!active && (
+          <ChevronDown className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-all duration-200 -rotate-90 shrink-0" />
         )}
       </Link>
     );
@@ -285,17 +302,17 @@ const MainLayout = ({ children }: MainLayoutProps) => {
             </Link>
 
             {/* Desktop Navigation */}
-            <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
+            <nav className="hidden lg:flex items-center gap-1.5" aria-label="Main navigation">
               {/* Create Group - Primary actions */}
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
-                    <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
+                    <NavigationMenuTrigger className="h-9 px-4 text-sm font-medium hover:bg-muted/80 hover:text-foreground transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md data-[state=open]:bg-muted/80 data-[state=open]:text-foreground">
                       Create
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <div className="w-[420px] p-2">
-                        <div className="grid gap-1">
+                      <div className="w-[440px] p-3">
+                        <div className="grid gap-1.5">
                           {getVisibleItems(navigationGroups.create).map((item) => {
                             const Icon = item.icon;
                             const active = isActive(item.path);
@@ -308,24 +325,37 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                                     navigate(item.path);
                                   }}
                                   className={cn(
-                                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 cursor-pointer group/item",
+                                    "flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-200 cursor-pointer group/item relative",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                                     active
-                                      ? "bg-primary/10 text-primary shadow-sm"
-                                      : "hover:bg-muted/70 hover:shadow-sm"
+                                      ? "bg-primary/10 text-primary shadow-md shadow-primary/5 border border-primary/20"
+                                      : "hover:bg-muted/80 hover:shadow-sm hover:scale-[1.02] active:scale-[0.98] border border-transparent"
                                   )}
                                 >
                                   <div className={cn(
-                                    "p-2 rounded-md transition-all duration-200",
-                                    active ? "bg-primary/20" : "bg-muted/50 group-hover/item:bg-muted"
+                                    "p-2.5 rounded-lg transition-all duration-200 shrink-0",
+                                    active 
+                                      ? "bg-primary/20 text-primary shadow-sm" 
+                                      : "bg-muted/60 group-hover/item:bg-muted group-hover/item:scale-105"
                                   )}>
-                                    <Icon className="w-4 h-4 shrink-0" />
+                                    <Icon className={cn(
+                                      "w-5 h-5 transition-transform duration-200",
+                                      active ? "scale-110" : "group-hover/item:scale-110"
+                                    )} />
                                   </div>
-                                  <div className="flex flex-col flex-1 min-w-0">
-                                    <span className="font-medium text-sm">{item.label}</span>
-                                    <span className="text-xs text-muted-foreground truncate">{item.description}</span>
+                                  <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                                    <span className="font-semibold text-sm leading-tight">{item.label}</span>
+                                    <span className="text-xs text-muted-foreground truncate leading-tight">{item.description}</span>
                                   </div>
                                   {active && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                    <motion.div 
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="w-2 h-2 rounded-full bg-primary shrink-0 shadow-sm shadow-primary/50"
+                                    />
+                                  )}
+                                  {!active && (
+                                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-all duration-200 -rotate-90 group-hover/item:translate-x-0.5 shrink-0" />
                                   )}
                                 </a>
                               </NavigationMenuLink>
@@ -342,12 +372,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
-                    <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
+                    <NavigationMenuTrigger className="h-9 px-4 text-sm font-medium hover:bg-muted/80 hover:text-foreground transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md data-[state=open]:bg-muted/80 data-[state=open]:text-foreground">
                       Learn
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <div className="w-[420px] p-2">
-                        <div className="grid gap-1">
+                      <div className="w-[440px] p-3">
+                        <div className="grid gap-1.5">
                           {getVisibleItems(navigationGroups.learn).map((item) => {
                             const Icon = item.icon;
                             const active = isActive(item.path);
@@ -360,24 +390,37 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                                     navigate(item.path);
                                   }}
                                   className={cn(
-                                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 cursor-pointer group/item",
+                                    "flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-200 cursor-pointer group/item relative",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                                     active
-                                      ? "bg-primary/10 text-primary shadow-sm"
-                                      : "hover:bg-muted/70 hover:shadow-sm"
+                                      ? "bg-primary/10 text-primary shadow-md shadow-primary/5 border border-primary/20"
+                                      : "hover:bg-muted/80 hover:shadow-sm hover:scale-[1.02] active:scale-[0.98] border border-transparent"
                                   )}
                                 >
                                   <div className={cn(
-                                    "p-2 rounded-md transition-all duration-200",
-                                    active ? "bg-primary/20" : "bg-muted/50 group-hover/item:bg-muted"
+                                    "p-2.5 rounded-lg transition-all duration-200 shrink-0",
+                                    active 
+                                      ? "bg-primary/20 text-primary shadow-sm" 
+                                      : "bg-muted/60 group-hover/item:bg-muted group-hover/item:scale-105"
                                   )}>
-                                    <Icon className="w-4 h-4 shrink-0" />
+                                    <Icon className={cn(
+                                      "w-5 h-5 transition-transform duration-200",
+                                      active ? "scale-110" : "group-hover/item:scale-110"
+                                    )} />
                                   </div>
-                                  <div className="flex flex-col flex-1 min-w-0">
-                                    <span className="font-medium text-sm">{item.label}</span>
-                                    <span className="text-xs text-muted-foreground truncate">{item.description}</span>
+                                  <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                                    <span className="font-semibold text-sm leading-tight">{item.label}</span>
+                                    <span className="text-xs text-muted-foreground truncate leading-tight">{item.description}</span>
                                   </div>
                                   {active && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                    <motion.div 
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="w-2 h-2 rounded-full bg-primary shrink-0 shadow-sm shadow-primary/50"
+                                    />
+                                  )}
+                                  {!active && (
+                                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-all duration-200 -rotate-90 group-hover/item:translate-x-0.5 shrink-0" />
                                   )}
                                 </a>
                               </NavigationMenuLink>
@@ -394,12 +437,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
-                    <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
+                    <NavigationMenuTrigger className="h-9 px-4 text-sm font-medium hover:bg-muted/80 hover:text-foreground transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md data-[state=open]:bg-muted/80 data-[state=open]:text-foreground">
                       Company
                     </NavigationMenuTrigger>
                     <NavigationMenuContent>
-                      <div className="w-[420px] p-2">
-                        <div className="grid gap-1">
+                      <div className="w-[440px] p-3">
+                        <div className="grid gap-1.5">
                           {getVisibleItems(navigationGroups.company).map((item) => {
                             const Icon = item.icon;
                             const active = isActive(item.path);
@@ -412,24 +455,37 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                                     navigate(item.path);
                                   }}
                                   className={cn(
-                                    "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 cursor-pointer group/item",
+                                    "flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-200 cursor-pointer group/item relative",
+                                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                                     active
-                                      ? "bg-primary/10 text-primary shadow-sm"
-                                      : "hover:bg-muted/70 hover:shadow-sm"
+                                      ? "bg-primary/10 text-primary shadow-md shadow-primary/5 border border-primary/20"
+                                      : "hover:bg-muted/80 hover:shadow-sm hover:scale-[1.02] active:scale-[0.98] border border-transparent"
                                   )}
                                 >
                                   <div className={cn(
-                                    "p-2 rounded-md transition-all duration-200",
-                                    active ? "bg-primary/20" : "bg-muted/50 group-hover/item:bg-muted"
+                                    "p-2.5 rounded-lg transition-all duration-200 shrink-0",
+                                    active 
+                                      ? "bg-primary/20 text-primary shadow-sm" 
+                                      : "bg-muted/60 group-hover/item:bg-muted group-hover/item:scale-105"
                                   )}>
-                                    <Icon className="w-4 h-4 shrink-0" />
+                                    <Icon className={cn(
+                                      "w-5 h-5 transition-transform duration-200",
+                                      active ? "scale-110" : "group-hover/item:scale-110"
+                                    )} />
                                   </div>
-                                  <div className="flex flex-col flex-1 min-w-0">
-                                    <span className="font-medium text-sm">{item.label}</span>
-                                    <span className="text-xs text-muted-foreground truncate">{item.description}</span>
+                                  <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                                    <span className="font-semibold text-sm leading-tight">{item.label}</span>
+                                    <span className="text-xs text-muted-foreground truncate leading-tight">{item.description}</span>
                                   </div>
                                   {active && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                    <motion.div 
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="w-2 h-2 rounded-full bg-primary shrink-0 shadow-sm shadow-primary/50"
+                                    />
+                                  )}
+                                  {!active && (
+                                    <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-all duration-200 -rotate-90 group-hover/item:translate-x-0.5 shrink-0" />
                                   )}
                                 </a>
                               </NavigationMenuLink>
@@ -447,12 +503,12 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 <NavigationMenu>
                   <NavigationMenuList>
                     <NavigationMenuItem>
-                      <NavigationMenuTrigger className="h-9 px-3 text-sm font-medium hover:bg-muted/70 transition-all duration-200">
+                      <NavigationMenuTrigger className="h-9 px-4 text-sm font-medium hover:bg-muted/80 hover:text-foreground transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md data-[state=open]:bg-muted/80 data-[state=open]:text-foreground">
                         Account
                       </NavigationMenuTrigger>
                       <NavigationMenuContent>
-                        <div className="w-[420px] p-2">
-                          <div className="grid gap-1">
+                        <div className="w-[440px] p-3">
+                          <div className="grid gap-1.5">
                             {getVisibleItems(navigationGroups.account).map((item) => {
                               const Icon = item.icon;
                               const active = isActive(item.path);
@@ -461,24 +517,37 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                                   <Link
                                     to={item.path}
                                     className={cn(
-                                      "flex items-center gap-3 p-3 rounded-lg transition-all duration-200 group/item",
+                                      "flex items-center gap-3.5 p-3.5 rounded-xl transition-all duration-200 group/item relative",
+                                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                                       active
-                                        ? "bg-primary/10 text-primary shadow-sm"
-                                        : "hover:bg-muted/70 hover:shadow-sm"
+                                        ? "bg-primary/10 text-primary shadow-md shadow-primary/5 border border-primary/20"
+                                        : "hover:bg-muted/80 hover:shadow-sm hover:scale-[1.02] active:scale-[0.98] border border-transparent"
                                     )}
                                   >
                                     <div className={cn(
-                                      "p-2 rounded-md transition-all duration-200",
-                                      active ? "bg-primary/20" : "bg-muted/50 group-hover/item:bg-muted"
+                                      "p-2.5 rounded-lg transition-all duration-200 shrink-0",
+                                      active 
+                                        ? "bg-primary/20 text-primary shadow-sm" 
+                                        : "bg-muted/60 group-hover/item:bg-muted group-hover/item:scale-110"
                                     )}>
-                                      <Icon className="w-4 h-4 shrink-0" />
+                                      <Icon className={cn(
+                                        "w-4.5 h-4.5 transition-transform duration-200",
+                                        active ? "scale-110" : "group-hover/item:scale-110"
+                                      )} />
                                     </div>
-                                    <div className="flex flex-col flex-1 min-w-0">
-                                      <span className="font-medium text-sm">{item.label}</span>
-                                      <span className="text-xs text-muted-foreground truncate">{item.description}</span>
+                                    <div className="flex flex-col flex-1 min-w-0 gap-0.5">
+                                      <span className="font-semibold text-sm leading-tight">{item.label}</span>
+                                      <span className="text-xs text-muted-foreground truncate leading-tight">{item.description}</span>
                                     </div>
                                     {active && (
-                                      <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                                      <motion.div 
+                                        initial={{ scale: 0 }}
+                                        animate={{ scale: 1 }}
+                                        className="w-2 h-2 rounded-full bg-primary shrink-0 shadow-sm shadow-primary/50"
+                                      />
+                                    )}
+                                    {!active && (
+                                      <ChevronDown className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover/item:opacity-100 transition-all duration-200 -rotate-90 group-hover/item:translate-x-0.5 shrink-0" />
                                     )}
                                   </Link>
                                 </NavigationMenuLink>
@@ -510,41 +579,58 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               {auth.user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="flex items-center gap-2 h-9">
-                      <Avatar className="h-8 w-8">
+                    <Button 
+                      variant="ghost" 
+                      className="flex items-center gap-2.5 h-9 px-2 sm:px-3 hover:bg-muted/80 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
+                      aria-label="User menu"
+                    >
+                      <Avatar className="h-8 w-8 ring-2 ring-background ring-offset-2 ring-offset-background transition-all duration-200 group-hover:ring-primary/20">
                         <AvatarImage src={auth.user.avatar_url} />
-                        <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                        <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
                           {getInitials(auth.user.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="hidden xl:inline text-sm">{auth.user.name}</span>
+                      <span className="hidden xl:inline text-sm font-medium">{auth.user.name}</span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuLabel>
+                  <DropdownMenuContent align="end" className="w-64 p-2">
+                    <DropdownMenuLabel className="px-3 py-2.5">
                       <div className="flex flex-col space-y-1">
-                        <p className="text-sm font-medium leading-none">{auth.user.name}</p>
-                        <p className="text-xs leading-none text-muted-foreground">{auth.user.email}</p>
+                        <p className="text-sm font-semibold leading-tight">{auth.user.name}</p>
+                        <p className="text-xs leading-tight text-muted-foreground truncate">{auth.user.email}</p>
                       </div>
                     </DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => navigate('/dashboard')}>
-                      <LayoutDashboard className="w-4 h-4 mr-2" />
-                      Dashboard
+                    <DropdownMenuSeparator className="my-2" />
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/dashboard')}
+                      className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 focus:bg-muted/80 focus:text-foreground"
+                    >
+                      <LayoutDashboard className="w-4 h-4 mr-2.5 text-muted-foreground" />
+                      <span className="font-medium">Dashboard</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => navigate('/account')}>
-                      <Settings className="w-4 h-4 mr-2" />
-                      Account Settings
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/account')}
+                      className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 focus:bg-muted/80 focus:text-foreground"
+                    >
+                      <Settings className="w-4 h-4 mr-2.5 text-muted-foreground" />
+                      <span className="font-medium">Account Settings</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                    <DropdownMenuSeparator className="my-2" />
+                    <DropdownMenuItem 
+                      onClick={handleLogoutClick} 
+                      className="px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 text-red-600 focus:text-red-700 focus:bg-red-50 dark:focus:bg-red-950/20"
+                    >
+                      <LogOut className="w-4 h-4 mr-2.5" />
+                      <span className="font-medium">Sign Out</span>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button onClick={() => navigate('/sign-in')} size="sm" className="hidden sm:flex text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4">
+                <Button 
+                  onClick={() => navigate('/sign-in')} 
+                  size="sm" 
+                  className="hidden sm:flex text-xs sm:text-sm h-8 sm:h-9 px-3 sm:px-4 transition-all duration-200 hover:scale-105 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
                   Sign In
                 </Button>
               )}
@@ -553,13 +639,18 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden h-8 w-8 sm:h-9 sm:w-9"
+                className="lg:hidden h-8 w-8 sm:h-9 sm:w-9 transition-all duration-200 hover:bg-muted/80 active:scale-95 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-lg"
                 onClick={() => setMobileMenuOpen(true)}
                 aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                 aria-expanded={mobileMenuOpen}
                 aria-controls="mobile-navigation"
               >
-                {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                <motion.div
+                  animate={{ rotate: mobileMenuOpen ? 90 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                </motion.div>
               </Button>
             </div>
           </div>
@@ -571,186 +662,221 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         setMobileMenuOpen(open);
         if (!open) setSearchQuery('');
       }}>
-        <SheetContent side="right" className="w-[90vw] sm:w-[85vw] md:w-[420px] overflow-y-auto p-4 sm:p-6">
-          <SheetHeader className="pb-4 border-b">
-            <SheetTitle className="flex items-center gap-2.5">
+        <SheetContent side="right" className="w-[90vw] sm:w-[85vw] md:w-[440px] overflow-y-auto p-0 flex flex-col">
+          <SheetHeader className="px-4 sm:px-6 pt-6 pb-4 border-b border-border/50 bg-gradient-to-b from-background to-background/95">
+            <SheetTitle className="flex items-center gap-3">
               <div className="relative">
-                <Lightbulb className="w-5 h-5 text-primary" />
-                <div className="absolute inset-0 bg-primary/20 rounded-full blur-md" />
+                <Lightbulb className="w-6 h-6 text-primary transition-transform duration-300 group-hover:rotate-12" />
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg animate-pulse" />
               </div>
-              <span>Navigation</span>
+              <span className="text-lg font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">Navigation</span>
             </SheetTitle>
-            <SheetDescription className="text-left">
+            <SheetDescription className="text-left text-sm text-muted-foreground mt-1.5">
               Browse all pages and features
             </SheetDescription>
           </SheetHeader>
 
           {/* Search Bar */}
-          <div className="mt-6 mb-4">
+          <div className="px-4 sm:px-6 pt-6 pb-4 border-b border-border/50 bg-background/50 sticky top-0 z-10 backdrop-blur-sm">
             <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground transition-all duration-200 group-focus-within:text-primary group-focus-within:scale-110" />
               <Input
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search pages..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-20 h-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
+                className="pl-11 pr-24 h-11 text-base transition-all duration-200 focus:ring-2 focus:ring-primary focus:border-primary shadow-sm"
                 aria-label="Search navigation"
                 aria-describedby="search-hint"
               />
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-12 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted transition-colors duration-200"
+                  className="absolute right-14 top-1/2 -translate-y-1/2 p-1.5 rounded-md hover:bg-muted transition-all duration-200 active:scale-95"
                   aria-label="Clear search"
                 >
-                  <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                  <X className="w-4 h-4 text-muted-foreground hover:text-foreground" />
                 </button>
               )}
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground pointer-events-none">
-                <kbd className="px-1.5 py-0.5 bg-muted/50 rounded border border-border/50 font-mono">⌘</kbd>
-                <kbd className="px-1.5 py-0.5 bg-muted/50 rounded border border-border/50 font-mono">K</kbd>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground pointer-events-none">
+                <kbd className="px-2 py-1 bg-muted/70 rounded-md border border-border/50 font-mono text-[10px] shadow-sm">⌘</kbd>
+                <kbd className="px-2 py-1 bg-muted/70 rounded-md border border-border/50 font-mono text-[10px] shadow-sm">K</kbd>
               </div>
               <p id="search-hint" className="sr-only">Use keyboard shortcut Cmd+K or Ctrl+K to search</p>
             </div>
           </div>
 
-          {/* Search Results */}
-          <AnimatePresence>
-            {searchQuery.trim() && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mb-6 space-y-2"
-              >
-                <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Search Results {filteredSearchResults.length > 0 && `(${filteredSearchResults.length})`}
-                </h3>
-                <div className="space-y-1">
-                  {filteredSearchResults.length > 0 ? (
-                    filteredSearchResults.map((item, index) => (
+          {/* Scrollable Content Area */}
+          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-6">
+            {/* Search Results */}
+            <AnimatePresence>
+              {searchQuery.trim() && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="mb-6 space-y-2"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                      Search Results
+                    </h3>
+                    {filteredSearchResults.length > 0 && (
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                        {filteredSearchResults.length} {filteredSearchResults.length === 1 ? 'result' : 'results'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
+                    {filteredSearchResults.length > 0 ? (
+                      filteredSearchResults.map((item, index) => (
+                        <motion.div
+                          key={item.path}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.03, duration: 0.2 }}
+                        >
+                          <MobileNavItem item={item} />
+                        </motion.div>
+                      ))
+                    ) : (
                       <motion.div
-                        key={item.path}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.2 }}
+                        className="px-4 py-12 text-center"
                       >
-                        <MobileNavItem item={item} />
+                        <div className="relative inline-block mb-4">
+                          <Search className="w-12 h-12 mx-auto text-muted-foreground/40" />
+                          <div className="absolute inset-0 bg-muted-foreground/5 rounded-full blur-xl" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground mb-1">
+                          No results found
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Try searching for <span className="font-medium">"{searchQuery}"</span> with different terms
+                        </p>
                       </motion.div>
-                    ))
-                  ) : (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="px-4 py-8 text-center"
-                    >
-                      <Search className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
-                      <p className="text-sm text-muted-foreground">
-                        No results found for <span className="font-medium text-foreground">"{searchQuery}"</span>
-                      </p>
-                      <p className="text-xs text-muted-foreground/70 mt-1">Try a different search term</p>
-                    </motion.div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-          {/* Regular Navigation (hidden when searching) */}
-          {!searchQuery.trim() && (
-            <div className="mt-6 space-y-6">
-            {/* Create Section - Primary actions */}
-            <div>
-              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Create
-              </h3>
-              <div className="space-y-1">
-                {getVisibleItems(navigationGroups.create).map((item) => (
-                  <MobileNavItem key={item.path} item={item} />
-                ))}
-              </div>
-            </div>
-
-            {/* Learn Section - Product information */}
-            <Separator />
-            <div>
-              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Learn
-              </h3>
-              <div className="space-y-1">
-                {getVisibleItems(navigationGroups.learn).map((item) => (
-                  <MobileNavItem key={item.path} item={item} />
-                ))}
-              </div>
-            </div>
-
-            {/* Company Section */}
-            <Separator />
-            <div>
-              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Company
-              </h3>
-              <div className="space-y-1">
-                {getVisibleItems(navigationGroups.company).map((item) => (
-                  <MobileNavItem key={item.path} item={item} />
-                ))}
-              </div>
-            </div>
-
-            {/* Account Section */}
-            {auth.user && (
-              <>
-                <Separator />
+            {/* Regular Navigation (hidden when searching) */}
+            {!searchQuery.trim() && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+                className="space-y-6"
+              >
+                {/* Create Section - Primary actions */}
                 <div>
-                  <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                    Account
-                  </h3>
-                  <div className="space-y-1">
-                    {getVisibleItems(navigationGroups.account).map((item) => (
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-2">
+                      Create
+                    </h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                  </div>
+                  <div className="space-y-1.5">
+                    {getVisibleItems(navigationGroups.create).map((item) => (
                       <MobileNavItem key={item.path} item={item} />
                     ))}
                   </div>
                 </div>
-              </>
-            )}
 
-            {/* Mobile Footer Actions */}
-            <Separator />
-            <div className="flex items-center justify-between px-4 py-3 bg-muted/30 rounded-lg">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleTheme}
-                aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-                className="rounded-lg"
-              >
-                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </Button>
-              {auth.user ? (
-                <Button 
-                  variant="ghost" 
-                  onClick={handleLogoutClick} 
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
+                {/* Learn Section - Product information */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-2">
+                      Learn
+                    </h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                  </div>
+                  <div className="space-y-1.5">
+                    {getVisibleItems(navigationGroups.learn).map((item) => (
+                      <MobileNavItem key={item.path} item={item} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Company Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-2">
+                      Company
+                    </h3>
+                    <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                  </div>
+                  <div className="space-y-1.5">
+                    {getVisibleItems(navigationGroups.company).map((item) => (
+                      <MobileNavItem key={item.path} item={item} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Account Section */}
+                {auth.user && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-2">
+                        Account
+                      </h3>
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                    </div>
+                    <div className="space-y-1.5">
+                      {getVisibleItems(navigationGroups.account).map((item) => (
+                        <MobileNavItem key={item.path} item={item} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </div>
+
+          {/* Mobile Footer Actions - Sticky */}
+          {!searchQuery.trim() && (
+            <div className="border-t border-border/50 bg-background/95 backdrop-blur-sm px-4 sm:px-6 py-4 mt-auto">
+              <div className="flex items-center justify-between gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleTheme}
+                  aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+                  className="rounded-lg hover:bg-muted/80 transition-all duration-200 active:scale-95"
                 >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sign Out
+                  {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                 </Button>
-              ) : (
-                <Button 
-                  onClick={() => { 
-                    navigate('/sign-in'); 
-                    setMobileMenuOpen(false); 
-                  }} 
-                  size="sm"
-                  className="rounded-lg"
-                >
-                  Sign In
-                </Button>
-              )}
-            </div>
+                {auth.user ? (
+                  <Button 
+                    variant="ghost" 
+                    onClick={handleLogoutClick} 
+                    className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-200 active:scale-95"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={() => { 
+                      navigate('/sign-in'); 
+                      setMobileMenuOpen(false); 
+                    }} 
+                    size="sm"
+                    className="flex-1 rounded-lg transition-all duration-200 active:scale-95"
+                  >
+                    Sign In
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </SheetContent>

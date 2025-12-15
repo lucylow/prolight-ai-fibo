@@ -84,6 +84,7 @@ const ProLightPro = lazy(() => import("./pages/ProLightPro"));
 const StudioNew = lazy(() => import("./pages/StudioNew"));
 const ProfessionalPhotographyDemos = lazy(() => import("./pages/ProfessionalPhotographyDemos"));
 const ContentCreation = lazy(() => import("./pages/ContentCreation"));
+const ProAgent = lazy(() => import("./components/ProAgent"));
 
 // Enhanced loading fallback component with better UX
 const PageLoader: React.FC = React.memo(() => (
@@ -164,6 +165,8 @@ function AnimatedRoutes() {
         <Route path="/studio/pro" element={<PageWrapper><ProLightPro /></PageWrapper>} />
         <Route path="/studio/demo" element={<PageWrapper><StudioNew /></PageWrapper>} />
         <Route path="/studio/photography-demos" element={<PageWrapper><ProfessionalPhotographyDemos /></PageWrapper>} />
+        <Route path="/studio/pro-agent" element={<PageWrapper><ProAgent /></PageWrapper>} />
+        <Route path="/pro-agent" element={<PageWrapper><ProAgent /></PageWrapper>} />
         <Route path="/content-creation" element={<PageWrapper><ContentCreation /></PageWrapper>} />
         <Route path="/studio/content-creation" element={<PageWrapper><ContentCreation /></PageWrapper>} />
         <Route path="/presets" element={<PageWrapper><Presets /></PageWrapper>} />

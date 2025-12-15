@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { createAIGatewayClientFromEnv, AIGatewayErrorClass } from "../_shared/lovable-ai-gateway-client.ts";
 import { createErrorResponseWithLogging } from "../_shared/error-handling.ts";
+import { createFIBOClient, FIBOClient } from "../_shared/fibo-client.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -352,33 +353,32 @@ serve(async (req) => {
 
     console.log("Received scene request:", JSON.stringify(sceneRequest));
 
-    // Initialize AI Gateway client
-    let aiClient;
+    // Initialize FIBO client (with fallback to AI Gateway)
+    let fiboClient: FIBOClient;
+    let aiClient: ReturnType<typeof createAIGatewayClientFromEnv> | null = null;
     try {
-      aiClient = createAIGatewayClientFromEnv({
+      fiboClient = createFIBOClient({
+        preferBria: true,
+        preferFal: true,
         timeout: 60000, // 60s timeout for image generation
         retries: 2,
-        retryDelay: 1000,
       });
-    } catch (error) {
-      if (error instanceof AIGatewayErrorClass) {
-        const errorResponse = createErrorResponseWithLogging(error, {
-          functionName: 'generate-lighting',
-          action: 'initializeAIClient',
-          errorCode: error.errorCode,
-          statusCode: error.statusCode,
-          retryable: error.retryable,
-          retryAfter: error.retryAfter,
-          metadata: error.details,
+      console.log("FIBO client initialized with providers:", fiboClient.getAvailableProviders());
+      
+      // Also initialize AI Gateway as fallback
+      try {
+        aiClient = createAIGatewayClientFromEnv({
+          timeout: 60000,
+          retries: 2,
+          retryDelay: 1000,
         });
-        return new Response(JSON.stringify(errorResponse), {
-          status: errorResponse.statusCode,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+      } catch {
+        console.warn("AI Gateway client not available, FIBO client will handle fallback");
       }
+    } catch (error) {
       const errorResponse = createErrorResponseWithLogging(error, {
         functionName: 'generate-lighting',
-        action: 'initializeAIClient',
+        action: 'initializeFIBOClient',
         errorCode: 'CLIENT_INIT_ERROR',
         statusCode: 500,
       });
@@ -422,7 +422,7 @@ serve(async (req) => {
       console.warn('Warning: Request without authentication - credits not checked');
     }
 
-    // Build FIBO-style JSON from lighting setup
+    // Build FIBO-style JSON from lighting setup (enhanced for FIBO training format)
     const fiboJson = buildFiboJson(sceneRequest);
     console.log("Built FIBO JSON:", JSON.stringify(fiboJson));
 
@@ -430,52 +430,82 @@ serve(async (req) => {
     const lightingAnalysis = analyzeLighting(sceneRequest.lightingSetup, sceneRequest.stylePreset);
     console.log("Lighting analysis:", JSON.stringify(lightingAnalysis));
 
-    // Generate professional image prompt with detailed lighting specs
-    const imagePrompt = buildProfessionalImagePrompt(sceneRequest, fiboJson, lightingAnalysis);
-    console.log("Image prompt:", imagePrompt);
-
-    // Generate image using AI Gateway client
+    // Generate image using FIBO client (with automatic fallback chain)
     let imageUrl: string | undefined;
+    let imageId: string | undefined;
+    let generationModel: string = "unknown";
     let textContent: string = "";
+    
     try {
-      const imageResult = await aiClient.generateImage(
-        imagePrompt,
-        "google/gemini-2.5-flash-image-preview"
-      );
-      imageUrl = imageResult.imageUrl;
-      textContent = imageResult.textContent;
+      const fiboResult = await fiboClient.generate({
+        structured_prompt: fiboJson,
+        num_results: 1,
+        sync: true, // Use sync mode for immediate results
+        steps: 50,
+        guidance_scale: 5.0,
+        negative_prompt: sceneRequest.negativePrompt || "blurry, low quality, overexposed, underexposed, harsh shadows",
+      });
+
+      if (fiboResult.status === 'error') {
+        throw new Error(fiboResult.error || 'FIBO generation failed');
+      }
+
+      imageUrl = fiboResult.image_url;
+      imageId = fiboResult.image_id || crypto.randomUUID();
+      generationModel = fiboResult.model || 'FIBO';
+      
+      console.log(`Image generated successfully using ${generationModel}`);
     } catch (error) {
-      if (error instanceof AIGatewayErrorClass) {
+      console.error("FIBO generation failed, error:", error);
+      
+      // If FIBO fails completely, fall back to AI Gateway with text prompt
+      if (aiClient) {
+        try {
+          console.log("Falling back to AI Gateway with text prompt");
+          const imagePrompt = buildProfessionalImagePrompt(sceneRequest, fiboJson, lightingAnalysis);
+          const imageResult = await aiClient.generateImage(
+            imagePrompt,
+            "google/gemini-2.5-flash-image-preview"
+          );
+          imageUrl = imageResult.imageUrl;
+          textContent = imageResult.textContent;
+          generationModel = "google/gemini-2.5-flash-image-preview";
+          imageId = crypto.randomUUID();
+          console.log("Fallback to AI Gateway succeeded");
+        } catch (fallbackError) {
+          const errorResponse = createErrorResponseWithLogging(fallbackError, {
+            functionName: 'generate-lighting',
+            action: 'generateImage',
+            errorCode: 'IMAGE_GENERATION_ERROR',
+            statusCode: 500,
+            metadata: {
+              originalError: error instanceof Error ? error.message : String(error),
+              fallbackError: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+            },
+          });
+          return new Response(JSON.stringify(errorResponse), {
+            status: errorResponse.statusCode,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      } else {
         const errorResponse = createErrorResponseWithLogging(error, {
           functionName: 'generate-lighting',
           action: 'generateImage',
-          errorCode: error.errorCode,
-          statusCode: error.statusCode,
-          retryable: error.retryable,
-          retryAfter: error.retryAfter,
-          metadata: error.details,
+          errorCode: 'IMAGE_GENERATION_ERROR',
+          statusCode: 500,
         });
         return new Response(JSON.stringify(errorResponse), {
           status: errorResponse.statusCode,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      const errorResponse = createErrorResponseWithLogging(error, {
-        functionName: 'generate-lighting',
-        action: 'generateImage',
-        errorCode: 'IMAGE_GENERATION_ERROR',
-        statusCode: 500,
-      });
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
     // Validate that we got an image
     if (!imageUrl) {
       const errorResponse = createErrorResponseWithLogging(
-        new Error("AI service did not generate an image."),
+        new Error("Image generation service did not return an image."),
         {
           functionName: 'generate-lighting',
           action: 'validateImage',
@@ -490,7 +520,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    const imageId = crypto.randomUUID();
+    
+    if (!imageId) {
+      imageId = crypto.randomUUID();
+    }
 
     // Record credit usage after successful generation
     if (userId) {
@@ -513,11 +546,12 @@ serve(async (req) => {
       fibo_json: fiboJson,
       lighting_analysis: lightingAnalysis,
       generation_metadata: {
-        model: "google/gemini-2.5-flash-image-preview",
-        prompt_summary: textContent.substring(0, 200),
+        model: generationModel,
+        prompt_summary: textContent ? textContent.substring(0, 200) : "FIBO structured JSON generation",
         lighting_style: lightingAnalysis.lightingStyle,
         key_fill_ratio: lightingAnalysis.keyFillRatio,
         professional_rating: lightingAnalysis.professionalRating,
+        fibo_providers_available: fiboClient.getAvailableProviders(),
         timestamp: new Date().toISOString()
       }
     }), {
@@ -548,26 +582,78 @@ serve(async (req) => {
 function buildFiboJson(request: SceneRequest) {
   const { lightingSetup, cameraSettings, subjectDescription, environment } = request;
 
-  // Build comprehensive lighting structure with detailed parameters
+  // Build comprehensive lighting structure matching FIBO's native format
+  // FIBO expects: main_light, fill_light, rim_light, ambient_light
   const lightingJson: Record<string, Record<string, unknown>> = {};
+  
+  // Map to FIBO standard light names
+  const lightMapping: Record<string, string> = {
+    key: "main_light",
+    main: "main_light",
+    fill: "fill_light",
+    rim: "rim_light",
+    back: "rim_light",
+    ambient: "ambient_light",
+  };
+
   for (const [type, settings] of Object.entries(lightingSetup)) {
     if (settings.enabled) {
-      // Enhanced lighting description matching FIBO's training format
-      lightingJson[`${type}_light`] = {
-        type: "area", // Professional area light
+      const fiboLightName = lightMapping[type.toLowerCase()] || `${type}_light`;
+      
+      // Build FIBO-compatible light structure with detailed parameters
+      const lightConfig: Record<string, unknown> = {
+        type: "area", // Professional area light type
         direction: settings.direction,
-        intensity: settings.intensity,
-        color_temperature: settings.colorTemperature,
-        color_kelvin: settings.colorTemperature,
-        softness: settings.softness,
-        distance: settings.distance,
+        intensity: Math.max(0, Math.min(2.0, settings.intensity)), // FIBO supports 0-2.0
+        colorTemperature: settings.colorTemperature,
+        color_temperature: settings.colorTemperature, // Support both formats
+        softness: Math.max(0, Math.min(1.0, settings.softness)),
+        distance: settings.distance || 1.5,
         falloff: "inverse_square",
-        // Additional parameters for better conditioning
-        quality: settings.softness > 0.6 ? "soft_diffused" : settings.softness < 0.3 ? "hard_crisp" : "medium",
-        temperature_description: settings.colorTemperature < 4500 ? "warm_tungsten" : 
-                                 settings.colorTemperature > 6000 ? "cool_daylight" : "neutral_daylight"
+        enabled: true,
       };
+
+      // Add descriptive metadata for better FIBO conditioning
+      if (settings.softness > 0.6) {
+        lightConfig.quality = "soft_diffused";
+        lightConfig.shadow_character = "gradual_transitions";
+      } else if (settings.softness < 0.3) {
+        lightConfig.quality = "hard_crisp";
+        lightConfig.shadow_character = "defined_edges";
+      } else {
+        lightConfig.quality = "medium";
+        lightConfig.shadow_character = "moderate_transition";
+      }
+
+      if (settings.colorTemperature < 4500) {
+        lightConfig.temperature_description = "warm_tungsten";
+        lightConfig.color_mood = "warm";
+      } else if (settings.colorTemperature > 6000) {
+        lightConfig.temperature_description = "cool_daylight";
+        lightConfig.color_mood = "cool";
+      } else {
+        lightConfig.temperature_description = "neutral_daylight";
+        lightConfig.color_mood = "neutral";
+      }
+
+      lightingJson[fiboLightName] = lightConfig;
     }
+  }
+
+  // Ensure main_light exists (required by FIBO)
+  if (!lightingJson.main_light && lightingSetup.key?.enabled) {
+    const key = lightingSetup.key;
+    lightingJson.main_light = {
+      type: "area",
+      direction: key.direction,
+      intensity: Math.max(0, Math.min(2.0, key.intensity)),
+      colorTemperature: key.colorTemperature,
+      color_temperature: key.colorTemperature,
+      softness: Math.max(0, Math.min(1.0, key.softness)),
+      distance: key.distance || 1.5,
+      falloff: "inverse_square",
+      enabled: true,
+    };
   }
 
   // Extract color temperatures for white balance

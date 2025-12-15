@@ -4,7 +4,7 @@
  * 3D Previews + FIBO JSON + One-click social media generation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, ContactShadows, Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -271,7 +271,7 @@ export const ContentCreationDemos = () => {
   const currentPreset = CONTENT_PRESETS[activePreset];
 
   // Check for mobile on mount and resize
-  React.useEffect(() => {
+  useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -510,10 +510,10 @@ const contentStudioContainer: React.CSSProperties = {
   margin: '0 auto 3rem'
 };
 
-// Responsive wrapper - will be handled by CSS media queries or component logic
+// Responsive wrapper for mobile
 const getResponsiveStudioContainer = (isMobile: boolean): React.CSSProperties => ({
   ...contentStudioContainer,
-  gridTemplateColumns: isMobile ? '1fr' : contentStudioContainer.gridTemplateColumns
+  gridTemplateColumns: isMobile ? '1fr' : 'minmax(300px, 380px) 1fr'
 });
 
 const contentInfoPanel: React.CSSProperties = {
