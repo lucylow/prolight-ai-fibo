@@ -13,6 +13,9 @@ from .agent_runner import run_agent
 from .retry import retry_with_backoff, RetryConfig, CircuitBreaker
 from .observability import trace_workflow_operation, log_structured_event, get_metrics
 
+# Get metrics instance
+metrics = get_metrics()
+
 logger = logging.getLogger(__name__)
 
 
@@ -237,4 +240,5 @@ async def advance(
             ctx.locked = False
     
     return ctx
+
 
