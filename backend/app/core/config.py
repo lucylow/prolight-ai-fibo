@@ -32,7 +32,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./prolight.db"
     
     # CORS
+    # Default local origins; in hosted environments you can either:
+    # - extend this list via environment variables, or
+    # - set ALLOW_ALL_CORS=true for a permissive dev configuration.
     CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"]
+    ALLOW_ALL_CORS: bool = False
     
     # Image Generation
     MAX_IMAGE_RESOLUTION: int = 4096

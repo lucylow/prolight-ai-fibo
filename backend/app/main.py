@@ -50,9 +50,11 @@ app = FastAPI(
 )
 
 # Configure CORS
+cors_origins = ["*"] if getattr(settings, "ALLOW_ALL_CORS", False) else settings.CORS_ORIGINS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -125,7 +127,7 @@ async def root():
 # ============================================================================
 
 # Import route modules
-from app.api import generate, presets, history, batch, analyze
+from app.api import generate, presets, history, batch, analyze, deploy_hash
 
 # Include routers
 app.include_router(generate.router, prefix=settings.API_PREFIX, tags=["Generate"])
@@ -133,6 +135,7 @@ app.include_router(presets.router, prefix=settings.API_PREFIX, tags=["Presets"])
 app.include_router(history.router, prefix=settings.API_PREFIX, tags=["History"])
 app.include_router(batch.router, prefix=settings.API_PREFIX, tags=["Batch"])
 app.include_router(analyze.router, prefix=settings.API_PREFIX, tags=["Analysis"])
+app.include_router(deploy_hash.router, prefix="/internal", tags=["Internal"])
 
 
 # ============================================================================
