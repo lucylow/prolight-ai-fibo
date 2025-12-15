@@ -40,8 +40,9 @@ export function LiveSSEPanel({
   const [logs, setLogs] = useState<string[]>([]);
 
   useEffect(() => {
+    const API_BASE = import.meta.env.VITE_API_URL || '/api';
     const eventSource = new EventSource(
-      `/api/status/stream/${runId}?token=${encodeURIComponent(sseToken)}`
+      `${API_BASE}/status/stream/${runId}?token=${encodeURIComponent(sseToken)}`
     );
 
     eventSource.onmessage = (event) => {
