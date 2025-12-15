@@ -21,9 +21,7 @@ const Command = React.forwardRef<
 ));
 Command.displayName = CommandPrimitive.displayName;
 
-interface CommandDialogProps extends DialogProps {
-  children?: React.ReactNode;
-}
+interface CommandDialogProps extends DialogProps {}
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
   return (
@@ -116,21 +114,9 @@ const CommandItem = React.forwardRef<
 
 CommandItem.displayName = CommandPrimitive.Item.displayName;
 
-interface CommandShortcutProps extends React.HTMLAttributes<HTMLSpanElement> {
-  className?: string;
-}
-
-const CommandShortcut = React.forwardRef<HTMLSpanElement, CommandShortcutProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <span
-        ref={ref}
-        className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)}
-        {...props}
-      />
-    );
-  }
-);
+const CommandShortcut = ({ className, ...props }: React.HTMLAttributes<HTMLSpanElement>) => {
+  return <span className={cn("ml-auto text-xs tracking-widest text-muted-foreground", className)} {...props} />;
+};
 CommandShortcut.displayName = "CommandShortcut";
 
 export {

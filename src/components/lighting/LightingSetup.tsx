@@ -23,9 +23,9 @@ const LightingSetup = () => {
         {Object.entries(lightingSetup).map(([lightType, lightConfig]) => (
           <LightControl
             key={lightType}
-            lightType={lightType as keyof typeof lightingSetup}
-            lightConfig={lightConfig}
-            onUpdate={(updates) => updateLight(lightType as keyof typeof lightingSetup, updates)}
+            lightType={lightType}
+            lightConfig={lightConfig as any}
+            onUpdate={(updates) => updateLight(lightType as any, updates)}
           />
         ))}
       </motion.div>

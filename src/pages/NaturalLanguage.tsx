@@ -6,8 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useGeneration } from '@/hooks/useGeneration';
 import { useLightingStore } from '@/stores/lightingStore';
 import ImagePreview from '@/components/generation/ImagePreview';
-import VoiceInput from '@/components/speech/VoiceInput';
-import VoiceOutput from '@/components/speech/VoiceOutput';
 
 const NaturalLanguage = () => {
   const [sceneDescription, setSceneDescription] = useState('');
@@ -54,26 +52,12 @@ const NaturalLanguage = () => {
                 <Sparkles className="w-4 h-4 text-secondary" />
                 Scene Description
               </label>
-              <div className="space-y-2">
-                <Textarea
-                  value={sceneDescription}
-                  onChange={(e) => setSceneDescription(e.target.value)}
-                  placeholder="Describe your scene... e.g., 'Professional headshot of a business executive'"
-                  className="min-h-[120px]"
-                />
-                <VoiceInput
-                  onTranscript={(transcript, isFinal) => {
-                    if (isFinal) {
-                      setSceneDescription((prev) => 
-                        prev ? `${prev} ${transcript}` : transcript
-                      );
-                    }
-                  }}
-                  continuous={false}
-                  disabled={isGenerating}
-                  placeholder="Click microphone to describe scene"
-                />
-              </div>
+              <Textarea
+                value={sceneDescription}
+                onChange={(e) => setSceneDescription(e.target.value)}
+                placeholder="Describe your scene... e.g., 'Professional headshot of a business executive'"
+                className="min-h-[120px]"
+              />
             </div>
 
             <div>
@@ -81,26 +65,12 @@ const NaturalLanguage = () => {
                 <Wand2 className="w-4 h-4 text-primary" />
                 Lighting Description
               </label>
-              <div className="space-y-2">
-                <Textarea
-                  value={lightingDescription}
-                  onChange={(e) => setLightingDescription(e.target.value)}
-                  placeholder="Describe the lighting... e.g., 'Soft, dramatic lighting with warm tones and subtle shadows'"
-                  className="min-h-[120px]"
-                />
-                <VoiceInput
-                  onTranscript={(transcript, isFinal) => {
-                    if (isFinal) {
-                      setLightingDescription((prev) => 
-                        prev ? `${prev} ${transcript}` : transcript
-                      );
-                    }
-                  }}
-                  continuous={false}
-                  disabled={isGenerating}
-                  placeholder="Click microphone to describe lighting"
-                />
-              </div>
+              <Textarea
+                value={lightingDescription}
+                onChange={(e) => setLightingDescription(e.target.value)}
+                placeholder="Describe the lighting... e.g., 'Soft, dramatic lighting with warm tones and subtle shadows'"
+                className="min-h-[120px]"
+              />
             </div>
 
             <Button
@@ -139,15 +109,7 @@ const NaturalLanguage = () => {
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Generated Result</h3>
-            {lightingAnalysis && (
-              <VoiceOutput
-                text={`Lighting analysis complete. Style: ${lightingAnalysis.lightingStyle || 'professional'}. Key to fill ratio: ${lightingAnalysis.keyFillRatio?.toFixed(1) || '2.0'}. Professional rating: ${lightingAnalysis.professionalRating?.toFixed(1) || '7.0'} out of 10.`}
-                disabled={isLoading}
-              />
-            )}
-          </div>
+          <h3 className="text-lg font-semibold mb-4">Generated Result</h3>
           <ImagePreview image={currentImage} isLoading={isLoading} analysis={lightingAnalysis} />
         </motion.div>
       </div>

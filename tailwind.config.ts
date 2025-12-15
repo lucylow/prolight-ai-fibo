@@ -1,5 +1,4 @@
 import type { Config } from "tailwindcss";
-import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -8,19 +7,8 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: {
-        DEFAULT: "1rem",
-        sm: "1.5rem",
-        md: "2rem",
-        lg: "2.5rem",
-        xl: "3rem",
-        "2xl": "4rem",
-      },
+      padding: "2rem",
       screens: {
-        sm: "640px",
-        md: "768px",
-        lg: "1024px",
-        xl: "1280px",
         "2xl": "1400px",
       },
     },
@@ -69,20 +57,6 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        brand: {
-          50: "#f0fdf9",
-          100: "#ccfbf1",
-          300: "#2dd4bf",
-          500: "#14b8a6",
-          700: "#0f766e",
-        },
-        surface: {
-          light: "#ffffff",
-          dark: "#0b0f14",
-        },
-      },
-      boxShadow: {
-        card: "0 8px 24px rgba(2,6,23,0.12)",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -113,5 +87,5 @@ export default {
       },
     },
   },
-  plugins: [tailwindcssAnimate],
+  plugins: [require("tailwindcss-animate")],
 } satisfies Config;

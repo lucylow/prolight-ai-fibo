@@ -78,38 +78,14 @@ const SidebarProvider = React.forwardRef<
   // Adds a keyboard shortcut to toggle the sidebar.
   React.useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      try {
-        // Validate event
-        if (!event || !event.key) return;
-
-        if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
-          event.preventDefault();
-          
-          // Call toggleSidebar with error handling
-          try {
-            toggleSidebar();
-          } catch (error) {
-            console.error('Error toggling sidebar:', error);
-          }
-        }
-      } catch (error) {
-        console.error('Error handling sidebar keyboard shortcut:', error);
+      if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        toggleSidebar();
       }
     };
 
-    try {
-      window.addEventListener("keydown", handleKeyDown);
-      return () => {
-        try {
-          window.removeEventListener("keydown", handleKeyDown);
-        } catch (error) {
-          console.error('Error removing sidebar keyboard shortcut listener:', error);
-        }
-      };
-    } catch (error) {
-      console.error('Error adding sidebar keyboard shortcut listener:', error);
-      return () => {};
-    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleSidebar]);
 
   // We add a state so that we can do data-state="expanded" or "collapsed".
