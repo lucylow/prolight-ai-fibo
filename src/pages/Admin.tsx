@@ -49,24 +49,6 @@ const Admin = () => {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
 
-  // Role guard - additional check in component (ProtectedRoute handles routing)
-  if (!user || (user.role !== "admin" && !user.roles?.includes("admin"))) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="text-center py-12">
-          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
-          <p className="text-muted-foreground">You do not have permission to access this page.</p>
-        </div>
-      </div>
-    );
-  }
-
-  useEffect(() => {
-    fetchUsers();
-    fetchOrganizations();
-    fetchSummary();
-  }, []);
-
   const fetchUsers = async () => {
     try {
       setLoading(true);
@@ -140,6 +122,53 @@ const Admin = () => {
       toast.error("Failed to load organizations");
     }
   };
+
+  const fetchSummary = async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const response = await api.get("/admin/summary");
+      setSummary(response.data);
+    } catch (error: unknown) {
+      console.error("Failed to fetch admin summary:", error);
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { detail?: string }; status?: number } }).response?.data?.detail
+        : error instanceof Error
+        ? error.message
+        : "Failed to fetch admin summary";
+      setSummaryError(errorMessage || "Failed to fetch admin summary");
+      // Don't show toast for RBAC errors - they're expected for non-admin users
+      const status = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { status?: number } }).response?.status
+        : undefined;
+      if (status !== 403) {
+        toast.error("Failed to fetch admin summary");
+      }
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!user || (user.role !== "admin" && !user.roles?.includes("admin"))) {
+      return;
+    }
+    fetchUsers();
+    fetchOrganizations();
+    fetchSummary();
+  }, [user, api]);
+
+  // Role guard - additional check in component (ProtectedRoute handles routing)
+  if (!user || (user.role !== "admin" && !user.roles?.includes("admin"))) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">You do not have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleSuspendUser = async (userId: string) => {
     try {
