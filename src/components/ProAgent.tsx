@@ -1,8 +1,19 @@
 import React, { useState, useCallback } from 'react';
 import { useFIBOAgent } from '../hooks/useFIBOAgent';
 import { ProWorkflowUI } from './ProWorkflowUI';
-import type { FIBOPrompt, FIBOLighting, FIBOLight } from '@/types/fibo';
+import type { FIBOPrompt, FIBOLighting, FIBOLight, FIBOCamera } from '@/types/fibo';
 import type { ProSession, AgentIteration, FIBO } from '../types';
+
+interface FIBOLightingDiff {
+  main_light?: Partial<FIBOLight>;
+  fill_light?: Partial<FIBOLight>;
+  rim_light?: Partial<FIBOLight>;
+  ambient_light?: Partial<FIBOLighting['ambientLight']>;
+  mainLight?: Partial<FIBOLight>;
+  fillLight?: Partial<FIBOLight>;
+  rimLight?: Partial<FIBOLight>;
+  ambientLight?: Partial<FIBOLighting['ambientLight']>;
+}
 
 const initialFIBO: FIBO = {
   generation_id: "pro_001",
@@ -18,15 +29,24 @@ const initialFIBO: FIBO = {
 };
 
 // Helper functions
-function applyLightingDiff(currentFIBO: FIBO, lightingDiff: any): FIBO {
+function applyLightingDiff(currentFIBO: FIBO, lightingDiff: FIBOLightingDiff): FIBO {
   return {
     ...currentFIBO,
     generation_id: `pro_${Date.now()}`,
     seed: currentFIBO.seed + 1,
     lighting: {
-      key_light: { ...currentFIBO.lighting.key_light, ...(lightingDiff.main_light || lightingDiff.mainLight || {}) },
-      fill_light: { ...currentFIBO.lighting.fill_light, ...(lightingDiff.fill_light || lightingDiff.fillLight || {}) },
-      rim_light: { ...currentFIBO.lighting.rim_light, ...(lightingDiff.rim_light || lightingDiff.rimLight || {}) },
+      key_light: { 
+        ...currentFIBO.lighting.key_light, 
+        ...(lightingDiff.main_light || lightingDiff.mainLight || {}) 
+      },
+      fill_light: { 
+        ...currentFIBO.lighting.fill_light, 
+        ...(lightingDiff.fill_light || lightingDiff.fillLight || {}) 
+      },
+      rim_light: { 
+        ...currentFIBO.lighting.rim_light, 
+        ...(lightingDiff.rim_light || lightingDiff.rimLight || {}) 
+      },
     }
   };
 }
@@ -60,13 +80,70 @@ export const ProAgent: React.FC = () => {
 
   const runAgentIteration = useCallback(async (instruction: string, currentSession: ProSession) => {
     // Convert to FIBOPrompt-compatible format for the hook
-    const fiboPrompt = {
+    const fiboPrompt: FIBOPrompt = {
       lighting: {
-        mainLight: currentSession.final_json.lighting.key_light as any,
-        fillLight: currentSession.final_json.lighting.fill_light as any,
-        rimLight: currentSession.final_json.lighting.rim_light as any,
-      }
-    } as FIBOPrompt;
+        mainLight: {
+          type: 'area',
+          direction: 'front-right',
+          position: currentSession.final_json.lighting.key_light.position,
+          intensity: currentSession.final_json.lighting.key_light.intensity,
+          colorTemperature: currentSession.final_json.lighting.key_light.color_temperature,
+          softness: currentSession.final_json.lighting.key_light.softness,
+          enabled: true,
+          distance: 3.0,
+        },
+        fillLight: {
+          type: 'area',
+          direction: 'front-left',
+          position: currentSession.final_json.lighting.fill_light.position,
+          intensity: currentSession.final_json.lighting.fill_light.intensity,
+          colorTemperature: currentSession.final_json.lighting.fill_light.color_temperature,
+          softness: currentSession.final_json.lighting.fill_light.softness,
+          enabled: true,
+          distance: 4.0,
+        },
+        rimLight: {
+          type: 'area',
+          direction: 'back',
+          position: currentSession.final_json.lighting.rim_light.position,
+          intensity: currentSession.final_json.lighting.rim_light.intensity,
+          colorTemperature: currentSession.final_json.lighting.rim_light.color_temperature,
+          softness: currentSession.final_json.lighting.rim_light.softness,
+          enabled: true,
+          distance: 3.5,
+        },
+        lightingStyle: '',
+      },
+      camera: {
+        shotType: 'medium shot',
+        cameraAngle: 'eye-level',
+        fov: currentSession.final_json.camera.fov,
+        lensType: 'portrait',
+        aperture: `f/${currentSession.final_json.camera.aperture}`,
+        focusDistance_m: currentSession.final_json.camera.focus_distance_m,
+        pitch: 0,
+        yaw: 0,
+        roll: 0,
+        seed: currentSession.final_json.seed,
+      },
+      subject: {
+        mainEntity: '',
+        attributes: '',
+        action: '',
+      },
+      environment: {
+        setting: '',
+        timeOfDay: '',
+        weather: '',
+      },
+      render: {
+        resolution: currentSession.final_json.render.resolution,
+        colorSpace: 'sRGB',
+        bitDepth: currentSession.final_json.render.bit_depth,
+        aov: [],
+        samples: 256,
+      },
+    };
     
     const lightingDiff = await translateFeedback(fiboPrompt, instruction);
     const newJSON = applyLightingDiff(currentSession.final_json, lightingDiff);

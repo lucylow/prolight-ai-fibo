@@ -55,7 +55,8 @@ export default function CompositionPanel() {
         y: p.y,
         width: p.width,
         height: p.height,
-        aspect: p.aspect,
+        // Store aspect as string to satisfy CropBox typing
+        aspect: String(p.aspect),
         score: p.score,
       }));
       setProposals(pro);
@@ -105,7 +106,7 @@ export default function CompositionPanel() {
         y: p.y,
         width: p.width,
         height: p.height,
-        aspect: p.aspect,
+        aspect: String(p.aspect),
         score: p.score,
       }));
       setProposals(pro);
