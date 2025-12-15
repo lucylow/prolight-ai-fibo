@@ -30,7 +30,8 @@ FIBO (Foundation Image Base Object) is Bria AI's advanced image generation model
 
 ### 2. ✅ DimFusion Conditioning Optimization
 
-**Files**: 
+**Files**:
+
 - `supabase/functions/generate-lighting/index.ts`
 - `supabase/functions/natural-language-lighting/index.ts`
 
@@ -47,13 +48,15 @@ FIBO (Foundation Image Base Object) is Bria AI's advanced image generation model
 - Verification tools to ensure proper disentanglement
 
 **Key Functions**:
+
 - `createDisentangledLightingUpdate()`: Update lighting only
 - `verifyDisentanglement()`: Verify that only lighting changed
 - `modifyLightingOnly()`: Functional approach to lighting modification
 
 ### 4. ✅ Comprehensive Subject & Environment Descriptions
 
-**Files**: 
+**Files**:
+
 - `supabase/functions/generate-lighting/index.ts` (enhanced `buildFiboJson()`)
 - `supabase/functions/natural-language-lighting/index.ts` (enhanced `buildNLImagePrompt()`)
 
@@ -64,7 +67,8 @@ FIBO (Foundation Image Base Object) is Bria AI's advanced image generation model
 
 ### 5. ✅ Material & Composition Details
 
-**Files**: 
+**Files**:
+
 - `supabase/functions/generate-lighting/index.ts`
 
 - Material properties (surface reflectivity, subsurface scattering, specular highlights)
@@ -107,27 +111,31 @@ FIBO (Foundation Image Base Object) is Bria AI's advanced image generation model
 ### Building Enhanced Prompts
 
 ```typescript
-import { buildEnhancedFIBOPrompt } from '@/utils/fiboEnhancedBuilder';
+import { buildEnhancedFIBOPrompt } from "@/utils/fiboEnhancedBuilder";
 
 const prompt = buildEnhancedFIBOPrompt({
   subjectDescription: "fashion model",
   environment: "professional studio",
-  lightingSetup: { /* ... */ },
-  cameraSettings: { /* ... */ },
+  lightingSetup: {
+    /* ... */
+  },
+  cameraSettings: {
+    /* ... */
+  },
   stylePreset: "fashion",
-  enhanceHDR: true
+  enhanceHDR: true,
 });
 ```
 
 ### Disentangled Lighting Updates
 
 ```typescript
-import { createDisentangledLightingUpdate } from '@/utils/fiboDisentanglement';
+import { createDisentangledLightingUpdate } from "@/utils/fiboDisentanglement";
 
 // Only lighting changes, everything else preserved
 const updated = createDisentangledLightingUpdate(
   originalPrompt,
-  newLightingSetup
+  newLightingSetup,
 );
 ```
 
@@ -162,4 +170,3 @@ All improvements align with FIBO's training characteristics:
 - FIBO Documentation: [docs.bria.ai](https://docs.bria.ai)
 - FIBO GitHub: [github.com/bria-ai](https://github.com/bria-ai)
 - Architecture Details: See `docs/FIBO_ARCHITECTURE_IMPROVEMENTS.md`
-

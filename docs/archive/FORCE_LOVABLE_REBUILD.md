@@ -1,11 +1,13 @@
 # 🔄 Force Lovable Rebuild - Quick Fix Guide
 
 ## The Problem
+
 Changes are committed and pushed, but they're not showing up on Lovable.
 
 ## The Solution: Force a Rebuild
 
 ### Step 1: Commit and Push Your Changes
+
 ```bash
 git add .
 git commit -m "Update build configuration with commit hash"
@@ -15,6 +17,7 @@ git push
 ### Step 2: Force Rebuild in Lovable Dashboard
 
 **Option A: Via Dashboard (Recommended)**
+
 1. Go to your Lovable project: https://lovable.dev
 2. Navigate to your project dashboard
 3. Click the **"Deploy"** or **"Rebuild"** button
@@ -22,23 +25,28 @@ git push
 5. Check the build logs to ensure it completed successfully
 
 **Option B: Via Settings**
+
 1. Go to your Lovable project settings
 2. Navigate to **Deployment** or **Build Settings**
 3. Look for **"Trigger Build"** or **"Rebuild Now"** button
 4. Click it and wait for completion
 
 ### Step 3: Clear Browser Cache
+
 After the rebuild completes:
+
 - **Chrome/Edge**: Press `Ctrl+Shift+R` (Windows) or `Cmd+Shift+R` (Mac)
 - **Firefox**: Press `Ctrl+Shift+R` (Windows) or `Cmd+Shift+R` (Mac)
 - **Safari**: Press `Cmd+Option+R`
 
 Or clear cache manually:
+
 - **Chrome**: Settings → Privacy → Clear browsing data → Cached images and files
 - **Firefox**: Settings → Privacy → Clear Data → Cached Web Content
 - **Safari**: Develop → Empty Caches (enable Develop menu first)
 
 ### Step 4: Verify the Build Updated
+
 1. Visit your deployed site
 2. Scroll to the footer
 3. Check the build timestamp and commit hash
@@ -48,6 +56,7 @@ Or clear cache manually:
 ## Why This Happens
 
 Lovable may not automatically rebuild on every commit. This can happen because:
+
 - Build caching is enabled
 - Auto-deploy is disabled in settings
 - Build queue is processing other projects
@@ -70,6 +79,7 @@ Lovable may not automatically rebuild on every commit. This can happen because:
    - Ensure `npm run build` completed successfully
 
 2. **Verify Git Push**
+
    ```bash
    git log --oneline -1
    git remote -v  # Verify remote URL
@@ -108,4 +118,3 @@ Lovable may not automatically rebuild on every commit. This can happen because:
 ---
 
 **Last Updated**: This guide is for the current build configuration with commit hash tracking.
-

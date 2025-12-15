@@ -96,13 +96,13 @@ Frontend usage:
 
 ```javascript
 const es = new EventSource(`/api/runs/${runId}/stream`);
-es.addEventListener('status', (e) => {
+es.addEventListener("status", (e) => {
   const payload = JSON.parse(e.data);
-  console.log('status', payload);
+  console.log("status", payload);
 });
-es.addEventListener('result', (e) => {
+es.addEventListener("result", (e) => {
   const payload = JSON.parse(e.data);
-  console.log('result', payload);
+  console.log("result", payload);
 });
 ```
 
@@ -127,4 +127,3 @@ python backend/app/agents/tests/test_agents.py
 3. **Queue Workers**: Schedule `AgentRunner.run_workflow` inside worker processes (BullMQ / RQ / Celery)
 4. **Error Handling**: Use queue retry/backoff policies. Mark final `ctx.state` to `FAILED` and emit error events
 5. **Versioning**: Pin `model_version` in determinism locks. Bump versions when models/tools change
-

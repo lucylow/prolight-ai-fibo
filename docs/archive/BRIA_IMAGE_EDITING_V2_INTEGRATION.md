@@ -11,6 +11,7 @@ This document describes the complete integration of BRIA Image Editing API v2 in
 A comprehensive TypeScript service class that provides access to all BRIA Image Editing API v2 operations:
 
 #### Operations Supported:
+
 - ✅ **Erase** - Remove specific regions using masks
 - ✅ **Generative Fill** - Generate objects in masked regions with prompts
 - ✅ **Remove Background** - Remove background using RMBG 2.0
@@ -24,6 +25,7 @@ A comprehensive TypeScript service class that provides access to all BRIA Image 
 - ✅ **Generate Masks** - Automatic mask generation for objects
 
 #### Features:
+
 - Full TypeScript type safety
 - Async/await request handling
 - Automatic status polling for async operations
@@ -56,6 +58,7 @@ const {
 ### 3. **Updated Edge Function** (`edge/bria/image-edit.ts`)
 
 Enhanced edge function that supports all v2 endpoints:
+
 - Direct image URLs/base64 (no onboarding required)
 - Proper validation for mask and prompt requirements
 - Support for all v2 operations
@@ -64,6 +67,7 @@ Enhanced edge function that supports all v2 endpoints:
 ### 4. **Enhanced UI Component** (`src/pages/bria/ImageEditing.tsx`)
 
 Completely redesigned image editing interface with:
+
 - Image upload (file or URL/base64)
 - Mask upload for operations that require it
 - Prompt input for generative operations
@@ -107,7 +111,7 @@ const { generativeFill } = useBriaImageEditing();
 const result = await generativeFill({
   image: imageUrl,
   mask: maskUrl,
-  prompt: 'Add professional studio lighting',
+  prompt: "Add professional studio lighting",
   version: 2,
   refinePrompt: true,
   sync: true,
@@ -124,13 +128,13 @@ const result = await completeLightingEnhancement(imageUrl, {
   replaceBackground: true,
   enhance: true,
   expandCanvas: true,
-  backgroundPrompt: 'Professional studio lighting with warm key light',
-  expandAspectRatio: '16:9',
+  backgroundPrompt: "Professional studio lighting with warm key light",
+  expandAspectRatio: "16:9",
 });
 
-console.log('Final URL:', result.finalUrl);
-console.log('Workflow steps:', result.workflow);
-console.log('Timing:', result.timing);
+console.log("Final URL:", result.finalUrl);
+console.log("Workflow steps:", result.workflow);
+console.log("Timing:", result.timing);
 ```
 
 ## API Endpoints
@@ -151,6 +155,7 @@ POST /edge/bria/image-edit
 ## Configuration
 
 The service uses the existing BRIA API token configuration:
+
 - Environment variable: `BRIA_API_KEY` or `BRIA_API_TOKEN`
 - Production: `PRODUCTION` or `BRIA_API_TOKEN_PROD`
 - Staging: `STAGING` or `BRIA_API_TOKEN_STAGING`
@@ -160,22 +165,28 @@ No additional configuration is required - it uses the same secrets as other BRIA
 ## Key Features
 
 ### 1. **No Onboarding Required**
+
 Unlike the old API, v2 endpoints accept direct image URLs or base64 strings. No need to onboard images first.
 
 ### 2. **Comprehensive Operations**
+
 All 11 image editing operations are fully supported with proper TypeScript types.
 
 ### 3. **Async/Sync Support**
+
 Operations can run synchronously (wait for result) or asynchronously (poll for status).
 
 ### 4. **Complete Workflow**
+
 The `completeLightingEnhancement` method combines multiple operations for professional results:
+
 - Remove background
 - Replace with lighting-enhanced background
 - Expand canvas
 - Enhance quality
 
 ### 5. **Type Safety**
+
 Full TypeScript support with interfaces for all operations and responses.
 
 ## File Structure
@@ -205,6 +216,7 @@ edge/
 ## Documentation
 
 For detailed API documentation, refer to:
+
 - BRIA API Documentation: https://bria.ai/docs
 - Service file: `src/services/briaImageEditingService.ts` (includes inline docs)
 - Hook file: `src/hooks/useBriaImageEditing.ts` (includes usage examples)
@@ -212,8 +224,8 @@ For detailed API documentation, refer to:
 ## Support
 
 All operations follow the BRIA API v2 specification. For issues:
+
 1. Check the error messages in the UI
 2. Review the browser console for detailed errors
 3. Verify API token is configured correctly
 4. Check BRIA API status and rate limits
-

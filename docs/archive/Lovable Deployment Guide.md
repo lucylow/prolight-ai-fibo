@@ -3,6 +3,7 @@
 ## 🚀 Quick Deploy to Lovable
 
 ### Step 1: Import Project
+
 1. Go to [Lovable.dev](https://lovable.dev)
 2. Click "New Project" → "Import from ZIP"
 3. Upload `prolight-ai-fibo-final.zip`
@@ -23,6 +24,7 @@ BRIA_API_URL=https://engine.prod.bria-api.com/v2
 ```
 
 **Get your Bria API token:**
+
 1. Visit [bria.ai](https://bria.ai)
 2. Sign up / Log in
 3. Go to API Keys section
@@ -38,6 +40,7 @@ BRIA_API_URL=https://engine.prod.bria-api.com/v2
 ### Step 4: Test
 
 **Test the API:**
+
 ```bash
 curl https://your-app.lovable.app/api/generate \
   -H "Content-Type: application/json" \
@@ -55,6 +58,7 @@ curl https://your-app.lovable.app/api/generate \
 ```
 
 **Expected response:**
+
 ```json
 {
   "ok": true,
@@ -82,12 +86,14 @@ curl https://your-app.lovable.app/api/generate \
 ### Issue: "Module not found" errors
 
 **Solution:** Lovable auto-installs from `requirements.txt`. If issues persist:
+
 1. Check `backend/requirements.txt` is present
 2. Rebuild project
 
 ### Issue: Import path errors
 
 **Solution:** All imports use relative paths (no `backend.` prefix):
+
 ```python
 # ✅ Correct
 from settings import settings
@@ -150,6 +156,7 @@ pytest tests/ -v
 ## 📊 Features Included
 
 ### Production-Ready Backend
+
 - ✅ Async Bria client with retry logic
 - ✅ Environment-based secrets (dev/staging/prod)
 - ✅ Proper error handling (401, 429, 500)
@@ -157,12 +164,14 @@ pytest tests/ -v
 - ✅ Request/response logging
 
 ### Lighting Mapper
+
 - ✅ Deterministic 3D vector → FIBO direction
 - ✅ 10 canonical directions (front, front-right, etc.)
 - ✅ Three-point lighting support
 - ✅ Azimuth/elevation calculation
 
 ### Testing
+
 - ✅ 27 lighting mapper tests
 - ✅ 9 Bria client tests
 - ✅ Integration tests
@@ -171,18 +180,21 @@ pytest tests/ -v
 ## 🎯 Hackathon Alignment
 
 ### Usage of Bria FIBO: ⭐⭐⭐⭐⭐
+
 - JSON-native generation with VLM bridge
 - All pro parameters (direction, intensity, color_temperature, softness)
 - Deterministic controllability
 - Production-ready implementation
 
 ### Potential Impact: ⭐⭐⭐⭐⭐
+
 - Cost: $500 → $0.04 (12,500x reduction)
 - Time: 2hrs → 30s (240x faster)
 - Enterprise scale ready
 - ROI: $24.998M savings for 10K catalog
 
 ### Innovation & Creativity: ⭐⭐⭐⭐⭐
+
 - First 3D-to-FIBO bridge
 - Novel VLM + lighting override workflow
 - Deterministic algorithm
@@ -191,6 +203,7 @@ pytest tests/ -v
 ## 📞 Support
 
 If you encounter issues:
+
 1. Check environment variables are set correctly
 2. Verify Bria API token is valid
 3. Check Lovable build logs
@@ -198,6 +211,6 @@ If you encounter issues:
 
 ---
 
-**ProLight AI** - *Precision Lighting, Powered by FIBO*
+**ProLight AI** - _Precision Lighting, Powered by FIBO_
 
 Built for the Bria AI Hackathon 2025

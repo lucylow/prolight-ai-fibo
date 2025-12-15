@@ -14,12 +14,14 @@ The `LightingGenerationService` has been completely refactored and improved with
 - **Field Validation**: Range checks, length limits, and required field validation
 
 **Before:**
+
 ```python
 # Loose dict-based approach
 lighting_setup = request.get("lighting_setup", {})
 ```
 
 **After:**
+
 ```python
 # Type-safe with validation
 class SceneRequest(BaseModel):
@@ -39,6 +41,7 @@ class SceneRequest(BaseModel):
 - **Graceful Degradation**: Batch processing continues even if individual items fail
 
 **Before:**
+
 ```python
 except Exception as e:
     logger.error(f"Error: {str(e)}")
@@ -46,6 +49,7 @@ except Exception as e:
 ```
 
 **After:**
+
 ```python
 except FIBOGenerationError:
     raise  # Re-raise specific exceptions
@@ -56,7 +60,7 @@ except Exception as e:
 
 ### 3. **Better Code Organization**
 
-- **Separation of Concerns**: 
+- **Separation of Concerns**:
   - `LightingAnalyzer`: Dedicated class for lighting analysis
   - `LLMTranslator`: Separate service for natural language processing
   - `ImageStorageService`: Abstracted image storage operations
@@ -73,6 +77,7 @@ except Exception as e:
 - **Request Tracking**: User ID and request context in logs
 
 **Example:**
+
 ```python
 logger.info(f"Generating image for user {user_id} with lighting setup")
 logger.debug(f"Built FIBO JSON: {fibo_json}")
@@ -87,12 +92,14 @@ logger.error(f"FIBO generation failed: {error_msg}", exc_info=True)
 - **Task Management**: Proper async task creation and error handling
 
 **Before:**
+
 ```python
 results = await asyncio.gather(*tasks, return_exceptions=True)
 # No error handling or status tracking
 ```
 
 **After:**
+
 ```python
 results = await asyncio.gather(*tasks, return_exceptions=True)
 for i, result in enumerate(results):
@@ -124,12 +131,14 @@ for i, result in enumerate(results):
 - **Timestamp Tracking**: Health check timestamps for monitoring
 
 **Before:**
+
 ```python
 # Basic health check
 health_info = {"status": "ok"}
 ```
 
 **After:**
+
 ```python
 health_info = {
     "fibo_api": "healthy",
@@ -164,6 +173,7 @@ health_info = {
 ## Architecture Improvements
 
 ### Before (Issues):
+
 - Mixed concerns in single class
 - Loose typing and validation
 - Basic error handling
@@ -172,6 +182,7 @@ health_info = {
 - Synchronous operations
 
 ### After (Benefits):
+
 - **Modular Architecture**: Separated concerns with dedicated classes
 - **Type Safety**: Full type hints and Pydantic validation
 - **Robust Error Handling**: Specific exceptions with context
@@ -284,4 +295,3 @@ async def test_batch_generate():
 - **User Isolation**: User ID tracking for audit trails
 - **Error Messages**: Sanitized error messages (no sensitive data)
 - **Resource Limits**: Field validators enforce limits (e.g., max string length)
-
