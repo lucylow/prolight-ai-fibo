@@ -5,6 +5,7 @@ This document describes the complete checkout and monetization system implemente
 ## Overview
 
 A comprehensive checkout process has been implemented to monetize the application, including:
+
 - Subscription-based pricing with plans loaded from the database
 - Stripe Checkout integration via Supabase Edge Functions
 - Customer portal for subscription management
@@ -19,6 +20,7 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 **File:** `src/pages/Pricing.tsx`
 
 **Features:**
+
 - Loads plans dynamically from the database via `getPlans()` from billingService
 - Displays plan features, pricing, and credit limits
 - Handles authentication - redirects to sign-in if not logged in
@@ -27,6 +29,7 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 - Responsive design with animations
 
 **Key Changes:**
+
 - Replaced hardcoded plans with database-driven plans
 - Integrated with `billingService.createCheckoutSession()` instead of direct Stripe client
 - Added authentication check before checkout
@@ -37,6 +40,7 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 **File:** `src/pages/Billing.tsx`
 
 **Features:**
+
 - **Subscription Status Card:**
   - Current plan name and pricing
   - Subscription status badge (active, trialing, past_due, canceled)
@@ -58,6 +62,7 @@ A comprehensive checkout process has been implemented to monetize the applicatio
   - Customer portal access button
 
 **Key Features:**
+
 - Real-time subscription and credit status
 - Integration with customer portal
 - Responsive layout with cards
@@ -68,12 +73,14 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 **New Edge Function:** `supabase/functions/stripe-portal/index.ts`
 
 **Features:**
+
 - Creates Stripe Customer Portal sessions
 - Authenticates users via Supabase auth
 - Retrieves Stripe customer ID from user profile
 - Returns portal URL for redirect
 
 **Service Integration:** `src/services/billingService.ts`
+
 - `redirectToCustomerPortal()` function
 - Handles authentication and error cases
 - Returns portal URL for redirect
@@ -83,6 +90,7 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 **File:** `src/pages/Success.tsx`
 
 **Features:**
+
 - Displays subscription activation confirmation
 - Shows current plan and credit allocation
 - Displays credit status after subscription
@@ -95,6 +103,7 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 **File:** `src/pages/Cancel.tsx`
 
 **Features:**
+
 - Clear messaging about cancellation
 - Explains no charges were made
 - Help section for support
@@ -105,9 +114,11 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 **File:** `src/services/billingService.ts`
 
 **New Functions:**
+
 - `redirectToCustomerPortal(returnUrl: string)` - Creates portal session and returns URL
 
 **Existing Functions (Enhanced):**
+
 - `createCheckoutSession()` - Creates Stripe checkout via Supabase Edge Function
 - `getSubscription()` - Gets user's active subscription
 - `getCreditStatus()` - Gets current credit usage and limits
@@ -117,12 +128,14 @@ A comprehensive checkout process has been implemented to monetize the applicatio
 The checkout process relies on the existing monetization schema:
 
 ### Tables Used:
+
 - `plans` - Subscription plans with pricing and features
 - `user_profiles` - User profiles with Stripe customer IDs
 - `subscriptions` - Active user subscriptions
 - `credit_usage` - Credit consumption tracking
 
 ### Required Plan Fields:
+
 - `name` - Plan name (e.g., "Free", "Pro", "Team")
 - `monthly_credit_limit` - Credits per billing period
 - `price_cents` - Price in cents
@@ -153,6 +166,7 @@ The checkout process relies on the existing monetization schema:
 ### Environment Variables Required
 
 For Supabase Edge Functions:
+
 ```env
 STRIPE_SECRET_KEY=sk_test_... or sk_live_...
 STRIPE_WEBHOOK_SECRET=whsec_...
@@ -164,6 +178,7 @@ SITE_URL=https://your-frontend.com
 ## User Flow
 
 ### Subscription Flow:
+
 1. User visits `/pricing/checkout`
 2. Sees available plans loaded from database
 3. Clicks "Subscribe" on a plan
@@ -177,6 +192,7 @@ SITE_URL=https://your-frontend.com
 11. Success page shows subscription details and credits
 
 ### Management Flow:
+
 1. User visits `/billing`
 2. Sees current subscription and credit status
 3. Clicks "Manage Subscription"
@@ -188,6 +204,7 @@ SITE_URL=https://your-frontend.com
 ## Testing
 
 ### Test Cards (Stripe Test Mode):
+
 - **Success**: `4242 4242 4242 4242`
 - **Decline**: `4000 0000 0000 0002`
 - **3D Secure**: `4000 0025 0000 3155`
@@ -195,6 +212,7 @@ SITE_URL=https://your-frontend.com
 Any future expiry date and any CVC works.
 
 ### Local Testing:
+
 1. Set up Supabase Edge Functions locally
 2. Configure Stripe test keys
 3. Create test plans in database
@@ -212,6 +230,7 @@ Any future expiry date and any CVC works.
 ## Future Enhancements
 
 Potential improvements:
+
 1. One-time credit purchases
 2. Promo codes and discounts
 3. Usage-based billing
@@ -224,6 +243,7 @@ Potential improvements:
 ## Files Modified/Created
 
 ### Modified:
+
 - `src/pages/Pricing.tsx` - Complete rewrite to use database plans
 - `src/pages/Billing.tsx` - Enhanced with subscription and credit management
 - `src/pages/Success.tsx` - Enhanced with subscription details
@@ -231,11 +251,13 @@ Potential improvements:
 - `src/services/billingService.ts` - Added portal function
 
 ### Created:
+
 - `supabase/functions/stripe-portal/index.ts` - Customer portal edge function
 
 ## Dependencies
 
 All required dependencies are already in `package.json`:
+
 - `@supabase/supabase-js` - Supabase client
 - `react-router-dom` - Routing
 - `framer-motion` - Animations
@@ -261,9 +283,9 @@ Before deploying to production:
 ## Support
 
 For issues or questions:
+
 - Check Stripe Dashboard for payment status
 - Check Supabase logs for edge function errors
 - Verify environment variables are set correctly
 - Ensure database schema is up to date
 - Check webhook delivery in Stripe Dashboard
-

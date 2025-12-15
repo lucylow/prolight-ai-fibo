@@ -1,11 +1,13 @@
 # Frontend Polish - PR Summary
 
 ## Overview
+
 This PR implements comprehensive frontend improvements including authentication enhancements, new components, testing infrastructure, and UX polish.
 
 ## Changes Made
 
 ### 🔐 Authentication & API
+
 - **Enhanced AuthContext** (`src/lib/api.ts`, `src/contexts/AuthContext.tsx`)
   - Added centralized axios instance with automatic token refresh
   - Implemented refresh-on-401 interceptor using Supabase session refresh
@@ -13,12 +15,14 @@ This PR implements comprehensive frontend improvements including authentication 
   - Expose `api` instance through AuthContext for use across components
 
 ### 📡 Real-time Status Updates
+
 - **SSE Hook** (`src/hooks/useStatusSSE.ts`)
   - Created `useStatusSSE` hook for real-time status updates via EventSource
   - Support token-based SSE authentication
   - Handle connection errors and cleanup on unmount
 
 ### 📤 File Upload
+
 - **S3 Presigned Uploader** (`src/components/S3PresignedUploader.tsx`)
   - Reusable component for S3 presigned uploads
   - Support both multipart POST and presigned PUT uploads
@@ -27,6 +31,7 @@ This PR implements comprehensive frontend improvements including authentication 
   - Display uploaded files list with remove functionality
 
 ### 💰 Billing & Invoices
+
 - **Improved Invoices Page** (`src/pages/Invoices.tsx`)
   - Server-side pagination support with API integration
   - Debounced search query
@@ -35,6 +40,7 @@ This PR implements comprehensive frontend improvements including authentication 
   - Improved pagination display with total count
 
 ### 🗄️ State Management
+
 - **Zustand App Store** (`src/stores/useAppStore.ts`)
   - Created `useAppStore` for camera → FIBO JSON synchronization
   - Implemented `updateCameraField` helper for nested path updates
@@ -42,12 +48,14 @@ This PR implements comprehensive frontend improvements including authentication 
   - Support deep cloning to prevent mutations
 
 ### 📝 Blog & Content
+
 - **Sample MDX Post** (`src/content/posts/sample-post.mdx`)
   - Added sample blog post demonstrating MDX support
   - Includes frontmatter with metadata
   - Showcases ProLight AI features and use cases
 
 ### 🧪 Testing Infrastructure
+
 - **Vitest Setup** (`vitest.config.ts`, `src/test/setup.ts`)
   - Configured Vitest with React Testing Library and jsdom
   - Added test setup file with jest-dom matchers
@@ -57,12 +65,14 @@ This PR implements comprehensive frontend improvements including authentication 
     - Invoices page (pagination, filtering, search)
 
 ### 🛠️ Build & Configuration
+
 - **Gitignore Updates** (`.gitignore`)
   - Added `dist/`, `build/`, `out/` to prevent committing build artifacts
 
 ## Files Changed
 
 ### New Files
+
 - `src/lib/api.ts` - Centralized axios instance with refresh logic
 - `src/hooks/useStatusSSE.ts` - SSE subscription hook
 - `src/components/S3PresignedUploader.tsx` - S3 upload component
@@ -75,6 +85,7 @@ This PR implements comprehensive frontend improvements including authentication 
 - `src/pages/__tests__/Invoices.test.tsx` - Invoices page tests
 
 ### Modified Files
+
 - `src/contexts/AuthContext.tsx` - Added api instance to context
 - `src/pages/Invoices.tsx` - Improved with server-side pagination
 - `package.json` - Added test scripts and dependencies
@@ -83,6 +94,7 @@ This PR implements comprehensive frontend improvements including authentication 
 ## How to Run Locally
 
 ### Development
+
 ```bash
 npm install
 npm run dev
@@ -91,12 +103,14 @@ npm run dev
 The dev server will start on `http://localhost:8080`
 
 ### Build
+
 ```bash
 npm run build
 npm run preview
 ```
 
 ### Tests
+
 ```bash
 npm test              # Run tests in watch mode
 npm run test:ui       # Run tests with UI
@@ -108,6 +122,7 @@ npm run test:coverage # Run tests with coverage
 ### Smoke Test Steps
 
 1. **Start dev server**
+
    ```bash
    npm run dev
    ```
@@ -150,11 +165,13 @@ npm run test:coverage # Run tests with coverage
 ## Known Limitations & Next Steps
 
 ### Current Limitations
+
 - Invoices page falls back to client-side filtering if API endpoint doesn't exist (expected for development)
 - SSE hook requires backend to support `/status/sse-token` and `/status/subscribe` endpoints
 - S3 uploader requires backend `/uploads/presign` endpoint
 
 ### Next Steps
+
 - [ ] Add E2E tests with Playwright or Cypress
 - [ ] Implement advanced Three.js syncing with Zustand store
 - [ ] Add Storybook stories for core UI components
@@ -183,16 +200,19 @@ npm run test:coverage # Run tests with coverage
 ## Preview Instructions
 
 1. Checkout the branch:
+
    ```bash
    git checkout feat/frontend-polish
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Run dev server:
+
    ```bash
    npm run dev
    ```
@@ -204,4 +224,3 @@ npm run test:coverage # Run tests with coverage
 ---
 
 **Ready for Review** ✅
-

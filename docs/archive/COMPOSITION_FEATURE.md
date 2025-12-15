@@ -5,6 +5,7 @@ This document describes the composition analysis feature that has been added to 
 ## Overview
 
 The composition feature allows users to:
+
 - Analyze images for optimal crop proposals using edge detection or CLIP-based saliency
 - Preview camera adjustments in the 3D viewer before applying
 - Apply composition changes that update camera settings (FOV, pan, tilt)
@@ -163,10 +164,8 @@ When a crop is applied, camera settings are adjusted:
 
 - **FOV**: Adjusted to match crop zoom level
   - `new_fov = old_fov * (orig_min / crop_min)`
-  
 - **Pan (Yaw)**: Horizontal offset mapped to rotation
   - `pan = normalized_x_offset * 40°`
-  
 - **Tilt (Pitch)**: Vertical offset mapped to rotation
   - `tilt = -normalized_y_offset * 30°`
 
@@ -181,9 +180,9 @@ When a crop is applied, camera settings are adjusted:
 ## Future Enhancements
 
 Possible improvements:
+
 - Text-conditioned saliency (analyze based on subject type)
 - Batch processing worker for multiple images
 - Composition history and undo/redo
 - Custom aspect ratio support
 - Manual crop box adjustment
-

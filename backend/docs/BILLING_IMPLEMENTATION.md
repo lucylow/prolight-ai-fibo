@@ -5,6 +5,7 @@ This document summarizes the implementation of metered billing, RBAC, Stripe int
 ## Overview
 
 Complete backend implementation for:
+
 - ✅ Metered (usage-based) billing endpoints & Stripe usage-record integration
 - ✅ RBAC for billing endpoints (admin/editor/viewer) with role-check dependency
 - ✅ Customer ↔ Stripe ID sync (create/update Stripe Customer & persist stripe_customer_id)
@@ -60,6 +61,7 @@ Complete backend implementation for:
 ## Database Schema
 
 ### Users Table
+
 ```sql
 CREATE TABLE users (
     id INTEGER PRIMARY KEY,
@@ -73,6 +75,7 @@ CREATE TABLE users (
 ```
 
 ### Usage Records Table
+
 ```sql
 CREATE TABLE usage_records (
     id INTEGER PRIMARY KEY,
@@ -86,17 +89,21 @@ CREATE TABLE usage_records (
 ```
 
 ### Subscriptions Table (Updated)
+
 Added field:
+
 - `stripe_subscription_item_id TEXT` - Required for metered usage reporting
 
 ## API Endpoints
 
 ### Stripe Customer Management
+
 - `POST /api/stripe/create_customer` - Create or retrieve Stripe customer
 - `POST /api/stripe/attach_payment_method` - Attach payment method
 - `GET /api/stripe/customer` - Get customer info
 
 ### Usage Reporting
+
 - `POST /api/billing/report_usage` - Report usage for metered billing
   ```json
   {
@@ -108,9 +115,11 @@ Added field:
 - `GET /api/billing/usage_records` - Get usage records
 
 ### Invoice Management
+
 - `GET /api/billing/invoice/{stripe_invoice_id}/pdf` - Proxy invoice PDF with auth
 
 ### Revenue Dashboard (Admin Only)
+
 - `GET /api/admin/revenue` - Get MRR, ARR, churn metrics
 - `GET /api/admin/subscriptions` - List all subscriptions
 
@@ -119,6 +128,7 @@ Added field:
 Role hierarchy: `viewer` < `editor` < `admin`
 
 ### Usage in Routes
+
 ```python
 from app.auth.role_middleware import require_role
 
@@ -158,6 +168,7 @@ Or if using SQL migrations directly:
 ## Usage Flow
 
 ### 1. Create Stripe Customer
+
 ```python
 POST /api/stripe/create_customer
 Authorization: Bearer <token>
@@ -170,7 +181,9 @@ Response: {
 ```
 
 ### 2. Create Metered Subscription
+
 Use the helper function:
+
 ```python
 from app.services.stripe_client import create_metered_subscription
 from app.db import SessionLocal
@@ -185,6 +198,7 @@ sub, subscription_item_id = create_metered_subscription(
 ```
 
 ### 3. Report Usage
+
 ```python
 POST /api/billing/report_usage
 Authorization: Bearer <token>
@@ -197,6 +211,7 @@ Content-Type: application/json
 ```
 
 ### 4. View Revenue Metrics (Admin)
+
 ```python
 GET /api/admin/revenue
 Authorization: Bearer <admin_token>
@@ -219,11 +234,13 @@ Response: {
 1. Install Stripe CLI: https://stripe.com/docs/stripe-cli
 
 2. Forward webhooks:
+
 ```bash
 stripe listen --forward-to localhost:8000/api/billing/webhook
 ```
 
 3. Trigger test events:
+
 ```bash
 stripe trigger invoice.paid
 stripe trigger customer.subscription.created
@@ -262,16 +279,18 @@ stripe trigger customer.subscription.created
 ## Troubleshooting
 
 ### Issue: "No active subscription found"
+
 - Ensure subscription was created and status is "active"
 - Verify `stripe_subscription_item_id` is stored in database
 - Check webhook events are being processed
 
 ### Issue: "User has no Stripe customer"
+
 - Call `/api/stripe/create_customer` first
 - Verify user exists in database
 
 ### Issue: Revenue metrics showing 0
+
 - Verify active subscriptions exist
 - Check that price_id references valid Stripe prices
 - Ensure price lookups are working (check logs)
-

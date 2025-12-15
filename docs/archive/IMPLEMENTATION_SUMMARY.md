@@ -5,12 +5,14 @@ All requested features have been successfully implemented. Below is a comprehens
 ## ✅ Completed Features
 
 ### 1. SEO + OpenGraph Helper
+
 - **File**: `src/components/SEO.tsx`
 - Reusable SEO component with OpenGraph and Twitter Card support
 - Used on all marketing pages (Blog, Contact, Careers, Product)
 
 ### 2. Blog CMS with MDX
-- **Files**: 
+
+- **Files**:
   - `src/pages/company/Blog.tsx` - Blog listing page
   - `src/pages/company/PostView.tsx` - Individual post viewer
   - `src/content/posts/*.mdx` - MDX blog posts
@@ -18,6 +20,7 @@ All requested features have been successfully implemented. Below is a comprehens
 - Sample posts included: `why-deterministic.mdx` and `fibo-mapping.mdx`
 
 ### 3. Careers Integration
+
 - **Frontend**: `src/pages/company/Careers.tsx`
 - **Backend**: `backend/app/api/careers.py`
 - Features:
@@ -28,6 +31,7 @@ All requested features have been successfully implemented. Below is a comprehens
   - Email fallback to HR
 
 ### 4. Contact Page Backend
+
 - **Frontend**: `src/pages/company/Contact.tsx`
 - **Backend**: `backend/app/api/contact.py`
 - Features:
@@ -37,6 +41,7 @@ All requested features have been successfully implemented. Below is a comprehens
   - reCAPTCHA verification
 
 ### 5. Company Landing Page Animation
+
 - **File**: `src/pages/marketing/Product.tsx`
 - Framer Motion animations:
   - Staggered card animations
@@ -44,24 +49,28 @@ All requested features have been successfully implemented. Below is a comprehens
   - Scroll-triggered animations
 
 ### 6. reCAPTCHA Integration
+
 - **Component**: `src/components/RecaptchaWrapper.tsx`
 - **Backend**: `backend/app/utils/recaptcha.py`
 - Integrated on Contact and Careers forms
 - Server-side verification
 
 ### 7. S3 Presigned Upload
+
 - **Frontend**: `src/api/upload.ts`
 - **Backend**: `backend/app/api/s3.py`
 - Resume upload with progress tracking
 - Secure presigned URLs (15-minute expiry)
 
 ### 8. Tailwind Dark Mode Polish
+
 - **Config**: `tailwind.config.ts` - Added brand colors and surface tokens
 - **Styles**: `src/index.css` - Dark mode CSS variables and card utilities
 
 ## 📦 Dependencies Installed
 
 ### Frontend
+
 - `react-helmet-async` - SEO meta tags
 - `@mdx-js/react` & `@mdx-js/rollup` - MDX support
 - `react-google-recaptcha` - reCAPTCHA integration
@@ -70,6 +79,7 @@ All requested features have been successfully implemented. Below is a comprehens
 - `framer-motion` - Already installed
 
 ### Backend
+
 - `aiosmtplib` - Async SMTP email
 - `boto3` - AWS S3 integration
 - `requests` - HTTP requests for reCAPTCHA/Greenhouse
@@ -78,28 +88,32 @@ All requested features have been successfully implemented. Below is a comprehens
 ## 🔧 Configuration
 
 ### Vite Config
+
 - Added `@mdx-js/rollup` plugin for MDX support
 
 ### Backend Routes
+
 - `/api/contact` - POST - Contact form submission
 - `/api/careers/jobs` - GET - List open jobs
 - `/api/careers/apply` - POST - Submit job application
 - `/api/s3/presign` - POST - Get presigned S3 URL
 
 ### Environment Variables
+
 See `backend/ENV_SETUP.md` for complete list of required environment variables.
 
 ## 📝 Usage Examples
 
 ### Adding SEO to a Page
+
 ```tsx
 import { SEO } from "@/components/SEO";
 
 export default function MyPage() {
   return (
     <>
-      <SEO 
-        title="Page Title" 
+      <SEO
+        title="Page Title"
         description="Page description"
         image="/og-image.png"
       />
@@ -110,28 +124,31 @@ export default function MyPage() {
 ```
 
 ### Adding a New Blog Post
+
 1. Create a new `.mdx` file in `src/content/posts/`
 2. Export frontmatter:
+
 ```mdx
 export const frontmatter = {
   title: "My Post",
   date: "2025-01-15",
-  description: "Post description"
+  description: "Post description",
 };
 
 # My Post Content
 ```
 
 ### Using reCAPTCHA
+
 ```tsx
 import RecaptchaWrapper from "@/components/RecaptchaWrapper";
 
 const SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
 
-<RecaptchaWrapper 
-  siteKey={SITE_KEY} 
-  onVerify={(token) => setRecaptchaToken(token)} 
-/>
+<RecaptchaWrapper
+  siteKey={SITE_KEY}
+  onVerify={(token) => setRecaptchaToken(token)}
+/>;
 ```
 
 ## 🚀 Next Steps
@@ -201,4 +218,3 @@ backend/
 4. **Email**: SMTP configuration is optional. If not configured, forms will still save to database but won't send emails.
 
 All features are production-ready and follow best practices for security, error handling, and user experience.
-

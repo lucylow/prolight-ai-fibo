@@ -5,6 +5,7 @@ This document summarizes the comprehensive error handling improvements made to t
 ## Overview
 
 The error handling system has been significantly enhanced with:
+
 - Centralized error logging and reporting service
 - Improved error boundaries with recovery mechanisms
 - Better global error handlers
@@ -19,6 +20,7 @@ The error handling system has been significantly enhanced with:
 A centralized service for error logging, reporting, and management.
 
 **Features:**
+
 - Extracts error information from various error types
 - Determines error severity (low, medium, high, critical)
 - Creates structured error reports with context
@@ -28,14 +30,19 @@ A centralized service for error logging, reporting, and management.
 - Determines if errors are retryable
 
 **Usage:**
+
 ```typescript
-import { errorService, logError, getUserErrorMessage } from '@/services/errorService';
+import {
+  errorService,
+  logError,
+  getUserErrorMessage,
+} from "@/services/errorService";
 
 // Log an error
 await errorService.logError(error, {
-  component: 'MyComponent',
-  action: 'handleSubmit',
-  metadata: { userId: '123' }
+  component: "MyComponent",
+  action: "handleSubmit",
+  metadata: { userId: "123" },
 });
 
 // Get user-friendly message
@@ -47,6 +54,7 @@ const message = getUserErrorMessage(error);
 Utility functions for consistent error handling patterns.
 
 **Features:**
+
 - `handleError()` - Consistent error handling with logging and user feedback
 - `withErrorHandling()` - Wrapper for async functions
 - `retryWithBackoff()` - Retry logic with exponential backoff
@@ -56,28 +64,33 @@ Utility functions for consistent error handling patterns.
 - `getRetryDelay()` - Calculate retry delays
 
 **Usage:**
+
 ```typescript
-import { handleError, retryWithBackoff, withErrorHandling } from '@/utils/errorHandling';
+import {
+  handleError,
+  retryWithBackoff,
+  withErrorHandling,
+} from "@/utils/errorHandling";
 
 // Handle error with options
 await handleError(error, {
   showToast: true,
   logError: true,
-  context: { component: 'MyComponent' },
-  fallbackMessage: 'Something went wrong'
+  context: { component: "MyComponent" },
+  fallbackMessage: "Something went wrong",
 });
 
 // Wrap async function
 const safeFunction = withErrorHandling(asyncFunction, {
   showToast: true,
-  context: { component: 'MyComponent' }
+  context: { component: "MyComponent" },
 });
 
 // Retry with backoff
-const result = await retryWithBackoff(
-  () => fetchData(),
-  { maxRetries: 3, initialDelay: 1000 }
-);
+const result = await retryWithBackoff(() => fetchData(), {
+  maxRetries: 3,
+  initialDelay: 1000,
+});
 ```
 
 ### 3. Network Status Hook (`src/hooks/useNetworkStatus.ts`)
@@ -85,12 +98,14 @@ const result = await retryWithBackoff(
 Hook to monitor network connectivity and handle offline/online states.
 
 **Features:**
+
 - Tracks online/offline status
 - Shows toast notifications on status changes
 - Provides guard function for online-only actions
 - Tracks last online/offline times
 
 **Usage:**
+
 ```typescript
 import { useNetworkStatus, useOnlineGuard } from '@/hooks/useNetworkStatus';
 
@@ -112,6 +127,7 @@ function MyComponent() {
 ### ErrorBoundary (`src/components/ErrorBoundary.tsx`)
 
 **Improvements:**
+
 - Integrated with error service for logging
 - Network status awareness
 - Better error recovery options
@@ -120,6 +136,7 @@ function MyComponent() {
 - Development vs production error details
 
 **Features:**
+
 - Shows online/offline status
 - Retry button for retryable errors
 - Reset and Go Home options
@@ -129,6 +146,7 @@ function MyComponent() {
 ### Main Entry Point (`src/main.tsx`)
 
 **Improvements:**
+
 - Integrated with error service
 - Enhanced global error handlers
 - Better error context for initialization errors
@@ -136,6 +154,7 @@ function MyComponent() {
 - Async error handling
 
 **Features:**
+
 - Global error event listener with logging
 - Unhandled promise rejection handler
 - Initialization error recovery UI
@@ -146,6 +165,7 @@ function MyComponent() {
 ### useGeneration (`src/hooks/useGeneration.ts`)
 
 **Improvements:**
+
 - Uses new error handling utilities
 - Better error context logging
 - Network error detection and fallback
@@ -154,12 +174,14 @@ function MyComponent() {
 ## Error Types and Categories
 
 ### Error Severity Levels
+
 - **Critical**: Auth errors, initialization failures
 - **High**: Server errors, network errors
 - **Medium**: Rate limits, timeouts
 - **Low**: Client errors, validation errors
 
 ### Error Codes
+
 - `AUTH_ERROR` - Authentication failures
 - `FORBIDDEN` - Permission denied
 - `NOT_FOUND` - Resource not found
@@ -172,15 +194,17 @@ function MyComponent() {
 ## Best Practices
 
 ### 1. Always Log Errors with Context
+
 ```typescript
 await errorService.logError(error, {
-  component: 'ComponentName',
-  action: 'actionName',
-  metadata: { additionalInfo: 'value' }
+  component: "ComponentName",
+  action: "actionName",
+  metadata: { additionalInfo: "value" },
 });
 ```
 
 ### 2. Use Error Handling Utilities
+
 ```typescript
 // Instead of try-catch with manual logging
 try {
@@ -188,29 +212,29 @@ try {
 } catch (error) {
   await handleError(error, {
     showToast: true,
-    context: { component: 'MyComponent' }
+    context: { component: "MyComponent" },
   });
 }
 ```
 
 ### 3. Check Network Status
+
 ```typescript
 const { isOnline } = useNetworkStatus();
 if (!isOnline) {
-  toast.error('You are offline');
+  toast.error("You are offline");
   return;
 }
 ```
 
 ### 4. Use Retry for Retryable Errors
+
 ```typescript
-const result = await retryWithBackoff(
-  () => apiCall(),
-  { maxRetries: 3 }
-);
+const result = await retryWithBackoff(() => apiCall(), { maxRetries: 3 });
 ```
 
 ### 5. Provide User-Friendly Messages
+
 ```typescript
 const message = getUserErrorMessage(error);
 toast.error(message);
@@ -221,29 +245,32 @@ toast.error(message);
 The error service is designed to integrate with external error reporting services:
 
 ### Sentry
+
 ```typescript
 // In errorService.ts sendToReportingService method
-import * as Sentry from '@sentry/react';
+import * as Sentry from "@sentry/react";
 Sentry.captureException(report.originalError, {
   extra: report.context,
-  tags: { severity: report.severity }
+  tags: { severity: report.severity },
 });
 ```
 
 ### LogRocket
+
 ```typescript
-import LogRocket from 'logrocket';
+import LogRocket from "logrocket";
 LogRocket.captureException(report.originalError, {
-  extra: report.context
+  extra: report.context,
 });
 ```
 
 ### Custom Endpoint
+
 ```typescript
-await fetch('/api/errors', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify(report)
+await fetch("/api/errors", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(report),
 });
 ```
 
@@ -257,6 +284,7 @@ await fetch('/api/errors', {
 ## Testing Error Handling
 
 ### Test Error Scenarios
+
 1. Network errors - Disconnect network
 2. Timeout errors - Slow network simulation
 3. Server errors - 500 responses
@@ -264,6 +292,7 @@ await fetch('/api/errors', {
 5. Rate limits - 429 responses
 
 ### Verify Error Logging
+
 - Check console in development
 - Verify error service logs
 - Check error queue in localStorage
@@ -280,18 +309,20 @@ await fetch('/api/errors', {
 ## Migration Guide
 
 ### Before
+
 ```typescript
 try {
   await apiCall();
 } catch (error) {
   console.error(error);
-  toast.error('An error occurred');
+  toast.error("An error occurred");
 }
 ```
 
 ### After
+
 ```typescript
-import { handleError } from '@/utils/errorHandling';
+import { handleError } from "@/utils/errorHandling";
 
 try {
   await apiCall();
@@ -299,7 +330,7 @@ try {
   await handleError(error, {
     showToast: true,
     logError: true,
-    context: { component: 'MyComponent', action: 'apiCall' }
+    context: { component: "MyComponent", action: "apiCall" },
   });
 }
 ```
@@ -307,6 +338,7 @@ try {
 ## Summary
 
 The error handling system is now:
+
 - ✅ Centralized and consistent
 - ✅ Comprehensive logging and reporting
 - ✅ User-friendly error messages
@@ -314,4 +346,3 @@ The error handling system is now:
 - ✅ Retry-capable
 - ✅ Production-ready
 - ✅ Extensible for future services
-

@@ -11,11 +11,13 @@ FIBO (FIBO Image Generation) is a state-of-the-art text-to-image model with a **
 ### 1. Three FIBO Modes
 
 #### Generate Mode
+
 - **Workflow**: Short text prompt → VLM → Structured JSON → Image
 - **Implementation**: `FIBOAdapter.generate_from_prompt()`
 - **Use Case**: Going from a basic idea to a detailed, controlled image
 
 #### Refine Mode
+
 - **Workflow**: Existing JSON + instruction → VLM → Updated JSON → Image
 - **Implementation**: `FIBOAdapter.refine()`
 - **Use Case**: Iterative, precise editing without "prompt drift"
@@ -25,6 +27,7 @@ FIBO (FIBO Image Generation) is a state-of-the-art text-to-image model with a **
   - Fallback to simple keyword-based refinement
 
 #### Inspire Mode
+
 - **Workflow**: Input image → VLM → Structured JSON → Image (variation)
 - **Implementation**: `FIBOAdapter.inspire()`
 - **Use Case**: Creating variations of an existing image or merging styles
@@ -130,7 +133,7 @@ USE_MOCK_FIBO=false  # Set to true for development/testing
 
 1. **Access the Model**: Visit [FIBO model page on Hugging Face](https://huggingface.co/briaai/FIBO), log in, and accept the license terms
 2. **Authenticate**: Run `hf auth login` in your terminal
-3. **Install Dependencies**: 
+3. **Install Dependencies**:
    ```bash
    pip install git+https://github.com/huggingface/diffusers torch torchvision google-genai boltons ujson sentencepiece accelerate transformers
    ```
@@ -238,4 +241,3 @@ For prompt-to-JSON conversion:
 - [Bria FIBO on Hugging Face](https://huggingface.co/briaai/FIBO)
 - [FIBO Documentation](https://huggingface.co/briaai/FIBO)
 - [Diffusers Documentation](https://huggingface.co/docs/diffusers)
-

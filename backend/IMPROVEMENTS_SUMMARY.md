@@ -5,6 +5,7 @@ This document summarizes the improvements made to harden AI features in the ProL
 ## Completed Improvements
 
 ### 1. Bria / MCP Integration ✅
+
 - **File**: `backend/app/mcp/bria_client_async.py`
 - **Changes**:
   - Enhanced `BriaMCPClientAsync` with full async httpx support
@@ -14,7 +15,8 @@ This document summarizes the improvements made to harden AI features in the ProL
   - Correct header usage: `api_token` for REST API (not `Authorization: Bearer`)
 
 ### 2. SSE & WebSocket Stability ✅
-- **Files**: 
+
+- **Files**:
   - `backend/app/api/sse.py` - Improved Redis pub/sub with proper cleanup
   - `backend/app/events/redis_events.py` - Fixed async pub/sub with timeout handling
   - `backend/app/api/voice_assistant_ws.py` - New WebSocket endpoint for voice assistant
@@ -25,6 +27,7 @@ This document summarizes the improvements made to harden AI features in the ProL
   - Origin whitelist via `FRONTEND_ORIGIN` env var
 
 ### 3. Guardrails Module ✅
+
 - **File**: `backend/app/services/guardrails.py`
 - **Features**:
   - Validates plan JSON against whitelist of allowed operations
@@ -34,6 +37,7 @@ This document summarizes the improvements made to harden AI features in the ProL
   - Plan override validation for admin edits (allows 2x cost cap)
 
 ### 4. Agent Runner Integration ✅
+
 - **File**: `backend/app/agents/runner_async.py`
 - **Changes**:
   - Integrated guardrails validation into workflow
@@ -41,6 +45,7 @@ This document summarizes the improvements made to harden AI features in the ProL
   - Proper error handling and event emission
 
 ### 5. Plan Override Support ✅
+
 - **File**: `backend/app/api/runs.py`
 - **Changes**:
   - Added `plan_override` field to `RunApproveRequest`
@@ -48,6 +53,7 @@ This document summarizes the improvements made to harden AI features in the ProL
   - Admin-only feature (TODO: add proper admin check)
 
 ### 6. Vector Store & RAG ✅
+
 - **File**: `backend/app/services/vector_store.py`
 - **Features**:
   - Redis Stack FT.SEARCH support with fallback to hash storage
@@ -56,6 +62,7 @@ This document summarizes the improvements made to harden AI features in the ProL
   - Document storage with embeddings and metadata
 
 ### 7. Prompt Refinement ✅
+
 - **File**: `backend/app/services/prompt_refinement.py`
 - **Features**:
   - Combines RAG documents with base prompt
@@ -63,6 +70,7 @@ This document summarizes the improvements made to harden AI features in the ProL
   - Injects context and intent into prompts
 
 ### 8. Frontend AuthContext Dev Fallback ✅
+
 - **File**: `src/contexts/AuthContext.tsx`
 - **Changes**:
   - Returns admin user in dev mode when no auth configured
@@ -103,6 +111,7 @@ VOICE_WS_TOKEN=your_voice_ws_token_here
 ## Testing
 
 ### Backend Start
+
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -110,6 +119,7 @@ uvicorn app.main:app --reload --port 8000
 ```
 
 ### Create Run Test
+
 ```bash
 curl -X POST "http://localhost:8000/api/runs/agent-123/run" \
   -H "Content-Type: application/json" \
@@ -123,11 +133,13 @@ curl -X POST "http://localhost:8000/api/runs/agent-123/run" \
 ```
 
 ### SSE Test
+
 ```bash
 curl http://localhost:8000/api/runs/<run_id>/stream
 ```
 
 ### Bria Stub Mode
+
 When `BRIA_API_KEY` is not set, `BriaMCPClientAsync` returns stubbed request_ids and simulates completion after a short delay.
 
 ## Stubbed Features (When Secrets Missing)
@@ -153,6 +165,7 @@ When `BRIA_API_KEY` is not set, `BriaMCPClientAsync` returns stubbed request_ids
 ## Commit Strategy
 
 Recommended commits:
+
 1. `fix: add .env.example and README dev instructions`
 2. `feat(mcp): convert Bria MCP client to async (httpx) and add fallback stubs`
 3. `fix(api): implement redis.asyncio SSE pubsub for run streams`
@@ -168,4 +181,3 @@ Recommended commits:
 - Stub modes allow development without real API keys
 - Guardrails are strict by default but can be overridden by admins
 - Redis is optional - system degrades gracefully without it
-

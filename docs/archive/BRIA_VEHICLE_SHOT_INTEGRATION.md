@@ -147,6 +147,7 @@ print(result["data"]["harmonized_url"])
 ### Segmentation
 
 Returns binary masks for:
+
 - Windshield
 - Rear window
 - Side windows
@@ -184,6 +185,7 @@ The complete enhancement workflow orchestrates:
 ## Error Handling
 
 All endpoints include comprehensive error handling:
+
 - Authentication errors (401)
 - Rate limiting (429)
 - Validation errors (400)
@@ -192,11 +194,13 @@ All endpoints include comprehensive error handling:
 ## Dependencies
 
 ### Backend
+
 - `httpx`: Async HTTP client
 - `fastapi`: Web framework
 - `pydantic`: Data validation
 
 ### Frontend
+
 - `react`: UI framework
 - `axios`: HTTP client
 - `framer-motion`: Animations
@@ -216,6 +220,7 @@ To test the integration:
 ## API Documentation
 
 Full API documentation available at:
+
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
@@ -229,8 +234,8 @@ Full API documentation available at:
 ## Support
 
 For issues or questions:
+
 1. Check backend logs for detailed error messages
 2. Verify BRIA_API_TOKEN is correctly configured
 3. Ensure image URLs are publicly accessible
 4. Check Bria API status and rate limits
-

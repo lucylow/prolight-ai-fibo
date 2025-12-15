@@ -112,26 +112,23 @@ curl -X POST https://your-project.supabase.co/functions/v1/poll-jobs \
 #### 1. Upload Video and Create Job
 
 ```typescript
-import { uploadVideoAndCreateJob, subscribeToJob } from '@/api/video-editing';
+import { uploadVideoAndCreateJob, subscribeToJob } from "@/api/video-editing";
 
 // Upload and create job
 const job = await uploadVideoAndCreateJob(
   file,
-  'increase_resolution',
+  "increase_resolution",
   { desired_increase: 2 },
-  (progress) => console.log(`Upload: ${progress}%`)
+  (progress) => console.log(`Upload: ${progress}%`),
 );
 
 // Subscribe to status updates via SSE
-const eventSource = subscribeToJob(
-  job.request_id,
-  (update) => {
-    console.log('Status:', update.status);
-    if (update.result?.url) {
-      console.log('Result URL:', update.result.url);
-    }
+const eventSource = subscribeToJob(job.request_id, (update) => {
+  console.log("Status:", update.status);
+  if (update.result?.url) {
+    console.log("Result URL:", update.result.url);
   }
-);
+});
 ```
 
 #### 2. Available Operations
@@ -153,19 +150,19 @@ import {
   createModel,
   startTraining,
   generateImage,
-} from '@/api/tailored-generation';
+} from "@/api/tailored-generation";
 
 // 1. Create project
 const project = await createProject({
-  name: 'Product Photography',
-  ip_type: 'stylized_scene',
-  medium: 'photograph',
+  name: "Product Photography",
+  ip_type: "stylized_scene",
+  medium: "photograph",
 });
 
 // 2. Create dataset
 const dataset = await createDataset(project.id, {
-  name: 'Watch Images',
-  description: 'Product shots of watches',
+  name: "Watch Images",
+  description: "Product shots of watches",
 });
 
 // 3. Upload images
@@ -173,16 +170,16 @@ await uploadImageAndRegister(imageFile, dataset.id);
 
 // 4. (Optional) Generate advanced prefix
 const prefix = await generatePrefix(dataset.id, [
-  'https://example.com/image1.jpg',
-  'https://example.com/image2.jpg',
+  "https://example.com/image1.jpg",
+  "https://example.com/image2.jpg",
 ]);
 
 // 5. Create model
 const model = await createModel({
   dataset_id: dataset.id,
-  name: 'watch_model_v1',
-  training_mode: 'fully_automated',
-  training_version: 'light',
+  name: "watch_model_v1",
+  training_mode: "fully_automated",
+  training_version: "light",
 });
 
 // 6. Start training
@@ -191,11 +188,11 @@ const trainingJob = await startTraining(model.id);
 // 7. Generate images (after training completes)
 const result = await generateImage({
   model_id: model.id,
-  prompt: 'A luxury watch on a marble slab',
+  prompt: "A luxury watch on a marble slab",
   guidance_methods: [
     {
-      method: 'controlnet_canny',
-      image_url: 'https://example.com/canny_edges.png',
+      method: "controlnet_canny",
+      image_url: "https://example.com/canny_edges.png",
       scale: 0.9,
     },
   ],
@@ -205,13 +202,14 @@ const result = await generateImage({
 #### 2. Using the TailoredManager Component
 
 ```tsx
-import TailoredManager from '@/components/tailored/TailoredManager';
+import TailoredManager from "@/components/tailored/TailoredManager";
 
 // In your page/route
-<TailoredManager />
+<TailoredManager />;
 ```
 
 The component provides a complete UI for:
+
 - Creating and managing projects
 - Creating datasets and uploading images
 - Generating caption prefixes
@@ -225,17 +223,17 @@ The component provides a complete UI for:
 
 ```typescript
 await generateImage({
-  model_id: 'model_123',
-  prompt: 'Product shot with dramatic lighting',
+  model_id: "model_123",
+  prompt: "Product shot with dramatic lighting",
   guidance_methods: [
     {
-      method: 'controlnet_canny',
-      image_base64: 'data:image/png;base64,...', // or image_url
+      method: "controlnet_canny",
+      image_base64: "data:image/png;base64,...", // or image_url
       scale: 0.9,
     },
     {
-      method: 'controlnet_depth',
-      image_url: 'https://example.com/depth.png',
+      method: "controlnet_depth",
+      image_url: "https://example.com/depth.png",
       scale: 0.8,
     },
   ],
@@ -246,12 +244,12 @@ await generateImage({
 
 ```typescript
 await generateImage({
-  model_id: 'model_123',
-  prompt: 'Product shot with soft rim light',
+  model_id: "model_123",
+  prompt: "Product shot with soft rim light",
   image_prompt_adapter: {
-    mode: 'style_only',
+    mode: "style_only",
     scale: 0.85,
-    image_urls: ['https://example.com/style_ref.jpg'],
+    image_urls: ["https://example.com/style_ref.jpg"],
   },
 });
 ```
@@ -260,9 +258,9 @@ await generateImage({
 
 ```typescript
 await reimagine({
-  model_id: 'model_123',
-  reference_image_url: 'https://example.com/structure.png',
-  prompt: 'Turn this into a hyperrealistic photo at sunset',
+  model_id: "model_123",
+  reference_image_url: "https://example.com/structure.png",
+  prompt: "Turn this into a hyperrealistic photo at sunset",
 });
 ```
 
@@ -356,8 +354,8 @@ try {
 ## Support
 
 For issues or questions:
+
 1. Check Edge Function logs in Supabase Dashboard
 2. Review database tables for job status
 3. Test API endpoints directly with curl/Postman
 4. Check Bria API documentation for endpoint changes
-

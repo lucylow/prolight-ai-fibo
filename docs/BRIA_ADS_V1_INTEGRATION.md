@@ -70,10 +70,12 @@ Navigate to `/bria/ads-generation-v1` in your application.
 For testing, you can use these public IDs:
 
 **Templates:**
+
 - `1062`: Requires a brand ID
 - `1061`: Brand-independent (doesn't require brand ID)
 
 **Brands:**
+
 - `167`, `166`, `122`, `121`, `120`: Compatible with template 1062
 
 ### Example Request
@@ -84,24 +86,27 @@ const payload = {
   brand_id: "167",
   content_moderation: false,
   smart_image: {
-    input_image_url: "https://images.unsplash.com/photo-1518544882205-450b760f8b7a",
+    input_image_url:
+      "https://images.unsplash.com/photo-1518544882205-450b760f8b7a",
     scene: {
       operation: "lifestyle_shot_by_text",
-      input: "Outdoor lifestyle background, shallow depth of field, warm late-afternoon light"
-    }
+      input:
+        "Outdoor lifestyle background, shallow depth of field, warm late-afternoon light",
+    },
   },
   elements: [
     {
       layer_type: "text",
       content_type: "Heading #1",
-      content: "ProLight — Precision Lighting"
+      content: "ProLight — Precision Lighting",
     },
     {
       layer_type: "text",
       content_type: "Body #1",
-      content: "Control lighting for product photography — simulate key/fill/rim"
-    }
-  ]
+      content:
+        "Control lighting for product photography — simulate key/fill/rim",
+    },
+  ],
 };
 ```
 
@@ -140,6 +145,7 @@ The `input_image_url` should point to a publicly accessible image (product, pres
 ## Content Moderation
 
 When `content_moderation: true`:
+
 - Input images are checked for inappropriate content
 - If any input fails, the entire request returns 422
 - Generated ads that fail moderation are replaced with zero-byte files
@@ -157,32 +163,36 @@ Set these in your Lovable Cloud project secrets.
 
 ## API Differences: v1 vs v2
 
-| Feature | v1 API | v2 API |
-|---------|--------|--------|
-| Endpoint | `/v1/ads/generate` | `/v2/ads/generate` |
-| Response | Immediate placeholder URLs | Request ID for polling |
-| Scenes | Multiple scenes per template | Single result |
-| Smart Image | Built-in support | Via branding blocks |
-| Polling | Client-side URL polling | Server-side status polling |
+| Feature     | v1 API                       | v2 API                     |
+| ----------- | ---------------------------- | -------------------------- |
+| Endpoint    | `/v1/ads/generate`           | `/v2/ads/generate`         |
+| Response    | Immediate placeholder URLs   | Request ID for polling     |
+| Scenes      | Multiple scenes per template | Single result              |
+| Smart Image | Built-in support             | Via branding blocks        |
+| Polling     | Client-side URL polling      | Server-side status polling |
 
 ## Troubleshooting
 
 ### No scenes returned
+
 - Check that `template_id` is valid
 - Verify `brand_id` matches template requirements (if template requires brand)
 
 ### Scenes stuck in "pending"
+
 - Check network connectivity
 - Verify Bria API token is valid
 - Check browser console for errors
 - Scene may still be generating (can take several minutes)
 
 ### Download fails
+
 - Verify the scene URL is accessible
 - Check CORS settings
 - Ensure image hasn't expired (Bria URLs may have TTL)
 
 ### Zero-byte files
+
 - Generation failed for that scene
 - Check if content moderation blocked it
 - Verify input image URL is accessible
@@ -195,4 +205,3 @@ Set these in your Lovable Cloud project secrets.
 - Image upload for smart_image
 - Caching of generated scenes
 - Integration with ProLight lighting simulator for background prompts
-

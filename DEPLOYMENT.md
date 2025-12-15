@@ -44,12 +44,14 @@ cd ..
 ### Running Locally
 
 **Terminal 1 - Frontend:**
+
 ```bash
 npm run dev
 # Frontend available at http://localhost:5173
 ```
 
 **Terminal 2 - Backend:**
+
 ```bash
 cd backend
 source venv/bin/activate
@@ -118,6 +120,7 @@ vercel deploy --prod
 ```
 
 **Environment Variables:**
+
 ```
 VITE_API_URL=https://api.prolight-ai.com
 ```
@@ -358,6 +361,7 @@ psql -U user -d prolight -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
 ## Support
 
 For deployment issues, refer to:
+
 - [FastAPI Deployment Guide](https://fastapi.tiangolo.com/deployment/)
 - [Docker Documentation](https://docs.docker.com/)
 - [Vercel Documentation](https://vercel.com/docs)

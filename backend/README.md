@@ -5,6 +5,7 @@ Professional lighting simulator backend API powered by FIBO.
 ## Quick Start
 
 ### Prerequisites
+
 - Python 3.11+
 - pip or poetry
 
@@ -37,6 +38,7 @@ The API will be available at `http://localhost:8000`
 ## API Documentation
 
 Once running, visit:
+
 - **Swagger UI**: `http://localhost:8000/docs`
 - **ReDoc**: `http://localhost:8000/redoc`
 
@@ -69,17 +71,20 @@ backend/
 ## API Endpoints
 
 ### Generate
+
 - `POST /api/generate` - Generate image from lighting setup
 - `POST /api/generate/natural-language` - Generate from natural language
 - `POST /api/generate/from-preset` - Generate using preset
 
 ### Presets
+
 - `GET /api/presets` - List all presets
 - `GET /api/presets/{preset_id}` - Get specific preset
 - `GET /api/presets/categories` - List preset categories
 - `POST /api/presets/search` - Search presets
 
 ### History
+
 - `GET /api/history` - Get generation history
 - `GET /api/history/{generation_id}` - Get specific generation
 - `DELETE /api/history/{generation_id}` - Delete generation
@@ -87,17 +92,20 @@ backend/
 - `GET /api/history/stats` - Get history statistics
 
 ### Batch
+
 - `POST /api/batch/generate` - Start batch generation
 - `GET /api/batch/{batch_id}` - Get batch status
 - `POST /api/batch/product-variations` - Generate product variations
 - `GET /api/batch/{batch_id}/export` - Export batch results
 
 ### Analysis
+
 - `POST /api/analyze/lighting` - Analyze lighting setup
 - `POST /api/analyze/compare` - Compare two setups
 - `GET /api/analyze/recommendations/{style}` - Get style recommendations
 
 ### Health
+
 - `GET /api/health` - Health check
 
 ## Configuration
@@ -185,18 +193,21 @@ Set these in your deployment environment:
 ## Troubleshooting
 
 ### Port Already in Use
+
 ```bash
 # Use different port
 uvicorn app.main:app --port 8001
 ```
 
 ### Import Errors
+
 ```bash
 # Reinstall dependencies
 pip install -r requirements.txt --force-reinstall
 ```
 
 ### FIBO API Errors
+
 - Check `FIBO_API_KEY` is set correctly
 - Verify API endpoint is accessible
 - Set `USE_MOCK_FIBO=True` for testing

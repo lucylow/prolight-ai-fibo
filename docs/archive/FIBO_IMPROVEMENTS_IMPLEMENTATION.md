@@ -22,6 +22,7 @@ The FIBO adapter has been enhanced to support three main implementation methods:
 - ✅ Proper error handling and fallback mechanisms
 
 **Usage**:
+
 ```python
 from app.services.fibo_adapter import FIBOAdapter
 
@@ -34,6 +35,7 @@ result = await adapter.generate(
 ```
 
 **Requirements**:
+
 ```bash
 pip install git+https://github.com/huggingface/diffusers torch torchvision google-genai boltons ujson sentencepiece accelerate transformers
 export GOOGLE_API_KEY="your_gemini_api_key_here"
@@ -49,11 +51,13 @@ export GOOGLE_API_KEY="your_gemini_api_key_here"
 - ✅ Proper error handling and timeout management
 
 **Configuration**:
+
 ```bash
 export FAL_KEY="your_fal_api_key_here"
 ```
 
 **Priority Order**:
+
 1. Local FIBO (diffusers) - if available
 2. fal.ai API - if `FAL_KEY` configured
 3. Remote Bria API - if `BRIA_API_TOKEN` configured
@@ -62,12 +66,14 @@ export FAL_KEY="your_fal_api_key_here"
 ### 3. Improved VLM Integration
 
 **Enhancements**:
+
 - ✅ Fixed import path: `diffusers.modular_pipelines.ModularPipeline` (was incorrectly `diffusers.modules.ModularPipeline`)
 - ✅ Proper lazy loading of VLM pipeline
 - ✅ Environment variable support for `GOOGLE_API_KEY`
 - ✅ Better error messages with installation instructions
 
 **VLM Models Supported**:
+
 - `briaai/FIBO-gemini-prompt-to-JSON` (recommended)
 - `briaai/FIBO-VLM-prompt-to-JSON` (alternative)
 
@@ -76,11 +82,13 @@ export FAL_KEY="your_fal_api_key_here"
 **New Function**: `_get_default_negative_prompt()`
 
 Implements the official FIBO negative prompt strategy:
+
 - Automatically generates negative prompts based on `style_medium`
 - Prevents unwanted style artifacts (e.g., digital illustration in photographs)
 - Improves image quality and consistency
 
 **Example**:
+
 ```python
 # Automatically applied when style_medium is "photograph"
 negative_prompt = "{'style_medium':'digital illustration','artistic_style':'non-realistic'}"
@@ -91,10 +99,12 @@ negative_prompt = "{'style_medium':'digital illustration','artistic_style':'non-
 **File**: `backend/app/core/config.py`
 
 Added new environment variables:
+
 - `GOOGLE_API_KEY` - Alternative name for `GEMINI_API_KEY`
 - `FAL_KEY` / `FAL_API_KEY` - fal.ai API key
 
 **Environment Variables**:
+
 ```bash
 # For local inference with diffusers
 GOOGLE_API_KEY=your_gemini_api_key
@@ -111,6 +121,7 @@ BRIA_API_TOKEN=your_bria_api_token
 All three modes are fully implemented:
 
 ### 1. Generate Mode
+
 ```python
 # Short prompt → VLM → Structured JSON → Image
 result = await adapter.generate_from_prompt(
@@ -121,6 +132,7 @@ result = await adapter.generate_from_prompt(
 ```
 
 ### 2. Refine Mode
+
 ```python
 # Existing JSON + instruction → VLM → Updated JSON → Image
 result = await adapter.refine(
@@ -131,6 +143,7 @@ result = await adapter.refine(
 ```
 
 ### 3. Inspire Mode
+
 ```python
 # Image → VLM → Structured JSON → Image (variation)
 result = await adapter.inspire(
@@ -183,11 +196,13 @@ response = await client.post(
 ### For Existing Users
 
 1. **Update dependencies** (if using local inference):
+
    ```bash
    pip install git+https://github.com/huggingface/diffusers
    ```
 
 2. **Set environment variables**:
+
    ```bash
    export GOOGLE_API_KEY="your_key"  # For VLM operations
    export FAL_KEY="your_key"  # Optional: for fal.ai
@@ -228,17 +243,21 @@ result = await adapter.inspire("image.png", "make it cinematic")
 ## Troubleshooting
 
 ### "diffusers not installed"
+
 ```bash
 pip install git+https://github.com/huggingface/diffusers torch torchvision
 ```
 
 ### "GOOGLE_API_KEY not set"
+
 ```bash
 export GOOGLE_API_KEY="your_key"
 ```
 
 ### "CUDA Out of Memory"
+
 The adapter automatically enables CPU offload if available. For manual control:
+
 ```python
 pipe.enable_model_cpu_offload()
 ```
@@ -252,6 +271,7 @@ pipe.enable_model_cpu_offload()
 ## Summary
 
 The FIBO adapter now supports:
+
 - ✅ Local inference with `BriaFiboPipeline` (diffusers)
 - ✅ fal.ai cloud API integration
 - ✅ Improved VLM integration with correct imports
@@ -261,4 +281,3 @@ The FIBO adapter now supports:
 - ✅ Better error handling and user feedback
 
 The implementation follows the official BRIA FIBO guide and provides a production-ready foundation for text-to-image generation with FIBO.
-

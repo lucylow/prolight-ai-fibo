@@ -18,6 +18,7 @@ Complete guide for Stripe payment processing, subscriptions, and billing managem
 ## Overview
 
 This application uses **Stripe** for payment processing with:
+
 - **One-time payments** via Checkout Sessions
 - **Recurring subscriptions** with automatic billing
 - **Customer Portal** for self-service subscription management
@@ -103,7 +104,7 @@ import StripeProvider from "@/contexts/StripeProvider";
 
 <StripeProvider>
   <App />
-</StripeProvider>
+</StripeProvider>;
 ```
 
 ### CheckoutButton
@@ -111,6 +112,7 @@ import StripeProvider from "@/contexts/StripeProvider";
 Creates a Stripe Checkout Session for one-time payments or subscriptions.
 
 **Props:**
+
 - `planName?: string` - Plan name (uses existing billing service)
 - `priceId?: string` - Stripe Price ID (direct usage)
 - `mode?: "payment" | "subscription"` - Checkout mode (default: "subscription")
@@ -122,23 +124,17 @@ Creates a Stripe Checkout Session for one-time payments or subscriptions.
 - `disabled?: boolean` - Disable button
 
 **Example - Subscription:**
+
 ```tsx
 import CheckoutButton from "@/components/billing/CheckoutButton";
 
-<CheckoutButton 
-  planName="pro"
-  mode="subscription"
-  label="Subscribe to Pro"
-/>
+<CheckoutButton planName="pro" mode="subscription" label="Subscribe to Pro" />;
 ```
 
 **Example - One-time Payment:**
+
 ```tsx
-<CheckoutButton 
-  priceId="price_1234567890"
-  mode="payment"
-  label="Buy Now"
-/>
+<CheckoutButton priceId="price_1234567890" mode="payment" label="Buy Now" />
 ```
 
 ### BillingPortalButton
@@ -146,6 +142,7 @@ import CheckoutButton from "@/components/billing/CheckoutButton";
 Opens Stripe Customer Portal for subscription management.
 
 **Props:**
+
 - `returnUrl?: string` - Return URL after portal (default: `/billing`)
 - `label?: string` - Button label (default: "Manage Subscription")
 - `variant?` - Button variant
@@ -154,18 +151,17 @@ Opens Stripe Customer Portal for subscription management.
 - `disabled?: boolean` - Disable button
 
 **Example:**
+
 ```tsx
 import BillingPortalButton from "@/components/billing/BillingPortalButton";
 
-<BillingPortalButton 
-  returnUrl="/billing"
-  label="Manage Subscription"
-/>
+<BillingPortalButton returnUrl="/billing" label="Manage Subscription" />;
 ```
 
 ### Invoices Page
 
 Enhanced invoices page with:
+
 - Cursor-based pagination (preferred)
 - Page-based pagination (fallback)
 - Status filtering (Paid, Due, Overdue, Pending)
@@ -177,6 +173,7 @@ Enhanced invoices page with:
 **API Endpoint:** `GET /api/billing/invoices`
 
 **Query Parameters:**
+
 - `limit?: number` - Items per page (default: 20)
 - `cursor?: string` - Cursor for pagination
 - `page?: number` - Page number (fallback)
@@ -184,6 +181,7 @@ Enhanced invoices page with:
 - `q?: string` - Search query
 
 **Response Format:**
+
 ```json
 {
   "items": [
@@ -192,7 +190,7 @@ Enhanced invoices page with:
       "stripe_invoice_id": "in_1AbC123",
       "number": "INV-1042",
       "date": "2025-12-14T00:00:00Z",
-      "amount": 49.00,
+      "amount": 49.0,
       "amount_due": 4900,
       "currency": "usd",
       "status": "paid",
@@ -217,6 +215,7 @@ Enhanced invoices page with:
 Creates a Stripe Checkout Session.
 
 **Request:**
+
 ```json
 {
   "user_email": "user@example.com",
@@ -227,6 +226,7 @@ Creates a Stripe Checkout Session.
 ```
 
 **Response:**
+
 ```json
 {
   "checkout_url": "https://checkout.stripe.com/c/pay/cs_test_...",
@@ -241,6 +241,7 @@ Creates a Stripe Checkout Session.
 Creates a Stripe Customer Portal session.
 
 **Request:**
+
 ```json
 {
   "return_url": "https://example.com/billing"
@@ -248,11 +249,13 @@ Creates a Stripe Customer Portal session.
 ```
 
 **Headers:**
+
 ```
 Authorization: Bearer <supabase_access_token>
 ```
 
 **Response:**
+
 ```json
 {
   "url": "https://billing.stripe.com/p/session/..."
@@ -266,11 +269,13 @@ Authorization: Bearer <supabase_access_token>
 Handles Stripe webhook events.
 
 **Headers:**
+
 ```
 Stripe-Signature: t=1234567890,v1=...
 ```
 
 **Events Handled:**
+
 - `invoice.paid` - Mark invoice as paid
 - `invoice.payment_failed` - Handle failed payment
 - `customer.subscription.created` - Create subscription record
@@ -286,13 +291,14 @@ Stripe-Signature: t=1234567890,v1=...
 ### Setting Up Webhooks
 
 1. **Local Development** (Stripe CLI):
+
    ```bash
    # Install Stripe CLI
    brew install stripe/stripe-cli/stripe
-   
+
    # Login
    stripe login
-   
+
    # Forward webhooks to local server
    stripe listen --forward-to localhost:54321/functions/v1/stripe-webhook
    ```
@@ -362,6 +368,7 @@ npm test src/components/billing
 ```
 
 **Test Files:**
+
 - `src/components/billing/__tests__/CheckoutButton.test.tsx`
 - `src/components/billing/__tests__/BillingPortalButton.test.tsx`
 
@@ -374,6 +381,7 @@ npm run storybook
 ```
 
 **Stories:**
+
 - `Billing/CheckoutButton` - Various checkout scenarios
 - `Billing/BillingPortalButton` - Portal button variants
 
@@ -386,6 +394,7 @@ npm run storybook
    - Any ZIP code
 
 2. **Test Webhooks Locally:**
+
    ```bash
    # Trigger test events
    stripe trigger invoice.paid
@@ -400,11 +409,11 @@ npm run storybook
 
 ### Test Cards
 
-| Card Number | Scenario |
-|------------|----------|
-| `4242 4242 4242 4242` | Success |
-| `4000 0000 0000 0002` | Card declined |
-| `4000 0000 0000 9995` | Insufficient funds |
+| Card Number           | Scenario                            |
+| --------------------- | ----------------------------------- |
+| `4242 4242 4242 4242` | Success                             |
+| `4000 0000 0000 0002` | Card declined                       |
+| `4000 0000 0000 9995` | Insufficient funds                  |
 | `4000 0025 0000 3155` | Requires authentication (3D Secure) |
 
 ---
@@ -427,26 +436,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
-      
+          node-version: "18"
+
       - name: Install dependencies
         run: npm ci
-      
+
       - name: Build
         env:
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         run: npm run build
-      
+
       - name: Deploy
         # Your deployment step
 ```
 
 **Required Secrets:**
+
 - `STRIPE_PUBLISHABLE_KEY` - Stripe publishable key
 - `STRIPE_SECRET_KEY` - Stripe secret key (backend only)
 - `STRIPE_WEBHOOK_SECRET` - Webhook signing secret (backend only)
@@ -459,17 +469,14 @@ Add validation in your app startup:
 ```tsx
 // src/utils/env.ts
 export function validateEnv() {
-  const required = [
-    'VITE_STRIPE_PUBLISHABLE_KEY',
-    'VITE_SUPABASE_URL',
-  ];
-  
-  const missing = required.filter(key => !import.meta.env[key]);
-  
+  const required = ["VITE_STRIPE_PUBLISHABLE_KEY", "VITE_SUPABASE_URL"];
+
+  const missing = required.filter((key) => !import.meta.env[key]);
+
   if (missing.length > 0) {
-    console.error('Missing environment variables:', missing);
+    console.error("Missing environment variables:", missing);
     if (import.meta.env.PROD) {
-      throw new Error(`Missing required env vars: ${missing.join(', ')}`);
+      throw new Error(`Missing required env vars: ${missing.join(", ")}`);
     }
   }
 }
@@ -484,6 +491,7 @@ export function validateEnv() {
 #### 1. "VITE_STRIPE_PUBLISHABLE_KEY is not set"
 
 **Solution:**
+
 - Check `.env.local` file exists
 - Verify variable name (must start with `VITE_`)
 - Restart dev server after adding env vars
@@ -491,11 +499,13 @@ export function validateEnv() {
 #### 2. Checkout redirects but shows error
 
 **Possible Causes:**
+
 - Invalid Stripe Price ID
 - Customer not created in Stripe
 - Webhook endpoint not configured
 
 **Solution:**
+
 - Check Stripe Dashboard → Logs
 - Verify Price ID exists in Stripe
 - Ensure webhook endpoint is active
@@ -503,6 +513,7 @@ export function validateEnv() {
 #### 3. Webhook signature verification fails
 
 **Solution:**
+
 - Verify `STRIPE_WEBHOOK_SECRET` matches webhook endpoint secret
 - Check webhook endpoint URL matches Stripe dashboard
 - Ensure raw request body is used (not parsed JSON)
@@ -510,6 +521,7 @@ export function validateEnv() {
 #### 4. Customer Portal shows "No subscription found"
 
 **Solution:**
+
 - Verify `stripe_customer_id` exists in `user_profiles` table
 - Check customer was created during checkout
 - Ensure webhook processed `customer.subscription.created`
@@ -520,10 +532,10 @@ export function validateEnv() {
 
 ```tsx
 // In StripeProvider or edge function
-import Stripe from 'stripe';
+import Stripe from "stripe";
 
 const stripe = new Stripe(secretKey, {
-  apiVersion: '2024-11-20.acacia',
+  apiVersion: "2024-11-20.acacia",
   httpClient: Stripe.createFetchHttpClient(),
   // Enable logging
   maxNetworkRetries: 2,
@@ -545,7 +557,7 @@ stripe listen --print-json
 ```tsx
 // Enable Stripe debug mode
 const stripe = await loadStripe(publishableKey, {
-  betas: ['debug'],
+  betas: ["debug"],
 });
 ```
 
@@ -577,6 +589,7 @@ const stripe = await loadStripe(publishableKey, {
 ## Support
 
 For issues or questions:
+
 1. Check [Troubleshooting](#troubleshooting) section
 2. Review Stripe Dashboard logs
 3. Check Supabase Edge Function logs
@@ -585,4 +598,3 @@ For issues or questions:
 ---
 
 **Last Updated:** December 2024
-

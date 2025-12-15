@@ -41,6 +41,7 @@ FLUX2_COST_PER_IMAGE=0.04              # Cost per image in credits (default: 0.0
 **Endpoint**: `POST /flux2-generate`
 
 **Request**:
+
 ```typescript
 {
   prompt_json: {
@@ -58,6 +59,7 @@ FLUX2_COST_PER_IMAGE=0.04              # Cost per image in credits (default: 0.0
 ```
 
 **Response**:
+
 ```typescript
 {
   image_url?: string,      // URL to generated image
@@ -187,8 +189,8 @@ Create a new image from a structured prompt:
 ```typescript
 await generateWithFlux2({
   prompt_json: fiboJson,
-  mode: 'generate',
-  seed: 12345
+  mode: "generate",
+  seed: 12345,
 });
 ```
 
@@ -198,10 +200,10 @@ Refine an existing generation by updating specific fields:
 
 ```typescript
 await generateWithFlux2({
-  mode: 'refine',
-  generation_ref: 'previous-generation-id',
-  instruction: 'warmer key light',
-  locked_fields: ['subject', 'camera']  // Keep these unchanged
+  mode: "refine",
+  generation_ref: "previous-generation-id",
+  instruction: "warmer key light",
+  locked_fields: ["subject", "camera"], // Keep these unchanged
 });
 ```
 
@@ -214,11 +216,11 @@ Generate variations from a reference image:
 const base64 = await imageToBase64(imageFile);
 
 await generateWithFlux2({
-  mode: 'inspire',
+  mode: "inspire",
   reference_image_base64: base64,
   prompt_json: {
     // Optional: additional creative intent
-  }
+  },
 });
 ```
 
@@ -259,38 +261,41 @@ const fiboJson = buildFiboFromLightingSetup(lightingSetup, cameraSettings);
 const initial = await generateWithFlux2({
   prompt_json: fiboJson,
   seed: 12345,
-  steps: 40
+  steps: 40,
 });
 
 // 3. Refine with warmer lighting
 const refined = await generateWithFlux2({
-  mode: 'refine',
+  mode: "refine",
   generation_ref: initial.image_id,
-  instruction: 'warmer key light, 3200K',
-  locked_fields: ['subject', 'camera', 'composition']
+  instruction: "warmer key light, 3200K",
+  locked_fields: ["subject", "camera", "composition"],
 });
 
 // 4. Generate variations with different seeds
 const variations = await Promise.all([
   generateWithFlux2({ prompt_json: fiboJson, seed: 12346 }),
   generateWithFlux2({ prompt_json: fiboJson, seed: 12347 }),
-  generateWithFlux2({ prompt_json: fiboJson, seed: 12348 })
+  generateWithFlux2({ prompt_json: fiboJson, seed: 12348 }),
 ]);
 ```
 
 ## Troubleshooting
 
 ### API Key Issues
+
 - Verify `FLUX2_API_KEY` is set in Supabase secrets
 - Check API key has proper permissions
 - Ensure key hasn't expired
 
 ### Timeout Errors
+
 - Increase timeout in edge function (default: 180s)
 - Reduce `steps` parameter for faster generation
 - Check network connectivity
 
 ### Credit Issues
+
 - Verify user has active subscription
 - Check credit limits in database
 - Review `credit_usage` table for usage history
@@ -309,4 +314,3 @@ const variations = await Promise.all([
 - [FLUX.2 Documentation](https://bria.ai/docs/flux-2)
 - [FIBO Schema Reference](./docs/FIBO_PARAMETER_REFERENCE.md)
 - [Bria AI API Docs](https://bria.ai/docs)
-
