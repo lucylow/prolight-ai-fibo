@@ -83,6 +83,11 @@ const Index = () => {
                 <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-200" />
               </Button>
             </Link>
+            <Link to="/studio/photography-demos" className="w-full sm:w-auto">
+              <Button size="lg" className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-full group w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 hover:scale-105 active:scale-95 transition-transform duration-200 shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/40 text-white">
+                📸 <span className="whitespace-nowrap ml-2">Professional Demos</span>
+              </Button>
+            </Link>
             <a href="#demo" className="w-full sm:w-auto">
               <Button size="lg" variant="outline" className="rounded-full border-muted-foreground/30 hover:border-primary hover:text-primary backdrop-blur-sm w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 hover:scale-105 active:scale-95 transition-all duration-200 hover:shadow-lg hover:bg-accent/50">
                 <Play className="mr-2 h-4 w-4 sm:h-5 sm:w-5 group-hover:scale-110 transition-transform duration-200" /> <span className="whitespace-nowrap">Watch Demo</span>

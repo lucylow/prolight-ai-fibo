@@ -393,3 +393,4 @@ class BriaVehicleShotService:
             results["errors"].append(str(e))
         
         return results
+

@@ -195,3 +195,4 @@ async def complete_enhancement(request: EnhancementRequest):
     except Exception as e:
         logger.error(f"Error in complete enhancement: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+

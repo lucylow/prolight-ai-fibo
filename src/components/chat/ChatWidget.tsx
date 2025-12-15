@@ -411,3 +411,4 @@ export function ChatWidget({
     </Card>
   );
 }
+

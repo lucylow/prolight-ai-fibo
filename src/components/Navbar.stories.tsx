@@ -36,3 +36,4 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => <Navbar />,
 };
+

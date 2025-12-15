@@ -297,3 +297,4 @@ const apiKey = getBriaApiKey(); // Automatic validation and error handling
 - New snake_case format is recommended (matches FIBO API)
 - Validation is optional but recommended
 - Secret management improvements are automatic
+

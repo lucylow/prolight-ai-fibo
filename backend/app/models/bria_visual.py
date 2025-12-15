@@ -31,3 +31,4 @@ class BriaVisual(Base):
     
     # Additional metadata (JSON field for flexibility)
     metadata = Column(JSON, nullable=True)
+

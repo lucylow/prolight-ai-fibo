@@ -21,3 +21,4 @@ export default function RecaptchaWrapper({ siteKey, onVerify }: RecaptchaWrapper
     </div>
   );
 }
+

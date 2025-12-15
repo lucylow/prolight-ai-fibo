@@ -44,3 +44,4 @@ def me(authorization: Optional[str] = Header(None)):
     if authorization and "testtoken_user" in authorization:
         return {"id": "u-user", "email": "user@example.com", "name": "User", "role": "user"}
     raise HTTPException(status_code=401, detail="Unauthorized")
+

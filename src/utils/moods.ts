@@ -33,3 +33,4 @@ export function paletteForMood(moodKey: string) {
     intensityScale: m.intensityScale,
   };
 }
+

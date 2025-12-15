@@ -10,7 +10,7 @@ import asyncio
 import logging
 
 from app.core.config import settings
-from app.orchestration.orchestrator import _runs_store
+from app.api.runs import _runs_store
 
 logger = logging.getLogger(__name__)
 
@@ -118,3 +118,5 @@ async def event_generator(run_id: str) -> AsyncGenerator[dict, None]:
 async def stream(run_id: str):
     """Stream workflow updates via Server-Sent Events."""
     return EventSourceResponse(event_generator(run_id))
+
+

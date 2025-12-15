@@ -37,3 +37,4 @@ def delete_pose(db: Session, pose_id: int):
         db.delete(p)
         db.commit()
     return p
+

@@ -22,3 +22,4 @@ CREATE INDEX IF NOT EXISTS idx_poses_owner_id ON poses(owner_id);
 -- 
 -- CREATE INDEX IF NOT EXISTS idx_poses_name ON poses(name);
 -- CREATE INDEX IF NOT EXISTS idx_poses_owner_id ON poses(owner_id);
+

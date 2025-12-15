@@ -484,3 +484,4 @@ export function createSpeechRecognition(
 export function createSpeechSynthesis(): SpeechSynthesisService {
   return new SpeechSynthesisService();
 }
+

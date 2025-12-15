@@ -243,3 +243,4 @@ The ControlNet integration has been significantly enhanced with:
 - ✅ ProLight AI optimizations
 
 All improvements follow industry best practices and are based on authoritative ControlNet integration guides.
+

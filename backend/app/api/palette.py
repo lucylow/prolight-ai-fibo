@@ -262,3 +262,4 @@ async def apply_palette(req: ApplyPaletteRequest):
     ]
 
     return {"patches": patches, "notes": notes}
+

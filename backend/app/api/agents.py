@@ -3,9 +3,10 @@ Agents API
 Endpoints for managing agents.
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
+from datetime import datetime
 import uuid
 import logging
 
@@ -20,6 +21,9 @@ class AgentCreate(BaseModel):
     """Request model for creating an agent."""
     name: str = Field(..., description="Agent name")
     description: str = Field(..., description="Agent description")
+    systemPrompt: Optional[str] = Field("", description="System prompt for the agent")
+    steps: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Agent steps")
+    tools: Optional[List[Dict[str, Any]]] = Field(default_factory=list, description="Agent tools")
     config: Optional[Dict[str, Any]] = Field(None, description="Agent configuration")
 
 
@@ -28,8 +32,13 @@ class AgentResponse(BaseModel):
     id: str
     name: str
     description: str
+    systemPrompt: Optional[str] = ""
+    steps: Optional[List[Dict[str, Any]]] = None
+    tools: Optional[List[Dict[str, Any]]] = None
     config: Optional[Dict[str, Any]] = None
     created_at: str
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
 
 
 # In-memory storage (replace with database in production)
@@ -58,7 +67,18 @@ async def create_agent(agent: AgentCreate):
     _agents_store[agent_id] = agent_data
     logger.info(f"Created agent: {agent_id} - {agent.name}")
     
-    return AgentResponse(**agent_data)
+    return AgentResponse(
+        id=agent_data["id"],
+        name=agent_data["name"],
+        description=agent_data["description"],
+        systemPrompt=agent_data["systemPrompt"],
+        steps=agent_data["steps"],
+        tools=agent_data["tools"],
+        config=agent_data["config"],
+        created_at=agent_data["created_at"],
+        createdAt=agent_data["createdAt"],
+        updatedAt=agent_data["updatedAt"],
+    )
 
 
 @router.get("", response_model=List[AgentResponse])
@@ -79,7 +99,20 @@ async def list_agents():
             "created_at": agent.get("created_at") or agent.get("createdAt"),
             "updatedAt": agent.get("updatedAt"),
         }
-        results.append(AgentResponse(**agent_data))
+        # Create response with all fields
+        response = AgentResponse(
+            id=agent_data["id"],
+            name=agent_data["name"],
+            description=agent_data["description"],
+            systemPrompt=agent_data["systemPrompt"],
+            steps=agent_data["steps"],
+            tools=agent_data["tools"],
+            config=agent_data["config"],
+            created_at=agent_data["created_at"],
+            createdAt=agent_data["createdAt"],
+            updatedAt=agent_data["updatedAt"],
+        )
+        results.append(response)
     return results
 
 
@@ -91,19 +124,18 @@ async def get_agent(agent_id: str):
     
     agent = _agents_store[agent_id]
     # Ensure all fields are present
-    response_data = {
-        "id": agent["id"],
-        "name": agent["name"],
-        "description": agent["description"],
-        "systemPrompt": agent.get("systemPrompt", ""),
-        "steps": agent.get("steps", []),
-        "tools": agent.get("tools", []),
-        "config": agent.get("config", {}),
-        "createdAt": agent.get("createdAt") or agent.get("created_at"),
-        "created_at": agent.get("created_at") or agent.get("createdAt"),
-        "updatedAt": agent.get("updatedAt"),
-    }
-    return AgentResponse(**response_data)
+    return AgentResponse(
+        id=agent["id"],
+        name=agent["name"],
+        description=agent["description"],
+        systemPrompt=agent.get("systemPrompt", ""),
+        steps=agent.get("steps", []),
+        tools=agent.get("tools", []),
+        config=agent.get("config", {}),
+        created_at=agent.get("created_at") or agent.get("createdAt"),
+        createdAt=agent.get("createdAt") or agent.get("created_at"),
+        updatedAt=agent.get("updatedAt"),
+    )
 
 
 @router.put("/{agent_id}", response_model=AgentResponse)
@@ -129,21 +161,19 @@ async def update_agent(agent_id: str, agent_update: Dict[str, Any]):
     _agents_store[agent_id] = agent_data
     
     # Ensure all required fields are present
-    response_data = {
-        "id": agent_data["id"],
-        "name": agent_data["name"],
-        "description": agent_data["description"],
-        "systemPrompt": agent_data.get("systemPrompt", ""),
-        "steps": agent_data.get("steps", []),
-        "tools": agent_data.get("tools", []),
-        "config": agent_data.get("config", {}),
-        "createdAt": agent_data.get("createdAt") or agent_data.get("created_at"),
-        "created_at": agent_data.get("created_at") or agent_data.get("createdAt"),
-        "updatedAt": agent_data.get("updatedAt"),
-    }
-    
     logger.info(f"Updated agent: {agent_id}")
-    return AgentResponse(**response_data)
+    return AgentResponse(
+        id=agent_data["id"],
+        name=agent_data["name"],
+        description=agent_data["description"],
+        systemPrompt=agent_data.get("systemPrompt", ""),
+        steps=agent_data.get("steps", []),
+        tools=agent_data.get("tools", []),
+        config=agent_data.get("config", {}),
+        created_at=agent_data.get("created_at") or agent_data.get("createdAt"),
+        createdAt=agent_data.get("createdAt") or agent_data.get("created_at"),
+        updatedAt=agent_data.get("updatedAt"),
+    )
 
 
 @router.delete("/{agent_id}")
@@ -161,6 +191,7 @@ async def delete_agent(agent_id: str):
 # Import runs module for workflow execution
 from app.api.runs import run_workflow, _runs_store as runs_store
 from app.orchestration.orchestrator import WorkflowContext, WorkflowState
+from app.orchestration.queue_manager import enqueue_run
 
 
 @router.post("/{agent_id}/run")
@@ -191,3 +222,5 @@ async def run_agent(agent_id: str, background: BackgroundTasks, input_data: Opti
         background.add_task(run_workflow, ctx)
     
     return {"runId": ctx.run_id}  # Frontend expects runId, not run_id
+
+

@@ -447,3 +447,4 @@ The status service works alongside existing job tables (`video_jobs`, `tailored_
 - Add webhook support (if Bria provides webhooks)
 - Implement retry logic for failed status checks
 - Add metrics/monitoring for status service health
+

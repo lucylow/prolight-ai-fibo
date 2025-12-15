@@ -182,3 +182,4 @@ CREATE POLICY "Service role full access models"
 CREATE POLICY "Service role full access jobs"
   ON tailored_jobs FOR ALL
   USING (auth.role() = 'service_role');
+

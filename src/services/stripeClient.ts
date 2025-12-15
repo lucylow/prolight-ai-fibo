@@ -116,3 +116,4 @@ class StripeClient {
 }
 
 export const stripeClient = new StripeClient();
+

@@ -107,3 +107,4 @@ export const LargeSize: Story = {
     label: 'Subscribe to Pro Plan',
   },
 };
+

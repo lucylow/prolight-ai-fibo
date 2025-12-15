@@ -165,3 +165,4 @@ export function calculateAverageColorTemperature(lightingSetup: LightingSetup): 
   
   return Math.round(temps.reduce((a, b) => a + b, 0) / temps.length);
 }
+

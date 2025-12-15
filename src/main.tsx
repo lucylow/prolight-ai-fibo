@@ -1,4 +1,4 @@
-import React from "react";
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider as NextThemeProvider } from "next-themes";
 import App from "./App.tsx";
@@ -22,11 +22,11 @@ const init = (): void => {
   const root = createRoot(rootElement);
   
   root.render(
-    <React.StrictMode>
+    <StrictMode>
       <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <App />
       </NextThemeProvider>
-    </React.StrictMode>
+    </StrictMode>
   );
 };
 

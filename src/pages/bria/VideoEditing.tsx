@@ -1,13 +1,5 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Video, Upload, Wand2, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useBria } from '@/hooks/useBria';
-import { toast } from 'sonner';
+import React from 'react';
+import { VideoPostProcessing } from '@/components/VideoPostProcessing';
 
 const VideoEditing = () => {
   const [videoUrl, setVideoUrl] = useState('');
@@ -196,3 +188,5 @@ const VideoEditing = () => {
 };
 
 export default VideoEditing;
+
+

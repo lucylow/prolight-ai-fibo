@@ -202,3 +202,4 @@ const result = await comfyuiService.generateFromFIBO(fiboJson);
 - [ComfyUI GitHub](https://github.com/comfyanonymous/ComfyUI)
 - [FIBO Documentation](https://huggingface.co/briaai/FIBO)
 - [ProLight AI Documentation](../docs/)
+

@@ -251,3 +251,4 @@ prolight-ai-fibo/
 ### CORS Errors
 - Update `CORS_ORIGINS` in backend settings
 - Ensure frontend URL is whitelisted
+

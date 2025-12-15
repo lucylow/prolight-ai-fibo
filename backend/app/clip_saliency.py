@@ -124,3 +124,4 @@ def compute_clip_gradcam(image_bytes: bytes, top_k: int = 1) -> np.ndarray:
         # cleanup hooks
         fh.remove()
         bh.remove()
+

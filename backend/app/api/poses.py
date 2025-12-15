@@ -204,3 +204,4 @@ async def render_callback(request: RenderCallbackRequest, db: Session = Depends(
     except Exception as e:
         logger.error(f"Error processing render callback: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+

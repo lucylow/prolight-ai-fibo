@@ -37,3 +37,4 @@ export const SingleInvoice: Story = {
     invoices: [mockInvoices[0]],
   },
 };
+

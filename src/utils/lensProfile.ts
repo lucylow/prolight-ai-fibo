@@ -43,3 +43,4 @@ export function mapLensProfileToSim(profile: LensProfile) {
     filmGrain: Math.min(0.2, mtf_strength * 0.1),
   };
 }
+

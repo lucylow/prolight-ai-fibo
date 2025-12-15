@@ -340,3 +340,4 @@ def fibo_json_to_ui(fibo_prompt: Dict[str, Any]) -> Dict[str, Any]:
         ui_state["preset_name"] = meta["preset_name"]
     
     return ui_state
+

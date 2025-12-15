@@ -57,3 +57,4 @@ CREATE POLICY "Users can update own jobs"
 CREATE POLICY "Service role full access"
   ON video_jobs FOR ALL
   USING (auth.role() = 'service_role');
+

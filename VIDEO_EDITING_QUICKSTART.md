@@ -185,3 +185,4 @@ See `docs/VIDEO_EDITING_INTEGRATION.md` for complete documentation including:
 - Security considerations
 - Advanced configuration
 - Production deployment
+

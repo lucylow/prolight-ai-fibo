@@ -33,3 +33,4 @@ export const SEO: React.FC<SEOProps> = ({ title, description, url, image, type =
     </HelmetProvider>
   );
 };
+

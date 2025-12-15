@@ -209,3 +209,4 @@ async def test_local_vs_remote_fallback():
     finally:
         adapter.local_fibo_module = original_local
         await adapter.close()
+

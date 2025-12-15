@@ -23,8 +23,10 @@ respx==0.20.2
 black==23.11.0
 flake8==6.1.0
 
-# Database (optional)
+# Database
 sqlalchemy==2.0.23
+psycopg2-binary==2.9.9  # PostgreSQL adapter
+alembic==1.13.0  # Database migrations
 
 # Utilities
 python-dotenv==1.0.0
@@ -49,6 +51,9 @@ numpy==1.26.2
 
 # Redis for vector store and conversation memory
 redis[hiredis]==5.0.1
+
+# Celery for async task processing
+celery[redis]==5.3.4
 
 # Server-Sent Events for streaming
 sse-starlette==1.8.2

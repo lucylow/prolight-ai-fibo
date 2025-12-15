@@ -72,3 +72,4 @@ async def get_embedding_async(text: str) -> List[float]:
     # For now, just call sync version
     # When integrating with async API, implement async call here
     return get_embedding(text)
+

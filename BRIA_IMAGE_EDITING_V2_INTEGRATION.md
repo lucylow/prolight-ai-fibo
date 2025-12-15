@@ -216,3 +216,4 @@ All operations follow the BRIA API v2 specification. For issues:
 2. Review the browser console for detailed errors
 3. Verify API token is configured correctly
 4. Check BRIA API status and rate limits
+

@@ -42,3 +42,4 @@ class Asset(Base):
     thumbnails = Column(JSON, nullable=True)
     metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+

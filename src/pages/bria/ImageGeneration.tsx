@@ -270,3 +270,4 @@ const ImageGeneration = () => {
 };
 
 export default ImageGeneration;
+

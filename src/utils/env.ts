@@ -27,6 +27,13 @@ export function validateEnv(): void {
 }
 
 /**
+ * Gets Bria API token from environment
+ */
+export function getBriaApiToken(): string | undefined {
+  return import.meta.env.VITE_BRIA_API_TOKEN || import.meta.env.BRIA_API_TOKEN;
+}
+
+/**
  * Gets Stripe publishable key with validation
  */
 export function getStripePublishableKey(): string | undefined {
@@ -72,3 +79,5 @@ export function isDevelopment(): boolean {
 export function isProduction(): boolean {
   return import.meta.env.PROD;
 }
+
+

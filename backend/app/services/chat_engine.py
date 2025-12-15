@@ -166,3 +166,4 @@ class ChatEngine:
             "intent": intent_info.get("intent"),
             "entities": intent_info.get("entities", {}),
         }
+

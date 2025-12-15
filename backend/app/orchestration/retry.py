@@ -221,3 +221,4 @@ class CircuitBreaker:
 class CircuitBreakerOpen(Exception):
     """Exception raised when circuit breaker is open."""
     pass
+

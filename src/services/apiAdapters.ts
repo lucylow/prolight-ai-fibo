@@ -139,3 +139,4 @@ export function isValidAnalysisResponse(data: unknown): data is {
     typeof d.professionalRating === 'number'
   );
 }
+

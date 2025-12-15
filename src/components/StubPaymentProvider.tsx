@@ -43,3 +43,4 @@ export default function StubPaymentProvider({ amount, onToken, disabled }: { amo
     </form>
   );
 }
+

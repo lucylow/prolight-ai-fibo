@@ -739,3 +739,4 @@ export const initializeMockData = () => {
 export const isMockDataInitialized = (): boolean => {
   return localStorage.getItem('mock_data_initialized') === 'true';
 };
+

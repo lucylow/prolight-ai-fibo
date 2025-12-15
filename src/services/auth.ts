@@ -105,3 +105,4 @@ export const getSessionAPI = async (): Promise<{ user: User } | null> => {
     return null;
   }
 };
+

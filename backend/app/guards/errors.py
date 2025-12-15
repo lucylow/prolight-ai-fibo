@@ -17,3 +17,4 @@ class GuardrailError(Exception):
             "code": self.code,
             "message": self.message,
         }
+

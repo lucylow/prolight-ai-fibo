@@ -216,3 +216,4 @@ export function getRetryDelay(error: unknown, attempt: number): number {
   // Exponential backoff: 1s, 2s, 4s, 8s, max 10s
   return Math.min(1000 * Math.pow(2, attempt), 10000);
 }
+

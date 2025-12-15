@@ -141,3 +141,4 @@ async def get_run_events(run_id: str, limit: int = 100) -> list[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Failed to get events: {e}")
         return []
+

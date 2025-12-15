@@ -40,3 +40,4 @@ DATABASE_URL=sqlite:///./data.db
 ```
 VITE_RECAPTCHA_SITE_KEY=your_recaptcha_site_key_here
 ```
+

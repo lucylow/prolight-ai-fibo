@@ -121,3 +121,4 @@ def format_messages_history(messages: List[Dict[str, str]]) -> str:
         formatted.append(f"{role}: {content}")
     
     return "\n".join(formatted)
+

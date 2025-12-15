@@ -307,3 +307,4 @@ export const examples = {
   dynamic: example5_DynamicLighting,
   withVLM: example6_WithVLM,
 };
+

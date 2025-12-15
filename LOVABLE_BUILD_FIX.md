@@ -76,3 +76,4 @@ A build timestamp has been added to the footer of the homepage. If you see:
 2. Verify the `dist/` folder is being generated (check build logs)
 3. Contact Lovable support if builds are not running automatically
 4. Consider using a different deployment method if Lovable continues to have issues
+

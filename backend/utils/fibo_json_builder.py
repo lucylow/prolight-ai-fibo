@@ -201,3 +201,4 @@ def build_fibo_json_from_scene_and_lights(
     
     # Merge with precise lighting
     return merge_base_json_with_lighting(base_json, lighting_config)
+

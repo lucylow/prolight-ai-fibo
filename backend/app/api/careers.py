@@ -158,3 +158,4 @@ Message:
             print(f"Email send fail: {e}")
 
     return {"status": "ok", "message": "Application submitted successfully"}
+

@@ -167,3 +167,4 @@ Navigate to `/bria/image-onboarding` in your application to access the Image Onb
 2. Use `visual_id` for Image Editing Create endpoints
 3. Implement background cleanup job for expired visuals
 4. Add webhook support for Bria events (optional)
+

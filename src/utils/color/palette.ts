@@ -64,3 +64,4 @@ export function generatePaletteFromRgb([r, g, b]: [number, number, number]) {
     muted: muted as [number, number, number],
   };
 }
+

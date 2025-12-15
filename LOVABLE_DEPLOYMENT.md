@@ -218,3 +218,4 @@ After successful deployment:
 2. Monitor edge function logs for any errors
 3. Set up monitoring/alerts for edge function failures
 4. Consider adding rate limiting if needed
+

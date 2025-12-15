@@ -464,3 +464,4 @@ const briaResponse = await fetch('https://your-lovable-project.lovable.dev/edge/
 For BRIA API documentation, visit: https://bria.ai/docs
 
 For Lovable Cloud documentation, visit: https://docs.lovable.dev
+

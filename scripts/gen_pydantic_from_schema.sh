@@ -121,3 +121,4 @@ echo "✓ Schema saved at ${SCHEMA_FINAL}"
 echo ""
 echo "You can now import and use these models in your code:"
 echo "  from app.models_fibo import FiboSchema"
+

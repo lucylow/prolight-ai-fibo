@@ -180,3 +180,4 @@ export function normalizeVector(
   }
   return [x / magnitude, y / magnitude, z / magnitude];
 }
+

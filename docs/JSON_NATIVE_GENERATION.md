@@ -342,3 +342,4 @@ const handleGenerate = async () => {
 3. Create preset lighting patterns (Rembrandt, Butterfly, Loop, etc.)
 4. Build UI for editing JSON directly
 5. Add import/export for lighting setups
+

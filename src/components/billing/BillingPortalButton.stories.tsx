@@ -94,3 +94,4 @@ export const CustomLabel: Story = {
     label: 'Update Payment Method',
   },
 };
+

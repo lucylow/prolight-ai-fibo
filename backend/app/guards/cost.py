@@ -40,3 +40,4 @@ def cost_limit(ctx: Any) -> None:
                 "COST_LIMIT_EXCEEDED",
                 f"Input cost ${input_cost:.2f} exceeds permitted limit ${max_cost:.2f}"
             )
+

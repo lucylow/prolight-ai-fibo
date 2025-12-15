@@ -108,3 +108,4 @@ Lovable may not automatically rebuild on every commit. This can happen because:
 ---
 
 **Last Updated**: This guide is for the current build configuration with commit hash tracking.
+

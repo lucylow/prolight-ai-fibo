@@ -416,3 +416,4 @@ async def generate_with_lighting(scene_prompt: str, lighting_override: dict):
 - [Bria API Documentation](https://bria.ai/docs)
 - [FIBO GitHub Repository](https://github.com/bria-ai/fibo)
 - [Bria Blog - Diffusers Integration](https://bria.ai/blog)
+

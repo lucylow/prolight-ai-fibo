@@ -87,3 +87,4 @@ export function useKeyboardShortcut(
     }
   }, [key, ctrlKey, metaKey, shiftKey, altKey, enabled]);
 }
+

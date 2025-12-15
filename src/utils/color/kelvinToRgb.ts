@@ -39,3 +39,4 @@ export function kelvinToRgb(kelvin: number): [number, number, number] {
 
   return [Math.round(red), Math.round(green), Math.round(blue)];
 }
+

@@ -108,3 +108,4 @@ export const UI_ROUTES: Record<AgentState, string> = {
   FAILED: "/workflows/error",
   STOPPED: "/workflows/stopped",
 };
+

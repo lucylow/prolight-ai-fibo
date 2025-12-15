@@ -200,3 +200,4 @@ async def generate_image(request: SceneRequest):
 4. Add caching for frequently used lighting setups
 5. Add rate limiting and authentication
 6. Add comprehensive tests
+

@@ -95,3 +95,4 @@ export const InitializationError: React.FC<InitializationErrorProps> = ({
     </div>
   );
 };
+

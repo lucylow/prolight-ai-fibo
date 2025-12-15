@@ -68,3 +68,4 @@ export const costStructure = [
   "Licensing and compliance costs",
   "Marketing, partnerships, community",
 ];
+

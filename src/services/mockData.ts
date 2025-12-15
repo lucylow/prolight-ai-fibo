@@ -503,3 +503,4 @@ export const shouldUseMockData = (): boolean => {
 export const setMockDataMode = (enabled: boolean): void => {
   localStorage.setItem('use_mock_data', enabled ? 'true' : 'false');
 };
+

@@ -174,3 +174,4 @@ describe("CheckoutButton", () => {
     expect(screen.getByText("Buy Now")).toBeInTheDocument();
   });
 });
+

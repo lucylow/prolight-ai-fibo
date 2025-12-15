@@ -72,3 +72,4 @@ def requires_human_approval(state: WorkflowState) -> bool:
     """Check if a state requires human approval."""
     rule = get_next_state(state)
     return rule.get("requires_human", False) if rule else False
+

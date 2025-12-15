@@ -44,3 +44,4 @@ def allowed_ops(ctx: Any) -> None:
                 "OP_NOT_ALLOWED",
                 f"Operation '{op}' is not permitted. Allowed operations: {', '.join(ALLOWED_OPS)}"
             )
+

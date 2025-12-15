@@ -69,3 +69,4 @@ export interface OperationalLimits {
   maxConcurrency: number;
   gpuQuotaPerTenant: number;
 }
+

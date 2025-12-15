@@ -159,3 +159,4 @@ async def stripe_webhook(request: Request):
         db.close()
 
     return {"received": True}
+

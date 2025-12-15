@@ -820,3 +820,4 @@ class LightingGenerationService:
         if hasattr(self.fibo_client, 'close'):
             await self.fibo_client.close()
         logger.info("LightingGenerationService closed")
+

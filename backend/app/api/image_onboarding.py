@@ -324,3 +324,4 @@ async def list_images(
     except Exception as e:
         logger.error(f"Error listing images: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+

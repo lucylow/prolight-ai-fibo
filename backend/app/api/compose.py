@@ -362,3 +362,4 @@ async def apply_compose(req: ApplyComposeRequest, user_id: Optional[str] = None)
         "patched_prompt": patched,
         "saved_id": saved_id
     }
+

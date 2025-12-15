@@ -320,3 +320,4 @@ export function modifySingleLightParameter(
     lighting: newLighting
   };
 }
+

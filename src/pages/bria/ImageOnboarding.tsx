@@ -13,3 +13,4 @@ const ImageOnboardingPage = () => {
 };
 
 export default ImageOnboardingPage;
+

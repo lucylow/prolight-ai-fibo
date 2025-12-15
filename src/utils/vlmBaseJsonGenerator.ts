@@ -255,3 +255,4 @@ export function validateBaseJson(json: unknown): json is FIBOBaseJson {
     (json.environment && typeof json.environment === "object")
   );
 }
+

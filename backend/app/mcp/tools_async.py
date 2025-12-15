@@ -31,3 +31,4 @@ class BriaToolsAsync:
 
     async def poll_status(self, request_id: str) -> Dict[str, Any]:
         return await self.client.poll_status(request_id)
+

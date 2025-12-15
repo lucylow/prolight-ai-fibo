@@ -1,33 +1,11 @@
 """
-SQLAlchemy models for billing: invoices, subscriptions, users, and usage records.
+SQLAlchemy models for billing: invoices, subscriptions, and usage records.
+Note: User model is defined in app.models.user
 """
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Numeric, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.db import Base
-
-
-class User(Base):
-    """
-    Minimal user model extension for billing integration.
-    If you already have a User model in another module, merge these fields there
-    instead of duplicating models.
-    """
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True)
-    email = Column(String(255), unique=True, index=True, nullable=False)
-    full_name = Column(String(255), nullable=True)
-    stripe_customer_id = Column(String(255), index=True, nullable=True)
-    role = Column(String(32), default="viewer", nullable=False)  # viewer|editor|admin
-
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, onupdate=func.now())
-
-    # relationship helpers
-    invoices = relationship("Invoice", back_populates="user", lazy="selectin")
-    subscriptions = relationship("Subscription", back_populates="user", lazy="selectin")
-    usage_records = relationship("UsageRecord", back_populates="user", lazy="selectin")
 
 
 class Invoice(Base):
@@ -91,3 +69,5 @@ class UsageRecord(Base):
     metadata = Column(Text, nullable=True)
 
     user = relationship("User", back_populates="usage_records")
+
+

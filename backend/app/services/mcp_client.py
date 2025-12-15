@@ -176,3 +176,4 @@ def get_mcp_client() -> BriaMCPClient:
     if _mcp_client is None:
         _mcp_client = BriaMCPClient()
     return _mcp_client
+

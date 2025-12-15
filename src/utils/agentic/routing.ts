@@ -122,3 +122,4 @@ export function canTransition(from: AgentState, to: AgentState): boolean {
 export function getRouteForState(state: AgentState): string {
   return UI_ROUTES[state] || "/agentic";
 }
+

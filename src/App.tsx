@@ -73,11 +73,17 @@ const Invoices = lazy(() => import("./pages/Invoices"));
 const Admin = lazy(() => import("./pages/Admin"));
 const BusinessModelCanvas = lazy(() => import("./pages/BusinessModelCanvas"));
 const FreeApisDemo = lazy(() => import("./components/FreeApisDemo"));
+const ProLightLiveGeneration = lazy(() => import("./components/prolight-live-generation"));
 const AgenticWorkflow = lazy(() => import("./pages/AgenticWorkflow"));
+const AgenticFIBOLoop = lazy(() => import("./pages/AgenticFIBOLoop"));
 const AgentOrchestratorPage = lazy(() => import("./pages/AgentOrchestratorPage"));
 const WorkflowBuilderPage = lazy(() => import("./pages/WorkflowBuilderPage"));
 const WorkflowDetailPage = lazy(() => import("./pages/WorkflowDetailPage"));
 const WorkflowLibraryPage = lazy(() => import("./pages/WorkflowLibraryPage"));
+const ProLightPro = lazy(() => import("./pages/ProLightPro"));
+const StudioNew = lazy(() => import("./pages/StudioNew"));
+const ProfessionalPhotographyDemos = lazy(() => import("./pages/ProfessionalPhotographyDemos"));
+const ContentCreation = lazy(() => import("./pages/ContentCreation"));
 
 // Enhanced loading fallback component with better UX
 const PageLoader: React.FC = React.memo(() => (
@@ -155,6 +161,11 @@ function AnimatedRoutes() {
         <Route path="/signout" element={<PageWrapper><SignOut /></PageWrapper>} />
         <Route path="/forgot-password" element={<PageWrapper><ForgotPassword /></PageWrapper>} />
         <Route path="/studio" element={<PageWrapper><Studio /></PageWrapper>} />
+        <Route path="/studio/pro" element={<PageWrapper><ProLightPro /></PageWrapper>} />
+        <Route path="/studio/demo" element={<PageWrapper><StudioNew /></PageWrapper>} />
+        <Route path="/studio/photography-demos" element={<PageWrapper><ProfessionalPhotographyDemos /></PageWrapper>} />
+        <Route path="/content-creation" element={<PageWrapper><ContentCreation /></PageWrapper>} />
+        <Route path="/studio/content-creation" element={<PageWrapper><ContentCreation /></PageWrapper>} />
         <Route path="/presets" element={<PageWrapper><Presets /></PageWrapper>} />
         <Route path="/natural-language" element={<PageWrapper><NaturalLanguage /></PageWrapper>} />
         <Route path="/history" element={<PageWrapper><History /></PageWrapper>} />
@@ -260,7 +271,10 @@ function AnimatedRoutes() {
         <Route path="/bria/video-editing" element={<PageWrapper><BriaVideoEditing /></PageWrapper>} />
         <Route path="/bria/v1-generator" element={<PageWrapper><BriaV1Generator /></PageWrapper>} />
         <Route path="/demo/free-apis" element={<PageWrapper><FreeApisDemo /></PageWrapper>} />
+        <Route path="/demo/prolight-live" element={<PageWrapper><ProLightLiveGeneration /></PageWrapper>} />
+        <Route path="/education" element={<PageWrapper><Education /></PageWrapper>} />
         <Route path="/agentic-workflows" element={<PageWrapper><AgenticWorkflow /></PageWrapper>} />
+        <Route path="/agentic-fibo-loop" element={<PageWrapper><AgenticFIBOLoop /></PageWrapper>} />
         {/* Agentic Workflow Routes */}
         <Route 
           path="/agentic" 

@@ -353,3 +353,4 @@ def create_default_fibo_prompt(
         },
         render=Render(resolution=resolution)
     )
+

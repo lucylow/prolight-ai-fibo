@@ -61,3 +61,4 @@ export function calculateDrift(proposal: Proposal): number {
   const basePixels = 4_194_304;
   return Math.min((totalPixels / basePixels) * 100, 100);
 }
+

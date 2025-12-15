@@ -186,3 +186,4 @@ Possible improvements:
 - Composition history and undo/redo
 - Custom aspect ratio support
 - Manual crop box adjustment
+

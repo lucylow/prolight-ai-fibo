@@ -235,3 +235,4 @@ export function createLovableEdgeClient(config: LovableEdgeConfig): LovableEdgeC
 }
 
 export type { LovableEdgeClient, LovableEdgeResponse, LovableEdgeConfig };
+

@@ -195,3 +195,4 @@ Set these in your Lovable Cloud project secrets.
 - Image upload for smart_image
 - Caching of generated scenes
 - Integration with ProLight lighting simulator for background prompts
+

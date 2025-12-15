@@ -292,3 +292,4 @@ To test the implementation:
 For more details on Bria API:
 - Edge Functions README: `edge/bria/README.md`
 - Bria API Documentation: https://bria.ai/docs
+

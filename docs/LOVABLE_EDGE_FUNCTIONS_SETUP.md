@@ -432,3 +432,4 @@ For issues with:
 - **Lovable Cloud** - Check [Lovable Documentation](https://docs.lovable.dev) or contact Lovable support
 - **BRIA API** - Check [BRIA Documentation](https://bria.ai/docs) or contact BRIA support
 - **This Integration** - Open an issue in your project repository
+

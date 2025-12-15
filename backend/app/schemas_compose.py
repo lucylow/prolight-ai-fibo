@@ -34,3 +34,4 @@ class AnalyzeRequest(BaseModel):
     aspect_ratios: Optional[List[str]] = Field(default_factory=lambda: ["1:1", "4:5", "3:2", "16:9"])
     target_coverage: Optional[float] = 0.6  # percent of min dimension crop should cover
     n_proposals: Optional[int] = 3
+

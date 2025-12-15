@@ -66,3 +66,4 @@ def downgrade():
     op.drop_table('jobs')
     op.drop_index('ix_runs_state', table_name='runs')
     op.drop_table('runs')
+

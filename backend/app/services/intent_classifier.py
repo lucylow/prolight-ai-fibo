@@ -146,3 +146,4 @@ def analyze_message(text: str) -> Dict[str, Any]:
         **intent_info,
         "entities": entities,
     }
+

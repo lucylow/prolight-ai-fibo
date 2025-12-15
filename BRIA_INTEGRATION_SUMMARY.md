@@ -166,3 +166,4 @@ See `docs/BRIA_INTEGRATION_GUIDE.md` for:
 - All Bria API calls are made server-side (API tokens never exposed to client)
 - SSE connections are properly managed and cleaned up
 - Background polling can be scaled by adjusting frequency or using a queue system
+

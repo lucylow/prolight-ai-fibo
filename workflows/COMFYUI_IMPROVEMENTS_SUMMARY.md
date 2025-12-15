@@ -291,3 +291,4 @@ For detailed instructions, see:
 - [QUICKSTART.md](comfyui/QUICKSTART.md) - Get started in 5 minutes
 - [README.md](comfyui/README.md) - Full documentation
 - [INTEGRATION_GUIDE.md](comfyui/INTEGRATION_GUIDE.md) - Integration guide
+

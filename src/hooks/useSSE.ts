@@ -188,3 +188,4 @@ export function useSSE(
     isConnected: eventSourceRef.current?.readyState === EventSource.OPEN,
   };
 }
+

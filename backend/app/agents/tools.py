@@ -33,3 +33,4 @@ class ToolsClient:
     def generate_image(self, prompt: str, settings: Dict[str, Any] = None):
         payload = {"tool": "image_generate", "prompt": prompt, "settings": settings or {}}
         return self.mcp.call_mcp_raw(payload)
+

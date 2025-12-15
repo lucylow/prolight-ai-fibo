@@ -235,3 +235,4 @@ class BriaStatusService {
 }
 
 export const briaStatusService = new BriaStatusService();
+

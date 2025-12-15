@@ -331,3 +331,4 @@ export function getValidationSummary(result: ValidationResult): string {
 
   return `Validation failed with ${result.errors.length} error(s):\n${errorMessages}`;
 }
+

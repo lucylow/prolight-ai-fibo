@@ -708,3 +708,4 @@ export function createAIGatewayClientFromEnv(
  * AI Gateway client type
  */
 export type AIGatewayClient = ReturnType<typeof createAIGatewayClient>;
+

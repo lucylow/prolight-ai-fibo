@@ -154,3 +154,4 @@ export class EnhancedSSEClient {
     return this.eventSource?.readyState === EventSource.OPEN;
   }
 }
+

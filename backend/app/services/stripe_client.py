@@ -95,3 +95,4 @@ def get_stripe_client():
         return stripe
     else:
         return MockStripe()
+

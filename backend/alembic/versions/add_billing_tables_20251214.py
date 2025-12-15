@@ -119,3 +119,4 @@ def downgrade():
     op.drop_table('invoices')
     # Note: users table drop commented out to prevent accidental data loss
     # op.drop_table('users')
+

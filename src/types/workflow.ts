@@ -116,3 +116,4 @@ export interface SSEConnection {
   lastEventAt: number;
   status: "connected" | "disconnected" | "reconnecting" | "error";
 }
+

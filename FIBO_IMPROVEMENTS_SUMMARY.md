@@ -162,3 +162,4 @@ All improvements align with FIBO's training characteristics:
 - FIBO Documentation: [docs.bria.ai](https://docs.bria.ai)
 - FIBO GitHub: [github.com/bria-ai](https://github.com/bria-ai)
 - Architecture Details: See `docs/FIBO_ARCHITECTURE_IMPROVEMENTS.md`
+

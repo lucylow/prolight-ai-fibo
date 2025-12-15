@@ -193,3 +193,4 @@ export const ArtifactsGallery: React.FC<ArtifactsGalleryProps> = ({ artifacts, c
     </>
   );
 };
+

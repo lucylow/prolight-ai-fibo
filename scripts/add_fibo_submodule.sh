@@ -27,3 +27,4 @@ echo "✓ FIBO submodule added/updated at libs/fibo"
 echo ""
 echo "To update the submodule later, run:"
 echo "  git submodule update --remote libs/fibo"
+

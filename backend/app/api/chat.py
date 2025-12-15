@@ -213,3 +213,4 @@ async def websocket_chat(websocket: WebSocket, conversation_id: str):
         except:
             pass
         manager.disconnect(websocket)
+

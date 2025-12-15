@@ -274,3 +274,4 @@ def validate_base_json(json_data: Any) -> bool:
         (json_data.get("subject") and isinstance(json_data["subject"], dict)) or
         (json_data.get("environment") and isinstance(json_data["environment"], dict))
     )
+

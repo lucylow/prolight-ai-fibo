@@ -38,3 +38,4 @@ def verify_recaptcha(token: str, remote_ip: Optional[str] = None) -> bool:
     except Exception as e:
         print(f"reCAPTCHA verification error: {e}")
         return False
+

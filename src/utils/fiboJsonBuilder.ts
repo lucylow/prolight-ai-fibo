@@ -353,3 +353,4 @@ export function buildFiboJsonFromSceneAndLights(
   // Merge with precise lighting
   return mergeBaseJsonWithLighting(baseJson, lightingConfig);
 }
+

@@ -125,3 +125,4 @@ async def stripe_webhook(request: Request, stripe_signature: Optional[str] = Hea
     except Exception as e:
         logger.error(f"Webhook processing failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
+

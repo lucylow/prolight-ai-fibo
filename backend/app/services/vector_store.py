@@ -186,3 +186,4 @@ async def clear_conversation(conversation_id: str):
         
     except Exception as e:
         logger.error(f"Failed to clear conversation: {e}")
+

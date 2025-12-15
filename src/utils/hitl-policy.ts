@@ -79,3 +79,4 @@ export function getApprovalReason(proposal: Proposal): string {
 
   return reasons.join(', ') || 'Policy requires approval';
 }
+

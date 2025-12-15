@@ -201,3 +201,4 @@ backend/
 4. **Email**: SMTP configuration is optional. If not configured, forms will still save to database but won't send emails.
 
 All features are production-ready and follow best practices for security, error handling, and user experience.
+

@@ -178,3 +178,4 @@ If local FIBO module doesn't load:
 - [Bria-AI/FIBO Repository](https://github.com/Bria-AI/FIBO)
 - [FIBO Documentation](https://github.com/Bria-AI/FIBO#readme)
 - [Bria API Documentation](https://docs.bria.ai/)
+

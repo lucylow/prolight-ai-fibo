@@ -24,3 +24,4 @@ def stub_charge(body: StubChargeRequest):
         "amount": body.amount,
         "status": "succeeded"
     }
+

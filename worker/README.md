@@ -42,3 +42,4 @@ npm run producer
 - The worker polls the status URL until completion or timeout (5 minutes)
 - Jobs are retried up to 3 times with exponential backoff
 - Results are sent back to the backend via the callback endpoint
+

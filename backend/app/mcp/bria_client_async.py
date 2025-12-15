@@ -68,3 +68,4 @@ class BriaMCPClientAsync:
         except Exception as e:
             logger.error(f"Status poll failed: {e}")
             return {"status": "error", "error": str(e)}
+

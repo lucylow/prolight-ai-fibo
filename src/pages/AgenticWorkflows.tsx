@@ -9,3 +9,4 @@ import AgenticWorkflow from "@/components/workflows/AgenticWorkflow";
 export default function AgenticWorkflows() {
   return <AgenticWorkflow />;
 }
+

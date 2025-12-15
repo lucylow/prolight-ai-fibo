@@ -139,3 +139,4 @@ const result = await client.generateImage({
 ## Full Documentation
 
 See [LOVABLE_EDGE_FUNCTIONS_SETUP.md](./LOVABLE_EDGE_FUNCTIONS_SETUP.md) for complete setup guide.
+

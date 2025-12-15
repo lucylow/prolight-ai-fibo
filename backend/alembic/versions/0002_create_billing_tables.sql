@@ -101,3 +101,4 @@ CREATE INDEX IF NOT EXISTS idx_subs_stripe_id ON subscriptions(stripe_subscripti
 -- CREATE INDEX IF NOT EXISTS idx_subs_customer ON subscriptions(stripe_customer_id);
 -- CREATE INDEX IF NOT EXISTS idx_subs_status ON subscriptions(status);
 -- CREATE INDEX IF NOT EXISTS idx_subs_stripe_id ON subscriptions(stripe_subscription_id);
+

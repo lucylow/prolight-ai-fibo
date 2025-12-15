@@ -187,3 +187,4 @@ export const LiveStatusPanel: React.FC<LiveStatusPanelProps> = ({ run, workflowI
     </div>
   );
 };
+

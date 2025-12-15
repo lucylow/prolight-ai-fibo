@@ -177,3 +177,4 @@ INSERT INTO plans (name, monthly_credit_limit, features, price_cents, descriptio
   ('Pro', 500, '["basic_generation", "hdr", "batch_generation", "priority_support"]'::jsonb, 2999, 'For professionals and power users'),
   ('Team', 2500, '["basic_generation", "hdr", "batch_generation", "priority_support", "api_access", "team_collaboration"]'::jsonb, 9999, 'For teams and agencies')
 ON CONFLICT (name) DO NOTHING;
+

@@ -33,3 +33,4 @@ export function CanvasSection({ title, items }: Props) {
     </motion.section>
   );
 }
+

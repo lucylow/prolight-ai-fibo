@@ -380,3 +380,4 @@ export function getGuidanceImageRecommendations(useCase: string): {
 
   return null;
 }
+

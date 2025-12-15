@@ -54,3 +54,4 @@ export const useCompositionStore = create<CompositionState>((set) => ({
       centroid: null,
     })),
 }));
+

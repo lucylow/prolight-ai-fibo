@@ -229,3 +229,4 @@ def identify_parallel_opportunities(plan: Dict[str, Any]) -> List[AgentTask]:
         tasks.append(task)
     
     return tasks
+

@@ -261,3 +261,4 @@ The FIBO adapter now supports:
 - ✅ Better error handling and user feedback
 
 The implementation follows the official BRIA FIBO guide and provides a production-ready foundation for text-to-image generation with FIBO.
+

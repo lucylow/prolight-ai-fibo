@@ -98,3 +98,4 @@ Message:
         print(f"Email error: {e}")
 
     return {"status": "ok", "message": "Contact form submitted successfully"}
+

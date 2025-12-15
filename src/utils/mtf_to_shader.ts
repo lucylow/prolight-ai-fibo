@@ -25,3 +25,4 @@ export function profileToShaderParams(profile: {
     filmGrain: Math.min(0.2, mtf_strength * 0.1),
   };
 }
+

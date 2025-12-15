@@ -274,3 +274,4 @@ stripe trigger customer.subscription.created
 - Verify active subscriptions exist
 - Check that price_id references valid Stripe prices
 - Ensure price lookups are working (check logs)
+

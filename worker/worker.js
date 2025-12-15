@@ -52,3 +52,4 @@ const worker = new Worker(
 
 worker.on("completed", (job) => console.log("completed", job.id));
 worker.on("failed", (job, err) => console.error("job failed", job.id, err));
+

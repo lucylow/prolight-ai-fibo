@@ -117,3 +117,4 @@ export default function AccountDropdown({ mobile = false }: { mobile?: boolean }
     </div>
   );
 }
+

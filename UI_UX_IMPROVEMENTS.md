@@ -215,3 +215,4 @@ All improvements are backward compatible. Existing components will automatically
 - Enhanced scrollbar styling
 
 New features (like loading states, error props) are optional and can be added incrementally.
+

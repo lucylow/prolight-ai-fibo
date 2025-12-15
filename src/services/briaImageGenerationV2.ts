@@ -472,3 +472,4 @@ export class BriaImageGenerationV2Service {
     };
   }
 }
+

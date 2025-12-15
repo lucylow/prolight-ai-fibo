@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     
     # Database
     DATABASE_URL: str = "sqlite:///./prolight.db"
+    POSTGRES_HOST: str = "localhost"
+    POSTGRES_PORT: int = 5432
+    POSTGRES_USER: str = "prolight"
+    POSTGRES_PASSWORD: str = "prolight"
+    POSTGRES_DB: str = "prolight"
+    REDIS_URL: str = "redis://localhost:6379/0"
     
     # CORS
     CORS_ORIGINS: list = ["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"]
@@ -59,8 +65,17 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: Optional[str] = None
     STRIPE_PUBLISHABLE_KEY: Optional[str] = None
     STRIPE_WEBHOOK_SECRET: Optional[str] = None
+    STRIPE_CONNECT_SECRET: Optional[str] = None  # For marketplace creator payouts
+    STRIPE_PLATFORM_FEE_PERCENT: float = 0.20  # 20% platform fee
     FRONTEND_URL: str = "http://localhost:5173"
     USE_MOCK_STRIPE: bool = True  # Use mock data when Stripe keys not configured
+    
+    # Billing Plans
+    FREE_PLAN_CREDITS: int = 10
+    PRO_PLAN_PRICE: int = 2900  # $29 in cents
+    PRO_PLAN_CREDITS: int = 500
+    ENTERPRISE_PLAN_PRICE: int = 9900  # $99 in cents
+    ENTERPRISE_PLAN_CREDITS: int = -1  # -1 means unlimited
     
     # JWT Configuration
     JWT_SECRET: str = "dev-secret-change-me-in-production"
@@ -71,6 +86,15 @@ class Settings(BaseSettings):
     BRIA_MCP_URL: str = "https://mcp.prod.bria-api.com/mcp/sse"
     BRIA_AUTH_TOKEN: Optional[str] = None  # OAuth-based bearer token for MCP
     PROLIGHT_MAX_COST_USD: float = 1.00  # Maximum cost per agent run
+    
+    # Marketplace Configuration
+    MARKETPLACE_ENABLED: bool = True
+    MARKETPLACE_MIN_PRICE: float = 2.00
+    MARKETPLACE_MAX_PRICE: float = 1000.00
+    MARKETPLACE_REVIEW_REQUIRED: bool = True  # Admin must approve listings
+    
+    # Admin Configuration
+    ADMIN_EMAILS: list = []  # List of admin emails (loaded from env)
     
     class Config:
         env_file = ".env"

@@ -65,3 +65,4 @@ export default function InvoicesTable({ invoices = [] }: InvoicesTableProps) {
     </div>
   );
 }
+

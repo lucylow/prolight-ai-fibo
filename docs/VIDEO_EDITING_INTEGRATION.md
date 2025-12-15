@@ -313,3 +313,4 @@ GET /api/video/jobs/{request_id}
 - `worker/video-job-poller.js` - Background worker
 - `supabase/migrations/001_create_video_jobs.sql` - Database schema
 - `backend/app/api/s3.py` - S3 presigned URL endpoints
+

@@ -145,3 +145,4 @@ export async function redirectToCustomerPortal(returnUrl: string): Promise<strin
   const { url } = await response.json();
   return url;
 }
+

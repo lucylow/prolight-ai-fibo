@@ -289,3 +289,4 @@ Potential areas for further improvement:
 - Training: ~1 billion fully licensed images with structured JSON captions
 - Documentation: [docs.bria.ai](https://docs.bria.ai)
 - GitHub: [github.com/bria-ai](https://github.com/bria-ai)
+

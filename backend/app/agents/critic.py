@@ -156,3 +156,4 @@ class CriticAsync:
             "suggestions": [],
             "critique_at": None  # Will be set by runner
         }
+

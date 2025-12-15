@@ -28,3 +28,4 @@ def kelvin_to_rgb(kelvin: int):
         blue = 138.5177312231 * math.log(blue) - 305.0447927307
         blue = max(0, min(255, blue))
     return (int(red), int(green), int(blue))
+

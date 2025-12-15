@@ -67,3 +67,4 @@ export const useLightingStore = create<LightingState>((set, get) => ({
   sceneMood: "neutral",
   setMood: (m) => set(() => ({ sceneMood: m })),
 }));
+
