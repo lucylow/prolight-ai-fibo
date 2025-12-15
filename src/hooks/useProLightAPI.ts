@@ -170,7 +170,7 @@ export function useBatchGeneration() {
   });
 
   const batchGenerate = useCallback(
-    async (items: any[], presetName?: string, totalCount?: number) => {
+    async (items: Record<string, unknown>[], presetName?: string, totalCount?: number) => {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.batchGenerate(items, presetName, totalCount);
@@ -234,7 +234,7 @@ export function useLightingAnalysis() {
     data: null,
   });
 
-  const analyzeLighting = useCallback(async (lightingSetup: Record<string, any>) => {
+  const analyzeLighting = useCallback(async (lightingSetup: Record<string, unknown>) => {
     setState({ loading: true, error: null, data: null });
     try {
       const result = await apiClient.analyzeLighting(lightingSetup);
@@ -248,7 +248,7 @@ export function useLightingAnalysis() {
   }, []);
 
   const compareLightingSetups = useCallback(
-    async (setup1: Record<string, any>, setup2: Record<string, any>) => {
+    async (setup1: Record<string, unknown>, setup2: Record<string, unknown>) => {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.compareLightingSetups(setup1, setup2);
