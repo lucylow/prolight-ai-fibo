@@ -125,7 +125,7 @@ async def root():
 # ============================================================================
 
 # Import route modules
-from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1, chat, deploy_check, admin, agents
+from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1, chat, deploy_check, admin, agents, text_to_image
 from app.api import sse
 from app.api import billing_webhook, stripe_customers, usage, invoice_proxy
 
@@ -150,6 +150,7 @@ app.include_router(careers.router, prefix=settings.API_PREFIX, tags=["Careers"])
 app.include_router(s3.router, prefix=settings.API_PREFIX, tags=["S3"])
 app.include_router(image_onboarding.router, prefix=settings.API_PREFIX, tags=["Image Onboarding"])
 app.include_router(vehicle_shot.router, prefix=settings.API_PREFIX, tags=["Vehicle Shot"])
+app.include_router(text_to_image.router, prefix=settings.API_PREFIX, tags=["Text-to-Image"])
 app.include_router(auth.router, tags=["Auth"])
 app.include_router(payments.router, tags=["Payments"])
 app.include_router(bria_v1.router, tags=["Bria V1"])
