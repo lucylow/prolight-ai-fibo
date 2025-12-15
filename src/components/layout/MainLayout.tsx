@@ -1,7 +1,13 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Lightbulb, FlaskConical, MessageSquare, Palette, History, Menu, Sparkles, X, Home } from 'lucide-react';
+import { Lightbulb, FlaskConical, MessageSquare, Palette, History, Menu, Sparkles, X, Home, BookOpen, Users, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Breadcrumb,
@@ -24,6 +30,21 @@ const navItems = [
   { path: '/presets', label: 'Presets', icon: Palette, shortcut: '3' },
   { path: '/natural-language', label: 'AI Chat', icon: MessageSquare, shortcut: '4' },
   { path: '/history', label: 'History', icon: History, shortcut: '5' },
+];
+
+const marketingItems = [
+  { path: '/product', label: 'Product' },
+  { path: '/features', label: 'Features' },
+  { path: '/use-cases', label: 'Use Cases' },
+  { path: '/pricing', label: 'Pricing' },
+  { path: '/docs', label: 'Documentation' },
+];
+
+const companyItems = [
+  { path: '/company/about', label: 'About' },
+  { path: '/company/blog', label: 'Blog' },
+  { path: '/company/careers', label: 'Careers' },
+  { path: '/company/contact', label: 'Contact' },
 ];
 
 // Helper to check if a route is active (supports exact and starts-with matching)
@@ -80,6 +101,17 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       'natural-language': 'AI Chat',
       history: 'History',
       'agentic-workflow': 'Agentic AI',
+      product: 'Product',
+      features: 'Features',
+      'use-cases': 'Use Cases',
+      pricing: 'Pricing',
+      docs: 'Documentation',
+      company: 'Company',
+      about: 'About',
+      blog: 'Blog',
+      careers: 'Careers',
+      contact: 'Contact',
+      admin: 'Admin',
     };
     return labelMap[segment] || segment.charAt(0).toUpperCase() + segment.slice(1);
   };
@@ -121,6 +153,52 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                 </Link>
               );
             })}
+            
+            <div className="h-6 w-px bg-border mx-2" />
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={marketingItems.some(item => isRouteActive(location.pathname, item.path)) ? 'default' : 'ghost'}
+                  size="sm"
+                  className="transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  <BookOpen className="w-4 h-4 mr-2" />
+                  Product
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {marketingItems.map((item) => (
+                  <DropdownMenuItem key={item.path} asChild>
+                    <Link to={item.path} className="cursor-pointer">
+                      {item.label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={companyItems.some(item => isRouteActive(location.pathname, item.path)) ? 'default' : 'ghost'}
+                  size="sm"
+                  className="transition-all duration-200 hover:scale-105 active:scale-95"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Company
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {companyItems.map((item) => (
+                  <DropdownMenuItem key={item.path} asChild>
+                    <Link to={item.path} className="cursor-pointer">
+                      {item.label}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           <Button
@@ -163,6 +241,50 @@ const MainLayout = ({ children }: MainLayoutProps) => {
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
                     <span className="ml-auto text-xs opacity-60">Alt+{item.shortcut}</span>
+                  </Link>
+                );
+              })}
+              
+              <div className="h-px bg-border my-2" />
+              
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">Product</div>
+              {marketingItems.map((item) => {
+                const isActive = isRouteActive(location.pathname, item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-2 p-3 rounded-lg transition-all duration-200 pl-6',
+                      isActive
+                        ? 'bg-primary text-primary-foreground font-medium'
+                        : 'hover:bg-muted hover:translate-x-1'
+                    )}
+                  >
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+              
+              <div className="h-px bg-border my-2" />
+              
+              <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">Company</div>
+              {companyItems.map((item) => {
+                const isActive = isRouteActive(location.pathname, item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      'flex items-center gap-2 p-3 rounded-lg transition-all duration-200 pl-6',
+                      isActive
+                        ? 'bg-primary text-primary-foreground font-medium'
+                        : 'hover:bg-muted hover:translate-x-1'
+                    )}
+                  >
+                    <span>{item.label}</span>
                   </Link>
                 );
               })}

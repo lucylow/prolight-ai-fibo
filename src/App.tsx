@@ -25,6 +25,16 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import CookiePolicy from "./pages/CookiePolicy";
 import DocsPage from "./pages/marketing/Docs";
+import ProductPage from "./pages/marketing/Product";
+import FeaturesPage from "./pages/marketing/Features";
+import UseCasesPage from "./pages/marketing/UseCases";
+import AboutPage from "./pages/company/About";
+import BlogPage from "./pages/company/Blog";
+import PostView from "./pages/company/PostView";
+import CareersPage from "./pages/company/Careers";
+import ContactPage from "./pages/company/Contact";
+import Admin from "./pages/Admin";
+import ProtectedRoute from "./components/ProtectedRoute";
 import AccountSettings from "./pages/AccountSettings";
 import Dashboard from "./pages/Dashboard";
 import { errorService, getUserErrorMessage } from "@/services/errorService";
@@ -108,8 +118,17 @@ const App = () => (
             <Route path="/natural-language" element={<NaturalLanguage />} />
             <Route path="/history" element={<History />} />
             <Route path="/agentic-workflow" element={<AgenticWorkflow />} />
+            <Route path="/product" element={<ProductPage />} />
+            <Route path="/features" element={<FeaturesPage />} />
+            <Route path="/use-cases" element={<UseCasesPage />} />
             <Route path="/docs" element={<DocsPage />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/company/about" element={<AboutPage />} />
+            <Route path="/company/blog" element={<BlogPage />} />
+            <Route path="/company/blog/:slug" element={<PostView />} />
+            <Route path="/company/careers" element={<CareersPage />} />
+            <Route path="/company/contact" element={<ContactPage />} />
+            <Route path="/admin" element={<ProtectedRoute roles={["admin"]}><Admin /></ProtectedRoute>} />
             <Route path="/billing" element={<Billing />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/transactions" element={<Transactions />} />

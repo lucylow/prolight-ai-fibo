@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { SEO } from "@/components/SEO";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import RecaptchaWrapper from "@/components/RecaptchaWrapper";
 
 const SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
@@ -100,4 +100,5 @@ export default function ContactPage() {
     </>
   );
 }
+
 

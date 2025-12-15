@@ -4,7 +4,7 @@ import axios from "axios";
 import { useCompositionStore } from "@/stores/useCompositionStore";
 import { useLightingStore } from "@/stores/lightingStore";
 import CropPreview from "./CropPreview";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import api from "@/api/axios";
 
 /**
@@ -287,4 +287,5 @@ export default function CompositionPanel() {
     </div>
   );
 }
+
 

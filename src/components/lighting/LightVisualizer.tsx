@@ -63,7 +63,11 @@ const Scene = () => {
       <SubjectModel />
       {Object.entries(lightingSetup).map(([type, config]) => {
         if (type === 'ambient' || !lightPositions[type]) return null;
-        return <LightSource key={type} config={config as any} position={lightPositions[type]} />;
+        // Type guard: ambient config doesn't have all LightConfig properties
+        if ('direction' in config && 'intensity' in config && 'colorTemperature' in config && 'enabled' in config) {
+          return <LightSource key={type} config={config} position={lightPositions[type]} />;
+        }
+        return null;
       })}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.5, 0]}>
         <planeGeometry args={[10, 10]} />

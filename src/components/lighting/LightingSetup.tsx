@@ -20,14 +20,20 @@ const LightingSetup = () => {
         animate={{ opacity: 1 }}
         className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
-        {Object.entries(lightingSetup).map(([lightType, lightConfig]) => (
-          <LightControl
-            key={lightType}
-            lightType={lightType}
-            lightConfig={lightConfig as any}
-            onUpdate={(updates) => updateLight(lightType as any, updates)}
-          />
-        ))}
+        {Object.entries(lightingSetup).map(([lightType, lightConfig]) => {
+          // Type guard: ensure lightConfig has the required properties for LightControl
+          if ('intensity' in lightConfig && 'colorTemperature' in lightConfig && 'enabled' in lightConfig) {
+            return (
+              <LightControl
+                key={lightType}
+                lightType={lightType}
+                lightConfig={lightConfig}
+                onUpdate={(updates) => updateLight(lightType as keyof typeof lightingSetup, updates)}
+              />
+            );
+          }
+          return null;
+        })}
       </motion.div>
     </div>
   );

@@ -123,3 +123,8 @@ export function getApiConfig() {
     timeout: 30000,
   };
 }
+
+/**
+ * Re-export axios instance for backward compatibility
+ */
+export { default as api } from "@/api/axios";

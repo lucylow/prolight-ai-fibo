@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { SEO } from "@/components/SEO";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 import RecaptchaWrapper from "@/components/RecaptchaWrapper";
 import { getPresign, uploadToS3 } from "@/api/upload";
 
@@ -212,4 +212,5 @@ export default function CareersPage() {
     </>
   );
 }
+
 

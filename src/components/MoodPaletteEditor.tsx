@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import api from "@/api/axios";
 import { useLightingStore } from "@/stores/useLightingStore";
 import { rgbToHex, applyPatchesToLights } from "@/utils/paletteUtils";
-import { toast } from "react-toastify";
+import { toast } from "sonner";
 
 type PaletteResult = {
   palette: number[][];
@@ -185,4 +185,5 @@ export default function MoodPaletteEditor() {
     </div>
   );
 }
+
 
