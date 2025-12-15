@@ -1,41 +1,40 @@
+import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { ErrorBoundary } from "./components/ErrorBoundary.tsx";
+import { validateEnv } from "./utils/env";
 
-// Get root element
-const rootElement = document.getElementById("root");
-
-if (!rootElement) {
-  throw new Error("Root element not found. Make sure there is a <div id='root'></div> in your HTML.");
+// Unregister service workers in development to prevent caching issues
+if (import.meta.env.DEV) {
+  import("./utils/unregisterServiceWorker.dev");
 }
 
-// Create root with error handling
-try {
+// Validate environment variables on startup
+validateEnv();
+
+/**
+ * Initialize React application
+ */
+const init = (): void => {
+  const rootElement = document.getElementById("root");
+  
+  if (!rootElement) {
+    console.error("Root element not found");
+    return;
+  }
+
   const root = createRoot(rootElement);
   
   root.render(
-    <ErrorBoundary>
+    <StrictMode>
       <App />
-    </ErrorBoundary>
+    </StrictMode>
   );
-} catch (error) {
-  // Handle errors during app initialization
-  console.error("Failed to render application:", error);
-  
-  // Display error to user
-  rootElement.innerHTML = `
-    <div style="display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; text-align: center; font-family: system-ui, -apple-system, sans-serif;">
-      <div>
-        <h1 style="font-size: 24px; margin-bottom: 16px; color: #dc2626;">Failed to Initialize Application</h1>
-        <p style="color: #6b7280; margin-bottom: 24px;">An error occurred while starting the application. Please refresh the page.</p>
-        <button 
-          onclick="window.location.reload()" 
-          style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;"
-        >
-          Refresh Page
-        </button>
-      </div>
-    </div>
-  `;
+};
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
 }

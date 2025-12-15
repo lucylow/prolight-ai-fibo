@@ -4,23 +4,42 @@
  */
 
 import { useState, useCallback } from 'react';
-import { apiClient } from '@/services/apiClient';
+import { apiClient, APIError } from '@/services/apiClient';
+import { toast } from 'sonner';
 import type {
   GenerateRequest,
   GenerationResponse,
   PresetListResponse,
   HistoryResponse,
+  HistoryItem,
+  BatchJobResponse,
   LightingAnalysis,
+  LightingPreset,
 } from '@/types/fibo';
 
-interface UseProLightAPIState {
+interface UseProLightAPIState<T = unknown> {
   loading: boolean;
-  error: Error | null;
-  data: any;
+  error: APIError | null;
+  data: T | null;
 }
 
+const handleError = (error: unknown, defaultMessage: string): APIError => {
+  if (error instanceof APIError) {
+    toast.error(error.getUserMessage());
+    return error;
+  }
+  
+  const apiError = new APIError(
+    error instanceof Error ? error.message : defaultMessage,
+    'UNKNOWN_ERROR',
+    0
+  );
+  toast.error(apiError.getUserMessage());
+  return apiError;
+};
+
 export function useGenerateImage() {
-  const [state, setState] = useState<UseProLightAPIState>({
+  const [state, setState] = useState<UseProLightAPIState<GenerationResponse>>({
     loading: false,
     error: null,
     data: null,
@@ -33,7 +52,7 @@ export function useGenerateImage() {
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Failed to generate image');
       setState({ loading: false, error: err, data: null });
       throw err;
     }
@@ -43,7 +62,7 @@ export function useGenerateImage() {
 }
 
 export function usePresets() {
-  const [state, setState] = useState<UseProLightAPIState>({
+  const [state, setState] = useState<UseProLightAPIState<PresetListResponse>>({
     loading: false,
     error: null,
     data: null,
@@ -57,7 +76,7 @@ export function usePresets() {
         setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
+        const err = handleError(error, 'Failed to fetch presets');
         setState({ loading: false, error: err, data: null });
         throw err;
       }
@@ -72,7 +91,7 @@ export function usePresets() {
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Operation failed');
       setState({ loading: false, error: err, data: null });
       throw err;
     }
@@ -86,7 +105,7 @@ export function usePresets() {
         setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
+        const err = handleError(error, 'Failed to fetch presets');
         setState({ loading: false, error: err, data: null });
         throw err;
       }
@@ -98,7 +117,7 @@ export function usePresets() {
 }
 
 export function useHistory() {
-  const [state, setState] = useState<UseProLightAPIState>({
+  const [state, setState] = useState<UseProLightAPIState<HistoryResponse>>({
     loading: false,
     error: null,
     data: null,
@@ -112,7 +131,7 @@ export function useHistory() {
         setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
+        const err = handleError(error, 'Failed to fetch presets');
         setState({ loading: false, error: err, data: null });
         throw err;
       }
@@ -127,7 +146,7 @@ export function useHistory() {
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Operation failed');
       setState({ loading: false, error: err, data: null });
       throw err;
     }
@@ -140,7 +159,7 @@ export function useHistory() {
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Operation failed');
       setState({ loading: false, error: err, data: null });
       throw err;
     }
@@ -153,7 +172,7 @@ export function useHistory() {
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Operation failed');
       setState({ loading: false, error: err, data: null });
       throw err;
     }
@@ -162,22 +181,28 @@ export function useHistory() {
   return { ...state, getHistory, getGenerationDetail, deleteGeneration, getStats };
 }
 
+interface BatchItem {
+  scene_description: string;
+  lighting_setup?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
 export function useBatchGeneration() {
-  const [state, setState] = useState<UseProLightAPIState>({
+  const [state, setState] = useState<UseProLightAPIState<BatchJobResponse>>({
     loading: false,
     error: null,
     data: null,
   });
 
   const batchGenerate = useCallback(
-    async (items: any[], presetName?: string, totalCount?: number) => {
+    async (items: BatchItem[], presetName?: string, totalCount?: number) => {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.batchGenerate(items, presetName, totalCount);
         setState({ loading: false, error: null, data: result });
         return result;
       } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
+        const err = handleError(error, 'Failed to fetch presets');
         setState({ loading: false, error: err, data: null });
         throw err;
       }
@@ -192,7 +217,7 @@ export function useBatchGeneration() {
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Operation failed');
       setState({ loading: false, error: err, data: null });
       throw err;
     }
@@ -207,16 +232,16 @@ export function useBatchGeneration() {
     ) => {
       setState({ loading: true, error: null, data: null });
       try {
-        const result = await apiClient.generateProductVariations(
-          productDescription,
-          numAngles,
-          numLightingSetups,
-          presetId
-        );
-        setState({ loading: false, error: null, data: result });
-        return result;
+      const result = await apiClient.generateProductVariations(
+        productDescription,
+        numAngles,
+        numLightingSetups,
+        presetId
+      );
+      setState({ loading: false, error: null, data: result });
+      return result;
       } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
+        const err = handleError(error, 'Failed to fetch presets');
         setState({ loading: false, error: err, data: null });
         throw err;
       }
@@ -228,34 +253,34 @@ export function useBatchGeneration() {
 }
 
 export function useLightingAnalysis() {
-  const [state, setState] = useState<UseProLightAPIState>({
+  const [state, setState] = useState<UseProLightAPIState<LightingAnalysis>>({
     loading: false,
     error: null,
     data: null,
   });
 
-  const analyzeLighting = useCallback(async (lightingSetup: Record<string, any>) => {
+  const analyzeLighting = useCallback(async (lightingSetup: Record<string, unknown>) => {
     setState({ loading: true, error: null, data: null });
     try {
       const result = await apiClient.analyzeLighting(lightingSetup);
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Operation failed');
       setState({ loading: false, error: err, data: null });
       throw err;
     }
   }, []);
 
   const compareLightingSetups = useCallback(
-    async (setup1: Record<string, any>, setup2: Record<string, any>) => {
+    async (setup1: Record<string, unknown>, setup2: Record<string, unknown>) => {
       setState({ loading: true, error: null, data: null });
       try {
         const result = await apiClient.compareLightingSetups(setup1, setup2);
-        setState({ loading: false, error: null, data: result });
+        setState({ loading: false, error: null, data: result as LightingAnalysis });
         return result;
       } catch (error) {
-        const err = error instanceof Error ? error : new Error('Unknown error');
+        const err = handleError(error, 'Failed to fetch presets');
         setState({ loading: false, error: err, data: null });
         throw err;
       }
@@ -270,7 +295,7 @@ export function useLightingAnalysis() {
       setState({ loading: false, error: null, data: result });
       return result;
     } catch (error) {
-      const err = error instanceof Error ? error : new Error('Unknown error');
+      const err = handleError(error, 'Failed to get style recommendations');
       setState({ loading: false, error: err, data: null });
       throw err;
     }

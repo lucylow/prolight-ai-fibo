@@ -1,287 +1,121 @@
-# ProLight AI - Deployment Guide
+# ProLight AI - Production Deployment Guide
 
-Complete guide for deploying ProLight AI in various environments.
+## Quick Start
 
-## Table of Contents
+### 1. Prerequisites
+- Docker & Docker Compose installed
+- Stripe account (for billing)
+- PostgreSQL database (or use Docker Compose)
+- Redis (or use Docker Compose)
 
-1. [Local Development](#local-development)
-2. [Docker Deployment](#docker-deployment)
-3. [Production Deployment](#production-deployment)
-4. [Environment Variables](#environment-variables)
-5. [Troubleshooting](#troubleshooting)
-
-## Local Development
-
-### Prerequisites
-
-- Node.js 18+
-- Python 3.11+
-- npm or yarn
-- Git
-
-### Setup
+### 2. Environment Setup
 
 ```bash
-# Clone repository
-git clone https://github.com/lucylow/prolight-ai-fibo.git
-cd prolight-ai-fibo
+# Copy environment template
+cp backend/.env.example backend/.env
 
-# Frontend setup
-npm install
-cp .env.example .env.local
-
-# Backend setup
-cd backend
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env
-
-# Return to root
-cd ..
+# Edit with your actual keys
+nano backend/.env
 ```
 
-### Running Locally
-
-**Terminal 1 - Frontend:**
-```bash
-npm run dev
-# Frontend available at http://localhost:5173
-```
-
-**Terminal 2 - Backend:**
-```bash
-cd backend
-source venv/bin/activate
-python -m app.main
-# Backend available at http://localhost:8000
-# API docs at http://localhost:8000/docs
-```
-
-## Docker Deployment
-
-### Prerequisites
-
-- Docker 20.10+
-- Docker Compose 2.0+
-
-### Quick Start
+### 3. Start Services
 
 ```bash
-# Build and run containers
+# Start all services (Postgres, Redis, Backend, Worker, Nginx)
 docker-compose up -d
 
 # View logs
-docker-compose logs -f
+docker-compose logs -f backend
 
-# Stop containers
-docker-compose down
+# Run database migrations
+docker-compose exec backend alembic upgrade head
 ```
 
-### Accessing Services
+### 4. Verify Deployment
 
+- API Docs: http://localhost:8000/docs
+- Health Check: http://localhost:8000/api/health
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
-
-### Building Custom Images
-
-```bash
-# Build backend image
-docker build -t prolight-ai-backend:latest ./backend
-
-# Build frontend image
-docker build -t prolight-ai-frontend:latest -f Dockerfile.frontend .
-
-# Run backend
-docker run -p 8000:8000 \
-  -e FIBO_API_KEY=your_key \
-  -e USE_MOCK_FIBO=True \
-  prolight-ai-backend:latest
-
-# Run frontend
-docker run -p 5173:5173 \
-  -e VITE_API_URL=http://localhost:8000 \
-  prolight-ai-frontend:latest
-```
 
 ## Production Deployment
 
-### Frontend Deployment (Vercel)
+### Railway / Render / Vercel
+
+#### Backend (Railway/Render)
+
+1. **Connect Repository**: Link your GitHub repo
+2. **Set Environment Variables**: Add all vars from `.env.example`
+3. **Build Command**: `cd backend && pip install -r requirements.txt`
+4. **Start Command**: `cd backend && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+
+#### Database (PostgreSQL)
+
+- **Railway**: Use Railway PostgreSQL plugin
+- **Render**: Use Render PostgreSQL service
+- **Supabase**: Use Supabase PostgreSQL
+
+#### Redis
+
+- **Railway**: Use Railway Redis plugin
+- **Render**: Use Render Redis service
+- **Upstash**: Use Upstash Redis
+
+#### Frontend (Vercel)
+
+1. **Connect Repository**
+2. **Build Settings**:
+   - Framework Preset: Vite
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+3. **Environment Variables**:
+   - `VITE_API_URL`: Your backend API URL
+
+## Database Migrations
 
 ```bash
-# Build production bundle
-npm run build
+# Create new migration
+docker-compose exec backend alembic revision --autogenerate -m "description"
 
-# Deploy to Vercel
-vercel deploy --prod
+# Apply migrations
+docker-compose exec backend alembic upgrade head
+
+# Rollback
+docker-compose exec backend alembic downgrade -1
 ```
 
-**Environment Variables:**
-```
-VITE_API_URL=https://api.prolight-ai.com
-```
+## Stripe Setup
 
-### Backend Deployment (Railway/Heroku)
+1. **Create Products**:
+   - Pro Plan: $29/month
+   - Enterprise Plan: $99/month
 
-```bash
-# Build and push Docker image
-docker build -t prolight-ai-backend:latest ./backend
-docker tag prolight-ai-backend:latest registry.example.com/prolight-ai-backend:latest
-docker push registry.example.com/prolight-ai-backend:latest
+2. **Configure Webhooks**:
+   - Endpoint: `https://your-backend.com/api/stripe/webhook`
+   - Events: `customer.subscription.*`, `invoice.*`, `payment_intent.*`
 
-# Deploy using Docker
-docker run -d \
-  -p 8000:8000 \
-  -e FIBO_API_KEY=$FIBO_API_KEY \
-  -e DATABASE_URL=$DATABASE_URL \
-  -e CORS_ORIGINS='["https://prolight-ai.com"]' \
-  -e DEBUG=False \
-  registry.example.com/prolight-ai-backend:latest
-```
-
-### Using Railway
-
-```bash
-# Install Railway CLI
-npm i -g @railway/cli
-
-# Login
-railway login
-
-# Initialize project
-railway init
-
-# Deploy
-railway up
-
-# View logs
-railway logs
-```
-
-### Using Heroku
-
-```bash
-# Install Heroku CLI
-brew tap heroku/brew && brew install heroku
-
-# Login
-heroku login
-
-# Create app
-heroku create prolight-ai
-
-# Set environment variables
-heroku config:set FIBO_API_KEY=your_key
-heroku config:set USE_MOCK_FIBO=False
-
-# Deploy
-git push heroku main
-
-# View logs
-heroku logs --tail
-```
-
-## Environment Variables
-
-### Frontend (.env.local or .env)
-
-```env
-# API Configuration
-VITE_API_URL=http://localhost:8000
-VITE_APP_NAME=ProLight AI
-VITE_APP_VERSION=1.0.0
-
-# Feature Flags
-VITE_ENABLE_BATCH=true
-VITE_ENABLE_ANALYSIS=true
-VITE_ENABLE_HISTORY=true
-```
-
-### Backend (.env)
-
-```env
-# Application
-APP_NAME=ProLight AI
-APP_VERSION=1.0.0
-DEBUG=False
-
-# API
-API_PREFIX=/api
-API_TITLE=ProLight AI API
-
-# FIBO
-FIBO_API_URL=https://api.bria.ai/v1/models/fibo
-FIBO_API_KEY=your_fibo_api_key_here
-USE_MOCK_FIBO=True
-
-# Gemini (optional)
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Database
-DATABASE_URL=sqlite:///./prolight.db
-# For PostgreSQL:
-# DATABASE_URL=postgresql://user:password@localhost/prolight
-
-# CORS
-CORS_ORIGINS=["http://localhost:5173","http://localhost:3000"]
-
-# Server
-HOST=0.0.0.0
-PORT=8000
-RELOAD=False  # Set to False in production
-
-# Image Generation
-MAX_IMAGE_RESOLUTION=4096
-DEFAULT_IMAGE_RESOLUTION=2048
-COST_PER_GENERATION=0.04
-```
-
-## Production Checklist
-
-- [ ] Set `DEBUG=False` in backend
-- [ ] Set `RELOAD=False` in backend
-- [ ] Use PostgreSQL instead of SQLite
-- [ ] Enable HTTPS/SSL
-- [ ] Configure CORS origins correctly
-- [ ] Set strong `SECRET_KEY` for sessions
-- [ ] Enable rate limiting
-- [ ] Set up monitoring and logging
-- [ ] Configure backup strategy
-- [ ] Set up CI/CD pipeline
-- [ ] Enable API authentication
-- [ ] Set up error tracking (Sentry)
-- [ ] Configure CDN for static assets
-- [ ] Set up database backups
+3. **Enable Stripe Connect** (for marketplace):
+   - Enable Connect in Stripe Dashboard
+   - Set up Express accounts for creators
 
 ## Monitoring
 
-### Backend Health Check
+### Health Checks
 
-```bash
-curl http://localhost:8000/api/health
-```
-
-### Docker Health Check
-
-```bash
-docker inspect --format='{{.State.Health.Status}}' prolight-ai-backend
-```
+- Backend: `GET /api/health`
+- Database: Check connection in `/api/health`
+- Redis: Check connection in `/api/health`
 
 ### Logs
 
 ```bash
-# Docker
+# Backend logs
 docker-compose logs -f backend
 
-# Kubernetes
-kubectl logs -f deployment/prolight-ai-backend
+# Worker logs
+docker-compose logs -f worker
 
-# Heroku
-heroku logs --tail
-
-# Railway
-railway logs
+# All logs
+docker-compose logs -f
 ```
 
 ## Scaling
@@ -289,80 +123,58 @@ railway logs
 ### Horizontal Scaling
 
 ```yaml
-# docker-compose.yml
-services:
-  backend:
-    deploy:
-      replicas: 3
-    environment:
-      - WORKERS=4
+# In docker-compose.yml
+backend:
+  deploy:
+    replicas: 3
 ```
 
-### Load Balancing
+### Database Connection Pooling
 
-```nginx
-# nginx.conf
-upstream backend {
-    server backend-1:8000;
-    server backend-2:8000;
-    server backend-3:8000;
-}
-
-server {
-    listen 80;
-    location /api {
-        proxy_pass http://backend;
-    }
-}
+Update `DATABASE_URL` with connection pooling:
+```
+DATABASE_URL=postgresql://user:pass@host:5432/db?pool_size=10&max_overflow=20
 ```
 
 ## Troubleshooting
 
-### Backend Won't Start
+### Database Connection Issues
 
 ```bash
-# Check logs
-docker-compose logs backend
+# Check Postgres status
+docker-compose ps postgres
 
-# Verify environment variables
-docker-compose config
-
-# Rebuild image
-docker-compose build --no-cache backend
+# Connect to database
+docker-compose exec postgres psql -U prolight -d prolight
 ```
 
-### CORS Errors
-
-1. Check `CORS_ORIGINS` environment variable
-2. Ensure frontend URL is in the list
-3. Restart backend after changing
-
-### Database Errors
+### Redis Connection Issues
 
 ```bash
-# Reset database
-rm prolight.db
-# Backend will recreate on startup
+# Check Redis status
+docker-compose ps redis
 
-# For PostgreSQL
-psql -U user -d prolight -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+# Connect to Redis
+docker-compose exec redis redis-cli ping
 ```
 
-### FIBO API Errors
+### Migration Issues
 
-- Verify `FIBO_API_KEY` is correct
-- Check API endpoint is accessible
-- Enable `USE_MOCK_FIBO=True` for testing
-- Check rate limits
+```bash
+# Reset database (WARNING: Deletes all data)
+docker-compose exec backend alembic downgrade base
+docker-compose exec backend alembic upgrade head
+```
 
-## Support
+## Security Checklist
 
-For deployment issues, refer to:
-- [FastAPI Deployment Guide](https://fastapi.tiangolo.com/deployment/)
-- [Docker Documentation](https://docs.docker.com/)
-- [Vercel Documentation](https://vercel.com/docs)
-- [Railway Documentation](https://docs.railway.app/)
+- [ ] Change default database passwords
+- [ ] Set strong JWT secret
+- [ ] Enable HTTPS (SSL certificates)
+- [ ] Configure CORS properly
+- [ ] Set up rate limiting
+- [ ] Enable Stripe webhook signature verification
+- [ ] Use environment variables for secrets
+- [ ] Enable database backups
+- [ ] Set up monitoring/alerting
 
-## License
-
-MIT License - See LICENSE file for details

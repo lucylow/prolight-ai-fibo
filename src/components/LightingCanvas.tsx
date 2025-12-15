@@ -96,7 +96,7 @@ const LightingCanvas = ({ keyIntensity = 0.8, fillIntensity = 0.4, colorTemp = 5
       }
       renderer.dispose();
     };
-  }, []);
+  }, [keyIntensity, fillIntensity]);
 
   useEffect(() => {
     if (sceneRef.current) {

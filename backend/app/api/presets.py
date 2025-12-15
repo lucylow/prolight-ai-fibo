@@ -3,33 +3,12 @@ Presets endpoint - Manage lighting presets.
 """
 
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import PresetListResponse, PresetResponse, PresetRequest
+from app.models.schemas import PresetListResponse, PresetResponse
 from app.data.mock_data import MockDataManager
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
-
-@router.get("/presets/categories")
-async def list_categories():
-    """
-    List all available preset categories.
-    
-    Returns:
-        List of category names
-    """
-    try:
-        presets = MockDataManager.get_presets()
-        categories = list(set(p["category"] for p in presets))
-        return {
-            "categories": sorted(categories),
-            "total": len(categories)
-        }
-    
-    except Exception as e:
-        logger.error(f"Error listing categories: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/presets", response_model=PresetListResponse)
@@ -87,22 +66,14 @@ async def list_presets(
 async def get_preset(preset_id: str):
     """
     Get a specific preset by ID.
-
-    This handler also gracefully delegates the special "categories" path
-    segment to the `list_categories` endpoint. In some routing configurations,
-    the dynamic `/presets/{preset_id}` route can capture the static
-    `/presets/categories` path before the more specific handler is matched,
-    which would otherwise result in a 404. By checking for this sentinel
-    value here, we ensure `/api/presets/categories` always returns the
-    categories payload expected by clients and tests.
+    
+    Args:
+        preset_id: ID of the preset
+        
+    Returns:
+        PresetResponse with preset details
     """
     try:
-        # If the dynamic route captured the "categories" segment, delegate to
-        # the dedicated categories endpoint so callers still get the correct
-        # response shape and a 200 status code.
-        if preset_id == "categories":
-            return await list_categories()
-
         preset = MockDataManager.get_preset_by_id(preset_id)
         if not preset:
             raise HTTPException(status_code=404, detail=f"Preset {preset_id} not found")
@@ -123,11 +94,32 @@ async def get_preset(preset_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/presets/categories")
+async def list_categories():
+    """
+    List all available preset categories.
+    
+    Returns:
+        List of category names
+    """
+    try:
+        presets = MockDataManager.get_presets()
+        categories = list(set(p["category"] for p in presets))
+        return {
+            "categories": sorted(categories),
+            "total": len(categories)
+        }
+    
+    except Exception as e:
+        logger.error(f"Error listing categories: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/presets/search")
 async def search_presets(
-    body: PresetRequest,
+    query: str,
     page: int = 1,
-    page_size: int = 10,
+    page_size: int = 10
 ):
     """
     Search presets by name or description.
@@ -144,22 +136,13 @@ async def search_presets(
         presets = MockDataManager.get_presets()
         
         # Search
-        query_value = body.search or body.category or body.search
-        if not query_value and body:
-            # Backwards-compatible: also accept `query` field if provided
-            query_value = getattr(body, "search", None) or getattr(body, "category", None)
-        if not query_value:
-            # If no query provided, return all presets paginated
-            results = presets
-        else:
-            query_lower = query_value.lower()
-            results = [
-                p
-                for p in presets
-                if query_lower in p["name"].lower()
-                or query_lower in p["description"].lower()
-                or any(query_lower in ideal.lower() for ideal in p["ideal_for"])
-            ]
+        query_lower = query.lower()
+        results = [
+            p for p in presets
+            if query_lower in p["name"].lower()
+            or query_lower in p["description"].lower()
+            or any(query_lower in ideal.lower() for ideal in p["ideal_for"])
+        ]
         
         # Paginate
         start_idx = (page - 1) * page_size
@@ -189,3 +172,192 @@ async def search_presets(
     except Exception as e:
         logger.error(f"Error searching presets: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/presets/professional")
+async def get_professional_presets():
+    """
+    Get professional lighting presets (wedding, product, studio).
+    
+    These are the presets required for hackathon judging.
+    
+    Returns:
+        Dictionary of professional presets with full FIBO JSON
+    """
+    return {
+        "wedding_romantic": {
+            "preset_id": "wedding_romantic",
+            "name": "Wedding Romantic",
+            "category": "wedding",
+            "description": "Soft, romantic lighting for wedding photography",
+            "fibo_json": {
+                "subject": {
+                    "main_entity": "bride and groom",
+                    "attributes": "elegant, romantic, professional",
+                    "action": "posing together"
+                },
+                "camera": {
+                    "fov": 50.0,
+                    "aperture": 2.8,
+                    "focus_distance_m": 3.0,
+                    "pitch": -5.0,
+                    "yaw": 0.0,
+                    "roll": 0.0
+                },
+                "lighting": {
+                    "main_light": {
+                        "type": "area",
+                        "position": [0.7, 1.5, 1.2],
+                        "intensity": 0.9,
+                        "color_temperature": 3200,
+                        "softness": 0.8,
+                        "enabled": True
+                    },
+                    "fill_light": {
+                        "type": "area",
+                        "position": [-0.5, 1.0, 1.0],
+                        "intensity": 0.4,
+                        "color_temperature": 3200,
+                        "softness": 0.9,
+                        "enabled": True
+                    },
+                    "rim_light": {
+                        "type": "directional",
+                        "direction": "back-right",
+                        "intensity": 0.6,
+                        "color_temperature": 5600,
+                        "softness": 0.3,
+                        "enabled": True
+                    }
+                },
+                "render": {
+                    "resolution": [2048, 2048],
+                    "bit_depth": 16,
+                    "color_space": "sRGB",
+                    "samples": 50
+                },
+                "meta": {
+                    "preset": "wedding_romantic",
+                    "c2pa": True,
+                    "professional": True
+                }
+            },
+            "ideal_for": ["wedding photography", "romantic portraits", "ceremony shots"]
+        },
+        "product_studio": {
+            "preset_id": "product_studio",
+            "name": "Product Studio",
+            "category": "product",
+            "description": "Professional product photography lighting",
+            "fibo_json": {
+                "subject": {
+                    "main_entity": "product on pedestal",
+                    "attributes": "professional, clean, commercial"
+                },
+                "camera": {
+                    "fov": 55.0,
+                    "aperture": 5.6,
+                    "focus_distance_m": 1.5,
+                    "pitch": -10.0,
+                    "yaw": 0.0,
+                    "roll": 0.0
+                },
+                "lighting": {
+                    "main_light": {
+                        "type": "area",
+                        "position": [0.8, 1.2, 0.9],
+                        "intensity": 1.0,
+                        "color_temperature": 5600,
+                        "softness": 0.4,
+                        "enabled": True
+                    },
+                    "fill_light": {
+                        "type": "area",
+                        "position": [-0.6, 0.8, 1.1],
+                        "intensity": 0.5,
+                        "color_temperature": 5600,
+                        "softness": 0.6,
+                        "enabled": True
+                    },
+                    "rim_light": {
+                        "type": "strip",
+                        "position": [0.0, 0.5, -1.0],
+                        "intensity": 0.7,
+                        "color_temperature": 5600,
+                        "softness": 0.2,
+                        "enabled": True
+                    }
+                },
+                "render": {
+                    "resolution": [2048, 2048],
+                    "bit_depth": 16,
+                    "color_space": "sRGB",
+                    "samples": 60
+                },
+                "meta": {
+                    "preset": "product_studio",
+                    "c2pa": True,
+                    "professional": True
+                }
+            },
+            "ideal_for": ["product photography", "e-commerce", "catalog shots"]
+        },
+        "portrait_dramatic": {
+            "preset_id": "portrait_dramatic",
+            "name": "Portrait Dramatic",
+            "category": "portrait",
+            "description": "Dramatic portrait lighting with high contrast",
+            "fibo_json": {
+                "subject": {
+                    "main_entity": "portrait subject",
+                    "attributes": "dramatic, professional, cinematic"
+                },
+                "camera": {
+                    "fov": 50.0,
+                    "aperture": 2.0,
+                    "focus_distance_m": 2.0,
+                    "pitch": 0.0,
+                    "yaw": 0.0,
+                    "roll": 0.0
+                },
+                "lighting": {
+                    "main_light": {
+                        "type": "spot",
+                        "position": [0.9, 1.3, 0.8],
+                        "intensity": 1.2,
+                        "color_temperature": 5600,
+                        "softness": 0.2,
+                        "enabled": True
+                    },
+                    "fill_light": {
+                        "type": "point",
+                        "position": [-0.7, 0.9, 1.0],
+                        "intensity": 0.3,
+                        "color_temperature": 5600,
+                        "softness": 0.5,
+                        "enabled": True
+                    },
+                    "rim_light": {
+                        "type": "directional",
+                        "direction": "back-left",
+                        "intensity": 0.8,
+                        "color_temperature": 3200,
+                        "softness": 0.1,
+                        "enabled": True
+                    }
+                },
+                "render": {
+                    "resolution": [2048, 2048],
+                    "bit_depth": 16,
+                    "color_space": "sRGB",
+                    "samples": 50
+                },
+                "meta": {
+                    "preset": "portrait_dramatic",
+                    "c2pa": True,
+                    "professional": True
+                }
+            },
+            "ideal_for": ["portrait photography", "headshots", "editorial"]
+        }
+    }

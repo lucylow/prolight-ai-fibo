@@ -2,11 +2,13 @@
 Generate endpoint - Create images from lighting setups.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from app.models.schemas import GenerateRequest, GenerationResponse
 from app.data.mock_data import MockDataManager, get_mock_generation_response
 from app.main import fibo_adapter
+from app.utils.c2pa import create_c2pa_metadata
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -66,29 +68,23 @@ async def generate_image(request: GenerateRequest):
             }
         }
         
-        # If we're in mock mode or the FIBO adapter isn't initialized (e.g. tests),
-        # return a deterministic mock response instead of calling the real adapter.
-        if request.use_mock or fibo_adapter is None:
-            mock = get_mock_generation_response()
-            return GenerationResponse(
-                generation_id=mock["generation_id"],
-                status=mock["status"],
-                image_url=mock["image_url"],
-                duration_seconds=mock["duration_seconds"],
-                cost_credits=mock["cost_credits"],
-                fibo_json=fibo_json,
-                analysis=mock.get("analysis"),
-            )
-        
-        # Generate using real FIBO adapter
+        # Generate using FIBO adapter
         result = await fibo_adapter.generate(fibo_json)
         
         if result.get("status") == "error":
             raise HTTPException(status_code=500, detail=result.get("message"))
         
+        # Create C2PA metadata
+        generation_id = result.get("generation_id", f"gen_{int(time.time())}")
+        c2pa_metadata = create_c2pa_metadata(
+            fibo_json=fibo_json,
+            generation_id=generation_id,
+            model_version="FIBO-v2.3"
+        )
+        
         # Return formatted response
         return GenerationResponse(
-            generation_id=result.get("generation_id"),
+            generation_id=generation_id,
             status="success",
             image_url=result.get("image_url"),
             duration_seconds=result.get("duration_seconds", 3.5),
@@ -100,7 +96,8 @@ async def generate_image(request: GenerateRequest):
                 "professional_rating": 8.5,
                 "mood_assessment": "professional",
                 "recommendations": []
-            }
+            },
+            c2pa_metadata=c2pa_metadata  # Add C2PA metadata if schema supports it
         )
     
     except Exception as e:

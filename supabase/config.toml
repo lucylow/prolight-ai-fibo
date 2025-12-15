@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.get-presets]
 verify_jwt = false
+
+[functions.flux2-generate]
+verify_jwt = false

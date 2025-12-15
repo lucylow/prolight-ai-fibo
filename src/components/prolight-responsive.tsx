@@ -89,10 +89,10 @@ const useProlightResponsiveStore = create<ResponsiveStore>((set, get) => ({
 // MOBILE-OPTIMIZED PRESETS
 // ============================================================================
 
-const MOBILE_PRESETS: Record<string, Partial<ResponsiveLightingState>> = {
-  studio: { keyLight: { intensity: 1.2, kelvin: 5600, x: 45, y: -20 }, fillLight: { intensity: 0.6, kelvin: 5600, x: -30, y: -15 }, rimLight: { intensity: 0.8, kelvin: 3200, x: 0, y: 160 } },
-  soft: { keyLight: { intensity: 0.9, kelvin: 6500, x: 45, y: -20 }, fillLight: { intensity: 0.4, kelvin: 6000, x: -30, y: -15 }, rimLight: { intensity: 0.3, kelvin: 4000, x: 0, y: 160 } },
-  dramatic: { keyLight: { intensity: 0.7, kelvin: 3200, x: 45, y: -20 }, fillLight: { intensity: 0.2, kelvin: 5600, x: -30, y: -15 }, rimLight: { intensity: 1.4, kelvin: 2700, x: 0, y: 160 } }
+const MOBILE_PRESETS = {
+  studio: { keyLight: { intensity: 1.2, kelvin: 5600 }, fillLight: { intensity: 0.6, kelvin: 5600 }, rimLight: { intensity: 0.8, kelvin: 3200 } },
+  soft: { keyLight: { intensity: 0.9, kelvin: 6500 }, fillLight: { intensity: 0.4, kelvin: 6000 }, rimLight: { intensity: 0.3, kelvin: 4000 } },
+  dramatic: { keyLight: { intensity: 0.7, kelvin: 3200 }, fillLight: { intensity: 0.2, kelvin: 5600 }, rimLight: { intensity: 1.4, kelvin: 2700 } }
 };
 
 // ============================================================================

@@ -246,3 +246,161 @@ class HealthResponse(BaseModel):
     status: str = "healthy"
     version: str
     timestamp: str
+
+
+# ============================================================================
+# Payment & Billing Models
+# ============================================================================
+
+class CreateCheckoutSessionRequest(BaseModel):
+    """Request to create a Stripe checkout session."""
+    priceId: str = Field(..., description="Stripe price ID")
+    successUrl: str = Field(..., description="URL to redirect on success")
+    cancelUrl: str = Field(..., description="URL to redirect on cancel")
+    coupon: Optional[str] = Field(None, description="Optional coupon code")
+    mode: str = Field("subscription", description="Payment mode: subscription or payment")
+
+
+class CheckoutSessionResponse(BaseModel):
+    """Response from checkout session creation."""
+    id: str
+    url: str
+
+
+class CreatePortalSessionRequest(BaseModel):
+    """Request to create a billing portal session."""
+    customerId: str = Field(..., description="Stripe customer ID")
+    returnUrl: str = Field(..., description="URL to return to after portal")
+
+
+class PortalSessionResponse(BaseModel):
+    """Response from portal session creation."""
+    url: str
+
+
+class InvoiceResponse(BaseModel):
+    """Invoice information."""
+    id: str
+    amount_paid: int
+    currency: str
+    status: str
+    hosted_invoice_url: str
+    period_start: int
+    period_end: int
+    created: int
+
+
+class InvoiceListResponse(BaseModel):
+    """List of invoices."""
+    invoices: List[InvoiceResponse]
+    total: int
+
+
+class RefundRequest(BaseModel):
+    """Request to create a refund."""
+    charge_id: str = Field(..., description="Stripe charge ID")
+    amount_cents: Optional[int] = Field(None, description="Amount in cents (None for full refund)")
+    reason: Optional[str] = Field(None, description="Refund reason")
+
+
+class RefundResponse(BaseModel):
+    """Refund response."""
+    id: str
+    amount: int
+    currency: str
+    status: str
+    charge: str
+
+
+# ============================================================================
+# Photographer Poses Models
+# ============================================================================
+
+class CameraSchema(BaseModel):
+    """Camera state schema for poses."""
+    fov: float
+    focalLengthMM: float
+    sensorHeightMM: float
+    aspectRatio: float
+    aperture: float
+    focusDistanceM: float
+    position: List[float]
+    lookAt: List[float]
+
+
+class PoseCreate(BaseModel):
+    """Request to create a photographer pose."""
+    name: str = Field(..., description="Name of the pose")
+    camera: CameraSchema = Field(..., description="Camera state")
+    owner_id: Optional[str] = Field(None, description="Optional user ID")
+
+
+class PoseOut(BaseModel):
+    """Photographer pose response."""
+    id: int
+    name: str
+    camera: Dict[str, Any]
+    created_at: str
+    owner_id: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class RenderStartRequest(BaseModel):
+    """Request to start a render from camera state."""
+    camera: CameraSchema = Field(..., description="Camera state to render")
+
+
+class RenderStartResponse(BaseModel):
+    """Response from render start."""
+    request_id: str = Field(..., description="Render request ID")
+    status_url: str = Field(..., description="URL to poll for status")
+
+
+class RenderCallbackRequest(BaseModel):
+    """Callback request from worker with render results."""
+    poseId: int = Field(..., description="Pose ID that was rendered")
+    requestId: str = Field(..., description="Render request ID")
+    result: Dict[str, Any] = Field(..., description="Render result data")
+
+
+# ============================================================================
+# Chat Models
+# ============================================================================
+
+class ChatMessage(BaseModel):
+    """Single chat message."""
+    role: str = Field(..., description="Message role: 'user', 'assistant', or 'system'")
+    content: str = Field(..., description="Message content")
+    
+    @validator('role')
+    def validate_role(cls, v):
+        if v not in ['user', 'assistant', 'system']:
+            raise ValueError("role must be 'user', 'assistant', or 'system'")
+        return v
+
+
+class ChatRequest(BaseModel):
+    """Request for chat endpoint."""
+    conversation_id: str = Field(..., description="Unique conversation identifier")
+    messages: List[ChatMessage] = Field(..., description="List of messages in conversation")
+    stream: bool = Field(False, description="Whether to stream the response")
+
+
+class ChatResponse(BaseModel):
+    """Response from chat endpoint."""
+    reply: str = Field(..., description="Assistant's reply")
+    intent: Optional[str] = Field(None, description="Detected intent")
+    entities: Optional[Dict[str, Any]] = Field(None, description="Extracted entities")
+    followups: Optional[List[str]] = Field(None, description="Suggested follow-up questions")
+
+
+class ChatStreamChunk(BaseModel):
+    """Streaming chunk from chat."""
+    type: str = Field(..., description="Chunk type: 'delta', 'intent', 'done', or 'error'")
+    delta: Optional[str] = Field(None, description="Text delta (for type='delta')")
+    intent: Optional[str] = Field(None, description="Detected intent (for type='intent')")
+    entities: Optional[Dict[str, Any]] = Field(None, description="Extracted entities (for type='intent')")
+    full_response: Optional[str] = Field(None, description="Full response (for type='done')")
+    error: Optional[str] = Field(None, description="Error message (for type='error')")

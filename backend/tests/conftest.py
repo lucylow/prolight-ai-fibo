@@ -2,48 +2,8 @@
 Pytest configuration and fixtures for ProLight AI tests
 """
 
-import os
-import sys
-import types
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
-
-# Ensure the backend `app` package is importable when tests are run from the
-# repository root (so that `from app.main import app` works reliably).
-PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-
-# Some tests patch `backend.routes.generate.BriaClient`. When running tests
-# directly from the `backend` directory, the top-level `backend` package may
-# not be on `sys.path`, which leads to `ModuleNotFoundError`. To make this
-# robust, ensure a `backend` package is available and points at this folder.
-backend_root = Path(PROJECT_ROOT)
-if backend_root.name == "backend":
-    try:
-        import backend  # type: ignore  # noqa: F401
-    except ModuleNotFoundError:
-        pkg = types.ModuleType("backend")
-        pkg.__path__ = [str(backend_root)]  # type: ignore[attr-defined]
-        sys.modules["backend"] = pkg
-    
-    # Ensure `backend.routes.generate` points to the same modules as
-    # `routes.generate`, so that tests patching via the fully-qualified
-    # name affect the actual implementation used by the app.
-    import importlib
-
-    routes_pkg = importlib.import_module("routes")
-    # Expose as submodule and attribute on the `backend` package
-    sys.modules.setdefault("backend.routes", routes_pkg)
-    backend_pkg = sys.modules.get("backend")
-    if backend_pkg is not None:
-        setattr(backend_pkg, "routes", routes_pkg)
-
-    generate_mod = importlib.import_module("routes.generate")
-    sys.modules.setdefault("backend.routes.generate", generate_mod)
-
 from app.main import app
 
 

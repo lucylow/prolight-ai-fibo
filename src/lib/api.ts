@@ -1,135 +1,95 @@
-/**
- * API client for ProLight AI backend
- * Connects frontend to FastAPI backend (lightweight, FIBO-focused wrapper)
- */
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from "axios";
+import { supabase } from "@/integrations/supabase/client";
 
-import { API_BASE_URL, API_PREFIX, API_TIMEOUT_MS } from './config';
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-export interface Light {
-  id: string;
-  type?: string;
-  position: { x: number; y: number; z: number };
-  intensity: number;
-  color_temperature: number;
-  softness: number;
-  enabled: boolean;
-}
+// Create axios instance
+export const api: AxiosInstance = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  headers: { "Content-Type": "application/json" },
+  withCredentials: true,
+});
 
-// NOTE: This request shape is specialized for the FIBO lighting frontend.
-// It will be translated to the backend's canonical GenerateRequest schema.
-export interface GenerateRequest {
-  scene_prompt: string;
-  lights: Light[];
-  subject_options?: Record<string, any>;
-  num_results?: number;
-  sync?: boolean;
-}
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: string | null) => void;
+  reject: (error?: unknown) => void;
+}> = [];
 
-export interface GenerateResponse {
-  ok: boolean;
-  request_id?: string;
-  status: string;
-  image_url?: string;
-  structured_prompt?: Record<string, any>;
-  meta: Record<string, any>;
-  error?: string;
-}
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach((prom) => (error ? prom.reject(error) : prom.resolve(token)));
+  failedQueue = [];
+};
 
-export interface StatusResponse {
-  ok: boolean;
-  status: string;
-  image_url?: string;
-  structured_prompt?: Record<string, any>;
-  meta: Record<string, any>;
-  error?: string;
-}
+// Request interceptor: attach auth token
+api.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token && config.headers) {
+        config.headers.Authorization = `Bearer ${session.access_token}`;
+      }
+    } catch (error) {
+      console.error("Failed to get session for request:", error);
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
-/**
- * Generate image with lighting setup
- */
-export async function generateImage(request: GenerateRequest): Promise<GenerateResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+// Response interceptor: refresh token on 401
+api.interceptors.response.use(
+  (res) => res,
+  async (err) => {
+    const originalRequest = err.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
-  try {
-    const response = await fetch(`${API_BASE_URL}${API_PREFIX}/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-      signal: controller.signal,
-    });
+    if (err.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // Queue the request to retry after refresh
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then((token) => {
+            if (originalRequest.headers && token) {
+              originalRequest.headers["Authorization"] = `Bearer ${token}`;
+            }
+            return api(originalRequest);
+          })
+          .catch((e) => Promise.reject(e));
+      }
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Network error' }));
-      throw new Error(error.error || `HTTP ${response.status}`);
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Use Supabase to refresh the session
+        const { data: { session }, error } = await supabase.auth.refreshSession();
+        
+        if (error || !session?.access_token) {
+          throw new Error("Failed to refresh session");
+        }
+
+        const newToken = session.access_token;
+        if (originalRequest.headers) {
+          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+        }
+        
+        processQueue(null, newToken);
+        return api(originalRequest);
+      } catch (refreshErr) {
+        processQueue(refreshErr, null);
+        // If refresh fails, sign out the user
+        await supabase.auth.signOut();
+        throw refreshErr;
+      } finally {
+        isRefreshing = false;
+      }
     }
 
-    return response.json();
-  } finally {
-    clearTimeout(timeoutId);
+    return Promise.reject(err);
   }
-}
+);
 
-/**
- * Check status of async generation
- */
-export async function checkStatus(requestId: string): Promise<StatusResponse> {
-  const response = await fetch(`${API_BASE_URL}${API_PREFIX}/status/${requestId}`);
+export default api;
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Network error' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
-  }
 
-  return response.json();
-}
-
-/**
- * Poll for async generation completion
- */
-export async function waitForCompletion(
-  requestId: string,
-  onProgress?: (status: string) => void,
-  maxAttempts: number = 30,
-  intervalMs: number = 2000
-): Promise<StatusResponse> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const status = await checkStatus(requestId);
-    
-    if (onProgress) {
-      onProgress(status.status);
-    }
-
-    if (status.status === 'completed' || status.status === 'failed') {
-      return status;
-    }
-
-    await new Promise(resolve => setTimeout(resolve, intervalMs));
-  }
-
-  throw new Error('Timeout waiting for generation');
-}
-
-/**
- * Health check
- */
-export async function healthCheck(): Promise<boolean> {
-  try {
-    const response = await fetch(`${API_BASE_URL}${API_PREFIX}/health`);
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Get API configuration
- */
-export function getApiConfig() {
-  return {
-    baseUrl: API_BASE_URL,
-    timeout: 30000,
-  };
-}

@@ -199,23 +199,13 @@ async def generate_image(request: GenerateRequest):
 async def get_generation_status(request_id: str):
     """
     Get status of an async generation job.
-
-    In development and test environments we avoid making real outbound calls
-    when `settings.USE_MOCK_FIBO` is enabled, and instead return a deterministic
-    mock payload. This keeps tests fast and ensures they do not depend on
-    external network availability while still exercising the FastAPI routing
-    and response handling.
+    
+    Args:
+        request_id: Request ID from async generation
+        
+    Returns:
+        Job status
     """
-    # Short-circuit in mock mode to prevent external API calls during tests.
-    if getattr(settings, "USE_MOCK_FIBO", False):
-        logger.info(f"Returning mock generation status for request_id={request_id}")
-        return {
-            "status": "COMPLETED",
-            "result": {
-                "image_url": f"https://example.com/result.png"
-            }
-        }
-
     try:
         api_token = settings.bria_token()
     except RuntimeError as e:

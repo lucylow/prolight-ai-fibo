@@ -1,5 +1,6 @@
 import { Canvas, useFrame } from '@react-three/fiber'
-import { OrbitControls, Environment, ContactShadows, PresentationControls, Float } from '@react-three/drei'
+import { OrbitControls, Environment, AccumulativeShadows, ContactShadows, PresentationControls, Float } from '@react-three/drei'
+import { EffectComposer, Bloom, DepthOfField } from '@react-three/postprocessing'
 import { useRef, useMemo } from 'react'
 import * as THREE from 'three'
 import { useLightingStore } from '@/stores/lightingStore'
@@ -45,8 +46,7 @@ const ProductModel = ({ rotationSpeed = 0.01 }: { rotationSpeed?: number }) => {
             color="#ffedcc"
             emissive="#ffaa00"
             emissiveIntensity={0.1}
-            transparent
-            opacity={0.9}
+            transmission={0.9}
           />
         </mesh>
       </group>
@@ -212,7 +212,14 @@ export const ThreeLightStudio = () => {
         <Environment preset="studio" />
         
         {/* Shadows */}
-        <ContactShadows
+        <AccumulativeShadows
+          position={[0, -0.5, 0]}
+          scale={8}
+          frames={100}
+          threshold={0.1}
+          opacity={0.7}
+        />
+        <ContactShadows 
           position={[0, -1.5, 0]} 
           scale={15} 
           blur={1} 
@@ -235,7 +242,18 @@ export const ThreeLightStudio = () => {
           <ProductModel />
         </PresentationControls>
         
-        <OrbitControls
+        {/* Post Processing */}
+        <EffectComposer>
+          <Bloom luminanceThreshold={0.2} luminanceSmoothing={0.9} height={300} />
+          <DepthOfField 
+            target={[0, 0, 0]}
+            focalLength={0.5} 
+            bokehScale={5} 
+            height={300} 
+          />
+        </EffectComposer>
+        
+        <OrbitControls 
           enablePan={false} 
           enableZoom={false}
           minPolarAngle={Math.PI / 4}
