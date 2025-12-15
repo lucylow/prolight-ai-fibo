@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { mockGenerationResults, shouldUseMockData } from '@/services/enhancedMockData';
 
 interface LightConfig {
   direction: string;
@@ -153,8 +152,6 @@ export const useLightingStore = create<LightingStore>()(
         lightingAnalysis: result.lightingAnalysis || null,
       })),
 
-      setLightingAnalysis: (analysis) => set({ lightingAnalysis: analysis }),
-
       loadPreset: (preset) => set({
         lightingSetup: preset.lightingSetup,
         cameraSettings: preset.cameraSettings,
@@ -170,23 +167,7 @@ export const useLightingStore = create<LightingStore>()(
         lightingSetup: state.lightingSetup,
         cameraSettings: state.cameraSettings,
         sceneSettings: state.sceneSettings,
-        generationResults: state.generationResults,
-        currentImage: state.currentImage,
-        lightingAnalysis: state.lightingAnalysis,
       }),
-      onRehydrateStorage: () => (state) => {
-        // After rehydration, check if we should populate mock data
-        if (state && shouldUseMockData()) {
-          // Only populate if generationResults is empty
-          if (!state.generationResults || state.generationResults.length === 0) {
-            state.generationResults = mockGenerationResults;
-            if (mockGenerationResults.length > 0) {
-              state.currentImage = mockGenerationResults[0];
-              state.lightingAnalysis = mockGenerationResults[0].lightingAnalysis || null;
-            }
-          }
-        }
-      },
     }
   )
 );

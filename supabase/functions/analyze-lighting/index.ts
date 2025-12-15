@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createErrorResponseWithLogging } from "../_shared/error-handling.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -47,159 +46,28 @@ serve(async (req) => {
   }
 
   try {
-    // Validate request method
-    if (req.method !== 'POST') {
-      const errorResponse = createErrorResponseWithLogging(
-        new Error('Method not allowed. Only POST requests are supported.'),
-        {
-          functionName: 'analyze-lighting',
-          action: 'validateMethod',
-          errorCode: 'METHOD_NOT_ALLOWED',
-          statusCode: 405,
-        }
-      );
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Parse and validate request body
-    let body: unknown;
-    try {
-      const text = await req.text();
-      if (!text || text.trim().length === 0) {
-        const errorResponse = createErrorResponseWithLogging(
-          new Error('Request body is required and cannot be empty.'),
-          {
-            functionName: 'analyze-lighting',
-            action: 'parseBody',
-            errorCode: 'MISSING_BODY',
-            statusCode: 400,
-          }
-        );
-        return new Response(JSON.stringify(errorResponse), {
-          status: errorResponse.statusCode,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      body = JSON.parse(text);
-    } catch (parseError) {
-      const errorResponse = createErrorResponseWithLogging(parseError, {
-        functionName: 'analyze-lighting',
-        action: 'parseBody',
-        errorCode: 'INVALID_JSON',
-        statusCode: 400,
-        metadata: {
-          parseError: parseError instanceof Error ? parseError.message : 'Unknown parse error',
-        },
-      });
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Validate body structure
-    if (!body || typeof body !== 'object') {
-      const errorResponse = createErrorResponseWithLogging(
-        new Error('Request body must be a valid object.'),
-        {
-          functionName: 'analyze-lighting',
-          action: 'validateBody',
-          errorCode: 'INVALID_BODY_TYPE',
-          statusCode: 400,
-        }
-      );
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const bodyObj = body as Record<string, unknown>;
+    const body = await req.json();
     
     // Support both direct lightingSetup or wrapped request
-    const lightingSetup: unknown = bodyObj.lightingSetup || bodyObj;
-    const styleContext: string = typeof bodyObj.styleContext === 'string' 
-      ? bodyObj.styleContext 
-      : "portrait";
+    const lightingSetup: Record<string, LightSettings> = body.lightingSetup || body;
+    const styleContext: string = body.styleContext || "portrait";
     
-    // Validate lightingSetup structure
-    if (!lightingSetup || typeof lightingSetup !== 'object') {
-      const errorResponse = createErrorResponseWithLogging(
-        new Error('lightingSetup is required and must be an object.'),
-        {
-          functionName: 'analyze-lighting',
-          action: 'validateLightingSetup',
-          errorCode: 'MISSING_LIGHTING_SETUP',
-          statusCode: 400,
-        }
-      );
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Validate that lightingSetup has at least one light configuration
-    const setupObj = lightingSetup as Record<string, unknown>;
-    const hasLights = Object.keys(setupObj).length > 0;
-    if (!hasLights) {
-      const errorResponse = createErrorResponseWithLogging(
-        new Error('lightingSetup must contain at least one light configuration (key, fill, rim, or ambient).'),
-        {
-          functionName: 'analyze-lighting',
-          action: 'validateLightingSetup',
-          errorCode: 'EMPTY_LIGHTING_SETUP',
-          statusCode: 400,
-        }
-      );
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     console.log("Analyzing lighting setup:", JSON.stringify(lightingSetup));
     console.log("Style context:", styleContext);
 
-    try {
-      const analysis = analyzeLighting(setupObj as Record<string, LightSettings>, styleContext);
-      console.log("Analysis result:", JSON.stringify(analysis));
+    const analysis = analyzeLighting(lightingSetup, styleContext);
+    console.log("Analysis result:", JSON.stringify(analysis));
 
-      return new Response(JSON.stringify(analysis), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (analysisError) {
-      const errorResponse = createErrorResponseWithLogging(analysisError, {
-        functionName: 'analyze-lighting',
-        action: 'analyzeLighting',
-        errorCode: 'ANALYSIS_ERROR',
-        statusCode: 500,
-        metadata: {
-          analysisError: analysisError instanceof Error ? analysisError.message : 'Unknown analysis error',
-          styleContext,
-          hasLightingSetup: !!lightingSetup,
-        },
-      });
-      return new Response(JSON.stringify(errorResponse), {
-        status: errorResponse.statusCode,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    return new Response(JSON.stringify(analysis), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    const errorResponse = createErrorResponseWithLogging(error, {
-      functionName: 'analyze-lighting',
-      action: 'mainHandler',
-      metadata: {
-        requestMethod: req.method,
-        hasBody: !!req.body,
-      },
-    });
-    return new Response(JSON.stringify(errorResponse), {
-      status: errorResponse.statusCode,
+    console.error("Error in analyze-lighting:", error);
+    return new Response(JSON.stringify({ 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    }), {
+      status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
@@ -436,26 +304,10 @@ function generateRecommendations(
   return recommendations;
 }
 
-interface ColorAnalysis {
-  averageTemperature: number;
-  temperatureRange: string;
-  harmonyScore: number;
-  harmonyAssessment: string;
-  warmthDescription?: string;
-  temperatures?: number[];
-}
-
-interface ShadowAnalysis {
-  shadowIntensity: number;
-  shadowSoftness: number;
-  shadowCharacter: string;
-  transitionQuality?: string;
-}
-
 function generateTechnicalNotes(
   lightingSetup: Record<string, LightSettings>,
-  colorAnalysis: ColorAnalysis,
-  shadowAnalysis: ShadowAnalysis
+  colorAnalysis: any,
+  shadowAnalysis: any
 ): string[] {
   const notes: string[] = [];
   

@@ -69,27 +69,12 @@ const Carousel = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivEl
 
     const handleKeyDown = React.useCallback(
       (event: React.KeyboardEvent<HTMLDivElement>) => {
-        try {
-          // Validate event
-          if (!event || !event.key) return;
-
-          if (event.key === "ArrowLeft") {
-            event.preventDefault();
-            try {
-              scrollPrev();
-            } catch (error) {
-              console.error('Error scrolling carousel previous:', error);
-            }
-          } else if (event.key === "ArrowRight") {
-            event.preventDefault();
-            try {
-              scrollNext();
-            } catch (error) {
-              console.error('Error scrolling carousel next:', error);
-            }
-          }
-        } catch (error) {
-          console.error('Error handling carousel keydown event:', error);
+        if (event.key === "ArrowLeft") {
+          event.preventDefault();
+          scrollPrev();
+        } else if (event.key === "ArrowRight") {
+          event.preventDefault();
+          scrollNext();
         }
       },
       [scrollPrev, scrollNext],

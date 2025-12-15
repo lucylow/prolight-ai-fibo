@@ -125,18 +125,7 @@ async def root():
 # ============================================================================
 
 # Import route modules
-from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1, chat, deploy_check, admin, agents, gemini, fibo_mapper, determinism, export, text_to_image
-from app.api import sse, post_processing
-from app.api import billing_webhook, stripe_customers, usage, invoice_proxy, hitl
-from app.api import voice_assistant_ws
-
-# Import production routers
-try:
-    from app.api import marketplace
-    from app.api import admin_production
-except ImportError:
-    marketplace = None
-    admin_production = None
+from app.api import generate, presets, history, batch, analyze
 
 # Include routers
 app.include_router(generate.router, prefix=settings.API_PREFIX, tags=["Generate"])
@@ -144,46 +133,6 @@ app.include_router(presets.router, prefix=settings.API_PREFIX, tags=["Presets"])
 app.include_router(history.router, prefix=settings.API_PREFIX, tags=["History"])
 app.include_router(batch.router, prefix=settings.API_PREFIX, tags=["Batch"])
 app.include_router(analyze.router, prefix=settings.API_PREFIX, tags=["Analysis"])
-app.include_router(compose.router, prefix=settings.API_PREFIX, tags=["Composition"])
-app.include_router(poses.router, prefix=settings.API_PREFIX, tags=["Poses"])
-app.include_router(fibo_mapper.router, prefix=settings.API_PREFIX, tags=["FIBO Mapper"])
-app.include_router(determinism.router, prefix=settings.API_PREFIX, tags=["Determinism"])
-app.include_router(export.router, prefix=settings.API_PREFIX, tags=["Export"])
-app.include_router(stripe_checkout.router)
-app.include_router(billing.router)
-app.include_router(billing_webhook.router)
-app.include_router(stripe_customers.router)
-app.include_router(usage.router)
-app.include_router(invoice_proxy.router)
-try:
-    app.include_router(revenue_dashboard.router)
-except NameError:
-    pass
-app.include_router(admin_refunds.router)
-app.include_router(contact.router, prefix=settings.API_PREFIX, tags=["Contact"])
-app.include_router(careers.router, prefix=settings.API_PREFIX, tags=["Careers"])
-app.include_router(s3.router, prefix=settings.API_PREFIX, tags=["S3"])
-app.include_router(image_onboarding.router, prefix=settings.API_PREFIX, tags=["Image Onboarding"])
-app.include_router(vehicle_shot.router, prefix=settings.API_PREFIX, tags=["Vehicle Shot"])
-app.include_router(text_to_image.router, prefix=settings.API_PREFIX, tags=["Text-to-Image"])
-app.include_router(auth.router, tags=["Auth"])
-app.include_router(payments.router, tags=["Payments"])
-app.include_router(bria_v1.router, tags=["Bria V1"])
-app.include_router(chat.router, tags=["Chat"])
-app.include_router(gemini.router, prefix=settings.API_PREFIX, tags=["Gemini"])
-app.include_router(agents.router, tags=["Agents"])
-app.include_router(sse.router, tags=["SSE"])
-app.include_router(post_processing.router, tags=["Post-Processing"])
-app.include_router(hitl.router, tags=["HITL"])
-app.include_router(voice_assistant_ws.router, tags=["Voice"])
-app.include_router(deploy_check.router)
-app.include_router(admin.router)
-
-# Production routers
-if marketplace:
-    app.include_router(marketplace.router)
-if admin_production:
-    app.include_router(admin_production.router)
 
 
 # ============================================================================
