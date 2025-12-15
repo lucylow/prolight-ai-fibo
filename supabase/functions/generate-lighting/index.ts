@@ -30,6 +30,20 @@ interface SceneRequest {
   negativePrompt?: string;
 }
 
+interface FIBOJson {
+  lighting?: Record<string, unknown>;
+  camera?: Record<string, unknown>;
+  environment?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface LightingAnalysis {
+  keyFillRatio?: number;
+  lightingStyle?: string;
+  professionalRating?: number;
+  [key: string]: unknown;
+}
+
 // Professional lighting style definitions
 const LIGHTING_STYLES: Record<string, { ratioRange: [number, number]; description: string }> = {
   high_contrast_dramatic: { ratioRange: [8.0, Infinity], description: "Dramatic high-contrast" },
@@ -201,7 +215,7 @@ function buildFiboJson(request: SceneRequest) {
   };
 }
 
-function buildProfessionalImagePrompt(request: SceneRequest, fiboJson: any, analysis: any): string {
+function buildProfessionalImagePrompt(request: SceneRequest, fiboJson: FIBOJson, analysis: LightingAnalysis): string {
   const { lightingSetup, cameraSettings } = request;
   
   // Build detailed lighting description

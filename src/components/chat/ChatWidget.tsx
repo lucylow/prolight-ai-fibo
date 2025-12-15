@@ -14,14 +14,57 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Send, Wifi, WifiOff, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Speech Recognition API types
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+}
+
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+  message?: string;
+}
+
+interface WindowWithSpeech extends Window {
+  SpeechRecognition?: {
+    new (): SpeechRecognition;
+  };
+  webkitSpeechRecognition?: {
+    new (): SpeechRecognition;
+  };
+}
+
 interface ChatWidgetProps {
   conversationId: string;
   useWebSocket?: boolean;
   className?: string;
 }
-
-// We intentionally use loose "any" typing for the Web Speech API to avoid
-// conflicts with varying browser/TypeScript DOM definitions.
 
 export function ChatWidget({
   conversationId,
@@ -37,7 +80,7 @@ export function ChatWidget({
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
   const [speechSynthesisSupported, setSpeechSynthesisSupported] = useState(false);
-  const recognitionRef = useRef<any | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
 
   const {
@@ -68,7 +111,7 @@ export function ChatWidget({
 
   // Check browser support for speech APIs
   useEffect(() => {
-    const windowWithSpeech = window as any;
+    const windowWithSpeech = window as WindowWithSpeech;
     const SpeechRecognition = windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition;
     
     setSpeechRecognitionSupported(!!SpeechRecognition);
@@ -80,14 +123,14 @@ export function ChatWidget({
       recognition.interimResults = true;
       recognition.lang = 'en-US';
       
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = Array.from(event.results)
           .map((result) => result[0].transcript)
           .join('');
         setInput(transcript);
       };
       
-      recognition.onerror = (event: any) => {
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
         

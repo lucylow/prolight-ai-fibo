@@ -117,8 +117,13 @@ const MetricCard = ({ title, value, trend, color }: {
 // LIGHTING HEATMAP (Key/Fill/Rim Balance)
 // ============================================================================
 
+interface HeatMapDataRow {
+  id: string;
+  [key: string]: string | number;
+}
+
 const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
-  const heatmapData = useMemo<any[]>(() => {
+  const heatmapData = useMemo<HeatMapDataRow[]>(() => {
     if (!data?.generations || data.generations.length === 0) {
       return [];
     }
@@ -140,7 +145,7 @@ const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
     
     // Convert to Nivo heatmap format
     return Object.entries(grid).map(([keyBin, fillValues]) => {
-      const row: Record<string, string | number> = { id: `Key ${keyBin}` };
+      const row: HeatMapDataRow = { id: `Key ${keyBin}` };
       Object.entries(fillValues).forEach(([fillBin, score]) => {
         row[`Fill ${fillBin}`] = score;
       });
@@ -165,18 +170,16 @@ const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
       <h3 style={chartTitle}>Optimal Lighting Ratios</h3>
       <div style={{ height: 400 }}>
         <HeatMap
-          // Nivo's HeatMap generic types are strict; we cast to any to match the runtime format
-          data={heatmapData as any}
+          data={heatmapData}
           keys={keys}
           indexBy="id"
           margin={{ top: 60, right: 60, bottom: 60, left: 60 }}
           colors={{
-            // Use a built-in diverging color scheme compatible with current @nivo/heatmap types
             type: 'diverging',
             scheme: 'red_yellow_green',
             minValue: 40,
             maxValue: 100,
-          } as any}
+          }}
           axisTop={{
             tickSize: 5,
             tickPadding: 10,

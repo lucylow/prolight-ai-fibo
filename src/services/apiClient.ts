@@ -198,7 +198,7 @@ class APIClient {
   async generateFromPreset(
     presetId: string,
     sceneDescription: string,
-    customSettings?: Record<string, any>
+    customSettings?: Record<string, unknown>
   ): Promise<GenerationResponse> {
     if (this.useMock) {
       return this.mockGenerate({
@@ -336,7 +336,7 @@ class APIClient {
   // ============================================================================
 
   async batchGenerate(
-    items: any[],
+    items: Array<Record<string, unknown>>,
     presetName?: string,
     totalCount?: number
   ): Promise<BatchJobResponse> {
@@ -400,7 +400,7 @@ class APIClient {
   // Analysis Endpoints
   // ============================================================================
 
-  async analyzeLighting(lightingSetup: Record<string, any>): Promise<LightingAnalysis> {
+  async analyzeLighting(lightingSetup: Record<string, unknown>): Promise<LightingAnalysis> {
     if (this.useMock) {
       return this.mockAnalyzeLighting(lightingSetup);
     }
@@ -411,7 +411,7 @@ class APIClient {
     });
   }
 
-  async compareLightingSetups(setup1: Record<string, any>, setup2: Record<string, any>) {
+  async compareLightingSetups(setup1: Record<string, unknown>, setup2: Record<string, unknown>) {
     if (this.useMock) {
       return this.mockCompareLightingSetups(setup1, setup2);
     }
@@ -568,7 +568,7 @@ class APIClient {
     };
   }
 
-  private mockBatchGenerate(items: any[]) {
+  private mockBatchGenerate(items: Array<Record<string, unknown>>) {
     return {
       batch_id: `batch_${Date.now()}`,
       status: 'processing',
@@ -609,7 +609,7 @@ class APIClient {
     };
   }
 
-  private mockAnalyzeLighting(lightingSetup: Record<string, any>) {
+  private mockAnalyzeLighting(lightingSetup: Record<string, unknown>) {
     return {
       key_to_fill_ratio: 2.5,
       color_temperature_consistency: 0.95,
@@ -619,7 +619,7 @@ class APIClient {
     };
   }
 
-  private mockCompareLightingSetups(setup1: Record<string, any>, setup2: Record<string, any>) {
+  private mockCompareLightingSetups(setup1: Record<string, unknown>, setup2: Record<string, unknown>) {
     return {
       setup_1: this.mockAnalyzeLighting(setup1),
       setup_2: this.mockAnalyzeLighting(setup2),

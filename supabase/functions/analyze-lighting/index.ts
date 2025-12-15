@@ -40,6 +40,14 @@ const PROFESSIONAL_RATINGS: Record<string, { idealRatio: [number, number]; maxSc
   editorial: { idealRatio: [2.5, 5.0], maxScore: 10 }
 };
 
+interface ColorAnalysis {
+  [key: string]: unknown;
+}
+
+interface ShadowAnalysis {
+  [key: string]: unknown;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -306,8 +314,8 @@ function generateRecommendations(
 
 function generateTechnicalNotes(
   lightingSetup: Record<string, LightSettings>,
-  colorAnalysis: any,
-  shadowAnalysis: any
+  colorAnalysis: ColorAnalysis,
+  shadowAnalysis: ShadowAnalysis
 ): string[] {
   const notes: string[] = [];
   

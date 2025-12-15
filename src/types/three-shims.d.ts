@@ -2,6 +2,7 @@
  * Minimal JSX intrinsics augmentation for react-three-fiber + custom shaderMaterial elements
  * Add other tags here as needed (e.g., shaderMaterial, primitive).
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as THREE from 'three';
 declare global {
   namespace JSX {
@@ -14,5 +15,6 @@ declare global {
     }
   }
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 export {};
 

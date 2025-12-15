@@ -55,6 +55,7 @@
     "/bria/video-editing",
     "/bria/v1-generator",
     "/demo/free-apis",
-    "/agentic-workflows"
+    "/agentic-workflows",
+    "/agentic-workflow"
   ]
 }

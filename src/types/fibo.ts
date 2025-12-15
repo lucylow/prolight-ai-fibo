@@ -78,18 +78,18 @@ export interface FIBOPrompt {
   lighting: FIBOLighting;
   render: FIBORender;
   enhancements?: FIBOEnhancements;
-  styleParameters?: Record<string, any>;
-  materials?: Record<string, any>;
-  meta?: Record<string, any>;
+  styleParameters?: Record<string, unknown>;
+  materials?: Record<string, unknown>;
+  meta?: Record<string, unknown>;
 }
 
 // API Request/Response Types
 
 export interface GenerateRequest {
   scene_description: string;
-  lighting_setup: Record<string, any>;
-  camera_settings?: Record<string, any>;
-  render_settings?: Record<string, any>;
+  lighting_setup: Record<string, unknown>;
+  camera_settings?: Record<string, unknown>;
+  render_settings?: Record<string, unknown>;
   use_mock: boolean;
 }
 
@@ -158,7 +158,7 @@ export interface ErrorResponse {
   status: string;
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface HealthResponse {

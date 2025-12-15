@@ -11,6 +11,53 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { getApiBaseUrl } from '@/utils/env';
 
+// Speech Recognition API types
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+}
+
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+  message?: string;
+}
+
+interface WindowWithSpeech extends Window {
+  SpeechRecognition?: {
+    new (): SpeechRecognition;
+  };
+  webkitSpeechRecognition?: {
+    new (): SpeechRecognition;
+  };
+}
+
 const GEMINI_SYSTEM_PROMPT = `You are ProLight AI Voice Assistant. Convert natural language photography descriptions to FIBO JSON.
 
 You understand professional photography terminology:
@@ -40,7 +87,7 @@ export const VoiceFIBOStudio: React.FC<VoiceFIBOStudioProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isSupported, setIsSupported] = useState(false);
 
-  const recognitionRef = useRef<any | null>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthRef = useRef<SpeechSynthesis | null>(null);
   const finalTranscriptRef = useRef<string>('');
 
@@ -54,7 +101,7 @@ export const VoiceFIBOStudio: React.FC<VoiceFIBOStudioProps> = ({
 
   // Check for Speech Recognition support
   useEffect(() => {
-    const windowWithSpeech = window as unknown as any;
+    const windowWithSpeech = window as WindowWithSpeech;
     const SpeechRecognition =
       windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition;
     
@@ -65,7 +112,7 @@ export const VoiceFIBOStudio: React.FC<VoiceFIBOStudioProps> = ({
       recognitionRef.current.interimResults = true;
       recognitionRef.current.lang = 'en-US';
 
-      recognitionRef.current.onresult = (event: any) => {
+      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         let interimTranscript = '';
         let finalTranscript = '';
 
@@ -91,7 +138,7 @@ export const VoiceFIBOStudio: React.FC<VoiceFIBOStudioProps> = ({
         }
       };
 
-      recognitionRef.current.onerror = (event: any) => {
+      recognitionRef.current.onerror = (event: SpeechRecognitionErrorEvent) => {
         console.error('Speech recognition error:', event.error);
         setError(`Speech recognition error: ${event.error}`);
         setIsListening(false);

@@ -12,7 +12,7 @@ afterEach(() => {
 
 // Optional: minimal matchMedia mock to avoid errors during tests
 if (typeof window !== 'undefined' && !window.matchMedia) {
-  // @ts-ignore
+  // @ts-expect-error - matchMedia is not defined in test environment
   window.matchMedia = (query: string) => ({
     matches: false,
     media: query,

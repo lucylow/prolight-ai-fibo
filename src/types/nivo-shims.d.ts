@@ -3,6 +3,7 @@
  * Temporary: cast unknown @nivo/* imports to any until proper prop types are enforced.
  * Replace with real typed usage later.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 declare module '@nivo/bar' {
   const _default: any;
   export default _default;
@@ -31,4 +32,5 @@ declare module '@nivo/heatmap' {
   export default _default;
   export const ResponsiveHeatMap: any;
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 

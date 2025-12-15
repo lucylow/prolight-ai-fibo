@@ -13,6 +13,37 @@ interface NaturalLanguageRequest {
   environment?: string;
 }
 
+interface LightSettings {
+  direction?: string;
+  intensity?: number;
+  colorTemperature?: number;
+  color_temperature?: number;
+  softness?: number;
+  distance?: number;
+  enabled?: boolean;
+}
+
+interface LightingSetup {
+  key?: LightSettings;
+  fill?: LightSettings;
+  rim?: LightSettings;
+  ambient?: LightSettings;
+}
+
+interface LightingJson {
+  lighting_setup?: LightingSetup;
+  lighting_style?: string;
+  mood_description?: string;
+  shadow_intensity?: number;
+}
+
+interface LightingAnalysis {
+  keyFillRatio?: number;
+  lightingStyle?: string;
+  professionalRating?: number;
+  [key: string]: unknown;
+}
+
 // Professional photography director system prompt
 const LIGHTING_SYSTEM_PROMPT = `You are a professional photography director and lighting expert with 20+ years of experience. Convert natural language lighting descriptions into precise, structured JSON parameters for AI image generation.
 
@@ -228,7 +259,7 @@ Output ONLY the JSON object, nothing else.`
   }
 });
 
-function validateAndNormalizeLighting(lightingJson: any): any {
+function validateAndNormalizeLighting(lightingJson: LightingJson): LightingJson {
   const setup = lightingJson.lighting_setup || {};
   
   const validated = {
@@ -246,7 +277,7 @@ function validateAndNormalizeLighting(lightingJson: any): any {
   return validated;
 }
 
-function normalizeLight(light: any, defaults: any): any {
+function normalizeLight(light: LightSettings | undefined, defaults: LightSettings): LightSettings {
   if (!light) return { ...defaults, enabled: false };
   
   return {
@@ -259,7 +290,7 @@ function normalizeLight(light: any, defaults: any): any {
   };
 }
 
-function getDefaultLighting(description: string): any {
+function getDefaultLighting(description: string): LightingJson {
   const desc = description.toLowerCase();
   
   // Detect lighting style from description
@@ -319,7 +350,7 @@ function getDefaultLighting(description: string): any {
   };
 }
 
-function buildNLImagePrompt(request: NaturalLanguageRequest, lightingJson: any, analysis: any): string {
+function buildNLImagePrompt(request: NaturalLanguageRequest, lightingJson: LightingJson, analysis: LightingAnalysis): string {
   const setup = lightingJson.lighting_setup;
   
   let lightingDesc = "";
@@ -356,7 +387,7 @@ Technical specs: ${analysis.keyFillRatio}:1 key-to-fill ratio, ${analysis.lighti
 Create a photorealistic, magazine-quality image with precise professional lighting matching the described setup.`;
 }
 
-function analyzeLightingFromJson(lightingJson: any) {
+function analyzeLightingFromJson(lightingJson: LightingJson): LightingAnalysis {
   const setup = lightingJson.lighting_setup || {};
   const key = setup.key || { intensity: 0.8 };
   const fill = setup.fill || { intensity: 0.4 };
