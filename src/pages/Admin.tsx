@@ -199,9 +199,14 @@ const Admin = () => {
     try {
       const response = await api.get("/admin/summary");
       setSummary(response.data);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to fetch admin summary:", error);
-      setSummaryError(error.response?.data?.detail || error.message || "Failed to fetch admin summary");
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { detail?: string }; status?: number } }).response?.data?.detail
+        : error instanceof Error
+        ? error.message
+        : "Failed to fetch admin summary";
+      setSummaryError(errorMessage || "Failed to fetch admin summary");
       // Don't show toast for RBAC errors - they're expected for non-admin users
       if (error.response?.status !== 403) {
         toast.error("Failed to fetch admin summary");

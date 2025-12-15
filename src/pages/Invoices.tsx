@@ -95,24 +95,6 @@ const Invoices = () => {
           const items = response.data.items;
           
           // Normalize invoice data
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-          const normalizedInvoices: Invoice[] = items.map((inv: Record<string, unknown>) => ({
-            id: inv.id || inv.stripe_invoice_id || `inv_${Date.now()}`,
-            number: inv.number || inv.invoice_number || inv.id?.substring(0, 12),
-            stripe_invoice_id: inv.stripe_invoice_id || inv.id,
-            date: inv.date || inv.created || inv.invoice_date || new Date().toISOString(),
-            amount: inv.amount_due ? inv.amount_due / 100 : inv.amount || 0,
-            amount_due: inv.amount_due,
-            currency: inv.currency || "usd",
-            status: inv.status || "Pending",
-            receiptUrl: inv.hosted_invoice_url || inv.invoice_pdf || inv.receiptUrl,
-            hosted_invoice_url: inv.hosted_invoice_url,
-            invoice_pdf: inv.invoice_pdf,
-          }));
-=======
-=======
->>>>>>> Stashed changes
           const normalizedInvoices: Invoice[] = items.map((inv: Record<string, unknown>) => {
             const getId = () => {
               const id = typeof inv.id === 'string' ? inv.id : undefined;
@@ -154,10 +136,6 @@ const Invoices = () => {
               invoice_pdf: typeof inv.invoice_pdf === 'string' ? inv.invoice_pdf : undefined,
             };
           });
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
 
           if (resetCursor || page === 1) {
             setInvoices(normalizedInvoices);

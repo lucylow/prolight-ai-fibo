@@ -25,7 +25,7 @@ export type CameraJson = {
       color?: [number, number, number];
       position?: [number, number, number];
     };
-    [key: string]: any;
+    [key: string]: unknown;
   };
   camera?: {
     fov?: number;
@@ -34,7 +34,7 @@ export type CameraJson = {
     aperture?: number;
     focalLength?: number;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 type AppStore = {
