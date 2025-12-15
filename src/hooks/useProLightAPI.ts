@@ -16,7 +16,7 @@ import type {
 interface UseProLightAPIState {
   loading: boolean;
   error: Error | null;
-  data: any;
+  data: unknown;
 }
 
 export function useGenerateImage() {
