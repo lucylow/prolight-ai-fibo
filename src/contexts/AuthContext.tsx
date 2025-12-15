@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
+import { AxiosInstance } from "axios";
 import { signInAPI, signOutAPI, getSessionAPI } from "../services/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export interface User {
   id: string;
@@ -17,6 +19,7 @@ interface AuthContextProps {
   logout: () => Promise<void>;
   loginWithOAuth: (provider: "google" | "github") => Promise<void>;
   refreshSession: () => Promise<void>;
+  api: AxiosInstance;
 }
 
 export const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -128,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, loginWithOAuth, refreshSession }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, loginWithOAuth, refreshSession, api }}>
       {children}
     </AuthContext.Provider>
   );

@@ -9,9 +9,7 @@ import { toast } from "sonner";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Download, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Invoice {
   id: string;
@@ -23,12 +21,15 @@ interface Invoice {
 }
 
 const Invoices = () => {
+  const { api } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
 
   const perPage = 10;
 
@@ -36,17 +37,54 @@ const Invoices = () => {
     fetchInvoices();
   }, [page, statusFilter]);
 
+  // Debounce search query
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      if (page === 1) {
+        fetchInvoices();
+      } else {
+        setPage(1); // Reset to first page when search changes
+      }
+    }, 500);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API endpoint
-      // const response = await axios.get(`${API_BASE_URL}/api/invoices`, {
-      //   params: { page, per_page: perPage, status: statusFilter || undefined },
-      // });
-      // setInvoices(response.data.items);
-      // setTotalPages(response.data.total_pages);
-      
-      // Mock data
+      // Try server-side API first
+      try {
+        const response = await api.get("/billing/invoices", {
+          params: {
+            page,
+            perPage,
+            status: statusFilter || undefined,
+            q: searchQuery || undefined,
+          },
+        });
+
+        if (response.data?.items) {
+          setInvoices(response.data.items);
+          setTotalPages(response.data.totalPages || Math.ceil((response.data.total || 0) / perPage));
+          setTotal(response.data.total || 0);
+          return;
+        }
+      } catch (apiError: any) {
+        // If API endpoint doesn't exist, fall back to mock data
+        if (apiError.response?.status !== 404) {
+          throw apiError;
+        }
+      }
+
+      // Fallback to mock data for development
       const mockInvoices: Invoice[] = [
         { id: "1", number: "INV-1042", date: "2025-09-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
         { id: "2", number: "INV-1041", date: "2025-08-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
@@ -54,7 +92,8 @@ const Invoices = () => {
         { id: "4", number: "INV-1039", date: "2025-06-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
         { id: "5", number: "INV-1038", date: "2025-05-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
       ];
-      
+
+      // Client-side filtering for mock data
       let filtered = mockInvoices;
       if (statusFilter) {
         filtered = filtered.filter((inv) => inv.status === statusFilter);
@@ -71,6 +110,7 @@ const Invoices = () => {
       const end = start + perPage;
       setInvoices(filtered.slice(start, end));
       setTotalPages(Math.ceil(filtered.length / perPage));
+      setTotal(filtered.length);
     } catch (error: unknown) {
       console.error("Failed to load invoices:", error);
       toast.error("Failed to load invoices");
@@ -149,7 +189,7 @@ const Invoices = () => {
             <div className="flex justify-center items-center py-12">
               <LoadingSpinner size="lg" />
             </div>
-          ) : filteredInvoices.length === 0 ? (
+          ) : invoices.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No invoices found</p>
@@ -194,7 +234,7 @@ const Invoices = () => {
 
               <div className="flex items-center justify-between mt-6">
                 <div className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
+                  Showing {(page - 1) * perPage + 1} to {Math.min(page * perPage, total)} of {total} invoices
                 </div>
                 <div className="flex gap-2">
                   <Button
