@@ -1,6 +1,5 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ThemeProvider as NextThemeProvider } from "next-themes";
 import App from "./App.tsx";
 import "./index.css";
 import { validateEnv } from "./utils/env";
@@ -28,9 +27,7 @@ const init = (): void => {
   
   root.render(
     <StrictMode>
-      <NextThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <App />
-      </NextThemeProvider>
+      <App />
     </StrictMode>
   );
 };

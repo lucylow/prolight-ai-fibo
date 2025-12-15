@@ -59,6 +59,10 @@ const useAnalyticsStore = () => {
 // ============================================================================
 
 const MetricsCards = ({ data }: { data: AnalyticsData }) => {
+  if (!data?.generations || data.generations.length === 0) {
+    return null;
+  }
+  
   const recent = data.generations.slice(-24); // Last 24 hours
   
   const avgProScore = recent.reduce((sum, g) => sum + g.professional_score, 0) / recent.length;
@@ -115,6 +119,10 @@ const MetricCard = ({ title, value, trend, color }: {
 
 const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
   const heatmapData = useMemo(() => {
+    if (!data?.generations || data.generations.length === 0) {
+      return [];
+    }
+    
     // Create a grid of key/fill combinations
     const grid: Record<string, Record<string, number>> = {};
     
@@ -141,6 +149,10 @@ const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
   }, [data]);
 
   const keys = useMemo(() => {
+    if (!data?.generations || data.generations.length === 0) {
+      return [];
+    }
+    
     const allFillBins = new Set<string>();
     data.generations.forEach(gen => {
       allFillBins.add(`Fill ${Math.round(gen.fillIntensity * 10)}`);
@@ -202,6 +214,10 @@ const LightingHeatMap = ({ data }: { data: AnalyticsData }) => {
 
 const ProScoreTrend = ({ data }: { data: AnalyticsData }) => {
   const trendData: Serie[] = useMemo(() => {
+    if (!data?.generations || data.generations.length === 0) {
+      return [];
+    }
+    
     const hourly = data.generations.reduce((acc, gen) => {
       const hour = new Date(gen.timestamp).getHours();
       acc[hour] = acc[hour] || { proScore: 0, count: 0 };
@@ -265,6 +281,10 @@ const ProScoreTrend = ({ data }: { data: AnalyticsData }) => {
 
 const FocalLengthDistribution = ({ data }: { data: AnalyticsData }) => {
   const focalData = useMemo(() => {
+    if (!data?.generations || data.generations.length === 0) {
+      return [];
+    }
+    
     const counts = data.generations.reduce((acc, gen) => {
       acc[gen.focalLength] = (acc[gen.focalLength] || 0) + 1;
       return acc;
@@ -357,6 +377,17 @@ const Recommendation = ({ title, score, recommendation }: {
 export const ProLightAnalyticsDashboard = () => {
   const { data } = useAnalyticsStore();
   const [activeView, setActiveView] = useState<'overview' | 'lighting' | 'trends'>('overview');
+
+  if (!data?.generations) {
+    return (
+      <div style={dashboardContainer}>
+        <div style={dashboardHeader}>
+          <h1 style={dashboardTitle}>📊 ProLight Analytics</h1>
+          <p style={dashboardSubtitle}>Loading analytics data...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={dashboardContainer}>
