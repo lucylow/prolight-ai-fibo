@@ -13,7 +13,6 @@ interface UseSSEOptions {
   onDisconnect?: () => void;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 const MAX_RECONNECT_DELAY = 60000; // 1 minute
 const INITIAL_RECONNECT_DELAY = 1000; // 1 second
 
@@ -41,6 +40,7 @@ export function useSSE(
       eventSourceRef.current = null;
     }
 
+    const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
     const url = `${API_BASE_URL}/api/agent/runs/${runId}/events?token=${encodeURIComponent(token)}`;
     
     try {
