@@ -4,12 +4,11 @@ Handles reporting usage to Stripe for metered billing.
 """
 import os
 import stripe
-from fastapi import APIRouter, Depends, HTTPException, Header, Body
+from fastapi import APIRouter, Depends, HTTPException, Header
 from typing import Optional
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from decimal import Decimal
-from datetime import datetime
 
 from app.db import SessionLocal
 from app.models.billing import User, UsageRecord, Subscription
@@ -36,9 +35,9 @@ def get_db():
 
 
 class ReportUsageRequest(BaseModel):
+    subscription_item_id: str  # required: the subscription_item to record usage against
     quantity: float
-    subscription_item_id: Optional[str] = None  # Required if user has multiple subscription items
-    metadata: Optional[str] = None  # JSON string for additional metadata
+    metadata: dict = None
 
 
 class ReportUsageResponse(BaseModel):
@@ -48,18 +47,16 @@ class ReportUsageResponse(BaseModel):
     error: Optional[str] = None
 
 
-@router.post("/report_usage", response_model=ReportUsageResponse)
+@router.post("/report_usage")
 def report_usage(
-    body: ReportUsageRequest,
+    payload: ReportUsageRequest,
     db: Session = Depends(get_db),
     authorization: Optional[str] = Header(None)
 ):
     """
-    Report usage for metered billing.
-    
-    - quantity: numeric units (e.g., images processed, seconds used)
-    - subscription_item_id: required if user has multiple subscription items; otherwise derived from active subscription
-    - metadata: optional JSON string for additional metadata
+    Record usage locally and send UsageRecord to Stripe (increment).
+    This endpoint is idempotent for local persistence but Stripe creates a usage record per request.
+    For high volume usage, batch on the client/server and call this endpoint periodically.
     """
     # Get current user
     current_user = get_current_user(authorization, db)
@@ -80,101 +77,46 @@ def report_usage(
     else:
         raise HTTPException(status_code=401, detail="Invalid user")
     
-    # Resolve subscription_item_id if not provided
-    subscription_item_id = body.subscription_item_id
-    
-    if not subscription_item_id:
-        # Attempt to find subscription item from DB
-        # Get the user's Stripe customer ID
-        if not db_user.stripe_customer_id:
-            raise HTTPException(
-                status_code=400,
-                detail="User has no Stripe customer. Create a customer first."
-            )
-        
-        # Find active subscription
-        sub = db.query(Subscription).filter(
-            Subscription.stripe_customer_id == db_user.stripe_customer_id,
-            Subscription.status == "active"
-        ).first()
-        
-        if not sub:
-            raise HTTPException(
-                status_code=400,
-                detail="No active subscription found. subscription_item_id is required."
-            )
-        
-        if not sub.stripe_subscription_item_id:
-            raise HTTPException(
-                status_code=400,
-                detail="Subscription missing subscription_item_id. Please provide subscription_item_id parameter."
-            )
-        
-        subscription_item_id = sub.stripe_subscription_item_id
-    
-    # Create local usage record
+    # Validate subscription ownership (optional)
+    sub = None
+    if payload.subscription_item_id:
+        sub = db.query(Subscription).filter(Subscription.subscription_item_id == payload.subscription_item_id).first()
+        if sub and sub.stripe_customer_id != db_user.stripe_customer_id:
+            raise HTTPException(status_code=403, detail="Subscription item does not belong to the current user")
+
+    # Persist local UsageRecord
     usage = UsageRecord(
         user_id=user_id,
-        stripe_subscription_item_id=subscription_item_id,
-        quantity=Decimal(str(body.quantity)),
-        metadata=body.metadata,
-        reported_at=datetime.utcnow()
+        stripe_subscription_item_id=payload.subscription_item_id,
+        quantity=Decimal(str(payload.quantity)),
+        metadata=(str(payload.metadata) if payload.metadata else None)
     )
     db.add(usage)
     db.commit()
     db.refresh(usage)
-    
-    # Send to Stripe as usage record
-    stripe_report_id = None
-    error = None
-    
+
+    # Send to Stripe
     try:
-        stripe_client = get_stripe_client()
-        
-        if not settings.USE_MOCK_STRIPE and hasattr(stripe_client, 'UsageRecord'):
-            # Real Stripe API
+        if not settings.USE_MOCK_STRIPE:
             report = stripe.UsageRecord.create(
-                quantity=int(body.quantity),
+                subscription_item=payload.subscription_item_id,
+                quantity=int(payload.quantity),
                 timestamp=int(usage.reported_at.timestamp()),
-                subscription_item=subscription_item_id,
-                action="increment"  # Adds quantity to current billing period total
+                action="increment"
             )
             stripe_report_id = report.get("id")
-            
-            # Update local record with Stripe report ID
-            usage.stripe_report_id = stripe_report_id
-            db.add(usage)
-            db.commit()
         else:
-            # Mock mode - no real Stripe call
+            # Mock mode
             stripe_report_id = f"ur_mock_{usage.id}"
-            usage.stripe_report_id = stripe_report_id
-            db.add(usage)
-            db.commit()
-        
-        return ReportUsageResponse(
-            ok=True,
-            usage_id=usage.id,
-            stripe_report_id=stripe_report_id
-        )
-        
     except stripe.error.StripeError as e:
-        # Keep local record but mark stripe_report_id null to retry later
-        error = str(e)
-        logger.error(f"Stripe usage record creation failed: {e}")
-        return ReportUsageResponse(
-            ok=False,
-            usage_id=usage.id,
-            error=error
-        )
-    except Exception as e:
-        error = str(e)
-        logger.error(f"Usage reporting failed: {e}")
-        return ReportUsageResponse(
-            ok=False,
-            usage_id=usage.id,
-            error=error
-        )
+        # don't delete local record — mark stripe_report_id null so it can be retried via admin task
+        return {"ok": False, "error": str(e), "usage_id": usage.id}
+
+    # Persist stripe report id
+    usage.stripe_report_id = stripe_report_id
+    db.add(usage)
+    db.commit()
+    return {"ok": True, "usage_id": usage.id, "stripe_report_id": usage.stripe_report_id}
 
 
 @router.get("/usage_records")
