@@ -26,9 +26,14 @@ export default function AgentOrchestratorPage() {
     try {
       const workflowList = await listWorkflows();
       workflowList.forEach((wf) => useAgentStore.getState().upsertWorkflow(wf));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load workflows:", error);
-      toast.error(error.response?.data?.message || error.message || "Failed to load workflows");
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : error instanceof Error
+        ? error.message
+        : "Failed to load workflows";
+      toast.error(errorMessage || "Failed to load workflows");
     } finally {
       setLoading(false);
     }

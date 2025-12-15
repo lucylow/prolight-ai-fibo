@@ -128,6 +128,7 @@ async def root():
 from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1, chat, deploy_check, admin, agents, gemini, fibo_mapper, determinism, export, text_to_image
 from app.api import sse, post_processing
 from app.api import billing_webhook, stripe_customers, usage, invoice_proxy, hitl
+from app.api import voice_assistant_ws
 
 # Import production routers
 try:
@@ -174,6 +175,7 @@ app.include_router(agents.router, tags=["Agents"])
 app.include_router(sse.router, tags=["SSE"])
 app.include_router(post_processing.router, tags=["Post-Processing"])
 app.include_router(hitl.router, tags=["HITL"])
+app.include_router(voice_assistant_ws.router, tags=["Voice"])
 app.include_router(deploy_check.router)
 app.include_router(admin.router)
 

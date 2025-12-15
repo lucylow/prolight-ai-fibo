@@ -53,10 +53,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const session = await getSessionAPI();
       if (session?.user) {
         setUser(session.user);
+      } else {
+        // Dev fallback: return admin user if no auth configured
+        const isDev = import.meta.env.DEV || !import.meta.env.VITE_SUPABASE_URL;
+        if (isDev) {
+          console.warn("No auth configured, using dev admin fallback");
+          setUser({
+            id: "dev-admin",
+            email: "admin@dev.local",
+            name: "Dev Admin",
+            role: "admin",
+          });
+        }
       }
     } catch (error) {
       console.error("Session check failed:", error);
-      setUser(null);
+      // Dev fallback on error
+      const isDev = import.meta.env.DEV || !import.meta.env.VITE_SUPABASE_URL;
+      if (isDev) {
+        console.warn("Auth check failed, using dev admin fallback");
+        setUser({
+          id: "dev-admin",
+          email: "admin@dev.local",
+          name: "Dev Admin",
+          role: "admin",
+        });
+      } else {
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -150,4 +174,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
 

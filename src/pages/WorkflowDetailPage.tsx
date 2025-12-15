@@ -54,9 +54,14 @@ export default function WorkflowDetailPage() {
           console.error("Failed to load run status:", error);
         }
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load workflow:", error);
-      toast.error(error.response?.data?.message || error.message || "Failed to load workflow");
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : error instanceof Error
+        ? error.message
+        : "Failed to load workflow";
+      toast.error(errorMessage || "Failed to load workflow");
       navigate("/agentic");
     } finally {
       setLoading(false);
@@ -81,9 +86,14 @@ export default function WorkflowDetailPage() {
         sse_token: response.sse_token,
       });
       toast.success("Run started successfully");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to start run:", error);
-      toast.error(error.response?.data?.message || error.message || "Failed to start run");
+      const errorMessage = error && typeof error === 'object' && 'response' in error
+        ? (error as { response?: { data?: { message?: string } } }).response?.data?.message
+        : error instanceof Error
+        ? error.message
+        : "Failed to start run";
+      toast.error(errorMessage || "Failed to start run");
     }
   };
 

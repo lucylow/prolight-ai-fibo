@@ -26,7 +26,7 @@ export default function WorkflowLibraryPage() {
     try {
       const workflowList = await listWorkflows();
       workflowList.forEach((wf) => useAgentStore.getState().upsertWorkflow(wf));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to load workflows:", error);
     } finally {
       setLoading(false);
