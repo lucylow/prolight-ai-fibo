@@ -96,6 +96,7 @@ const Invoices = () => {
           
           // Normalize invoice data
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
           const normalizedInvoices: Invoice[] = items.map((inv: Record<string, unknown>) => ({
             id: inv.id || inv.stripe_invoice_id || `inv_${Date.now()}`,
             number: inv.number || inv.invoice_number || inv.id?.substring(0, 12),
@@ -110,6 +111,8 @@ const Invoices = () => {
             invoice_pdf: inv.invoice_pdf,
           }));
 =======
+=======
+>>>>>>> Stashed changes
           const normalizedInvoices: Invoice[] = items.map((inv: Record<string, unknown>) => {
             const getId = () => {
               const id = typeof inv.id === 'string' ? inv.id : undefined;
@@ -151,6 +154,9 @@ const Invoices = () => {
               invoice_pdf: typeof inv.invoice_pdf === 'string' ? inv.invoice_pdf : undefined,
             };
           });
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
           if (resetCursor || page === 1) {
