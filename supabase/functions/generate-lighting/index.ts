@@ -153,7 +153,7 @@ serve(async (req) => {
 function buildFiboJson(request: SceneRequest) {
   const { lightingSetup, cameraSettings, subjectDescription, environment } = request;
 
-  const lightingJson: Record<string, any> = {};
+  const lightingJson: Record<string, unknown> = {};
   for (const [type, settings] of Object.entries(lightingSetup)) {
     if (settings.enabled) {
       lightingJson[`${type}_light`] = {
