@@ -78,11 +78,11 @@ describe("BillingPortalButton", () => {
     const { redirectToCustomerPortal } = await import("@/services/billingService");
     const { supabase } = await import("@/integrations/supabase/client");
 
-    (supabase.auth.getUser as any).mockResolvedValue({
+    (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { user: { email: "test@example.com", id: "user_123" } },
     });
 
-    (redirectToCustomerPortal as any).mockImplementation(
+    (redirectToCustomerPortal as ReturnType<typeof vi.fn>).mockImplementation(
       () =>
         new Promise((resolve) =>
           setTimeout(() => resolve("https://billing.stripe.com/test"), 100)
@@ -101,11 +101,11 @@ describe("BillingPortalButton", () => {
     const { redirectToCustomerPortal } = await import("@/services/billingService");
     const { supabase } = await import("@/integrations/supabase/client");
 
-    (supabase.auth.getUser as any).mockResolvedValue({
+    (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { user: { email: "test@example.com", id: "user_123" } },
     });
 
-    (redirectToCustomerPortal as any).mockResolvedValue(
+    (redirectToCustomerPortal as ReturnType<typeof vi.fn>).mockResolvedValue(
       "https://billing.stripe.com/test"
     );
 
@@ -123,7 +123,7 @@ describe("BillingPortalButton", () => {
     const { supabase } = await import("@/integrations/supabase/client");
     const { toast } = await import("sonner");
 
-    (supabase.auth.getUser as any).mockResolvedValue({
+    (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { user: null },
     });
 
@@ -156,11 +156,11 @@ describe("BillingPortalButton", () => {
     const { redirectToCustomerPortal } = await import("@/services/billingService");
     const { supabase } = await import("@/integrations/supabase/client");
 
-    (supabase.auth.getUser as any).mockResolvedValue({
+    (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { user: { email: "test@example.com", id: "user_123" } },
     });
 
-    (redirectToCustomerPortal as any).mockResolvedValue(
+    (redirectToCustomerPortal as ReturnType<typeof vi.fn>).mockResolvedValue(
       "https://billing.stripe.com/test"
     );
 
@@ -176,4 +176,5 @@ describe("BillingPortalButton", () => {
     });
   });
 });
+
 

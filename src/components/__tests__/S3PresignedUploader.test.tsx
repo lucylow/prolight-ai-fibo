@@ -37,7 +37,7 @@ describe("S3PresignedUploader", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useAuth as any).mockReturnValue({ api: mockApi });
+    (useAuth as ReturnType<typeof vi.fn>).mockReturnValue({ api: mockApi });
   });
 
   it("renders upload button", () => {
@@ -58,12 +58,12 @@ describe("S3PresignedUploader", () => {
     });
 
     const axios = await import("axios");
-    (axios.default.put as any).mockImplementation((url, file, config) => {
+    (axios.default.put as ReturnType<typeof vi.fn>).mockImplementation((url, file, config: { onUploadProgress?: (progress: { loaded: number; total: number }) => void }) => {
       // Simulate progress
       if (config?.onUploadProgress) {
         config.onUploadProgress({ loaded: 50, total: 100 });
         setTimeout(() => {
-          config.onUploadProgress({ loaded: 100, total: 100 });
+          config.onUploadProgress?.({ loaded: 100, total: 100 });
         }, 100);
       }
       return Promise.resolve({ status: 200 });
@@ -96,12 +96,13 @@ describe("S3PresignedUploader", () => {
 
     await user.upload(input, largeFile);
 
-    await waitFor(() => {
-      const { toast } = require("sonner");
+    await waitFor(async () => {
+      const { toast } = await import("sonner");
       expect(toast.error).toHaveBeenCalledWith(
         expect.stringContaining("File size exceeds")
       );
     });
   });
 });
+
 

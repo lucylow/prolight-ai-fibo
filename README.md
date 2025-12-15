@@ -20,15 +20,14 @@
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- [AI & FIBO Capabilities](#-ai--fibo-capabilities)
 - [Quick Start](#-quick-start)
-  - [Lovable Deployment](#lovable-deployment-recommended)
-  - [Local Development](#local-development)
 - [Key Features](#-key-features)
 - [Installation](#️-installation)
 - [Deployment](#-deployment)
-  - [Lovable Cloud](#lovable-cloud-recommended)
-  - [Vercel + Supabase](#vercel--supabase)
+  - [Vercel + Supabase](#vercel--supabase-recommended)
   - [Docker](#docker)
+  - [Other Options](#other-deployment-options)
 - [API Documentation](#-api-documentation)
 - [System Architecture](#️-system-architecture)
 - [Development](#-development)
@@ -42,17 +41,23 @@
 
 ## 🎯 Overview
 
-ProLight AI is a production-grade studio lighting simulator that bridges the gap between photographic expertise and AI image generation. By leveraging **BRIA FIBO's JSON-native architecture**, we replace unpredictable text prompts with precise, professional lighting parameters—enabling perfect studio setups in seconds without expensive equipment.
+ProLight AI is an **AI-powered professional lighting simulator** that revolutionizes image generation through **BRIA FIBO's JSON-native architecture**. Unlike traditional AI image generators that rely on unpredictable text prompts, ProLight AI provides **deterministic, reproducible control** over professional lighting parameters—enabling perfect studio setups in seconds without expensive equipment.
 
-> **Innovation**: Unlike traditional AI image generators that rely on ambiguous text prompts, ProLight AI provides deterministic control through structured JSON parameters, giving photographers and creators reproducible, professional-grade results with seed-based reproducibility.
+> **The FIBO Advantage**: By leveraging structured JSON parameters instead of ambiguous text, ProLight AI delivers **identical results** with the same parameters and seed value. This deterministic approach transforms AI image generation from guesswork into precision engineering.
+
+### AI-Powered Innovation
+
+- **🤖 FIBO JSON-Native Architecture**: Structured prompts replace unpredictable text, enabling precise parameter control
+- **🧠 Google Gemini AI Integration**: Natural language descriptions automatically convert to professional FIBO JSON schemas
+- **🎯 Deterministic Generation**: Same parameters + seed = identical output every time (unlike text-based generators)
+- **📊 AI-Powered Analysis**: Intelligent lighting assessment with professional ratings and recommendations
+- **🔄 Intelligent Refinement**: AI-assisted parameter optimization for perfect results
 
 ### Technical Highlights
 
 - **Edge Computing**: Supabase Edge Functions (Deno runtime) for sub-100ms API responses
 - **Type-Safe Architecture**: Full TypeScript implementation with strict type checking
 - **Real-Time 3D Visualization**: Three.js + React Three Fiber for 60 FPS lighting previews
-- **Deterministic Generation**: FIBO JSON schema ensures reproducible results with seed values
-- **Natural Language Processing**: Google Gemini AI for converting descriptions to structured parameters
 - **Production-Ready**: Error handling, validation, rate limiting, and comprehensive logging
 
 ---

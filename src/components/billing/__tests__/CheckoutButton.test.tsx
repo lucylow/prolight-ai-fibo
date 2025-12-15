@@ -79,11 +79,11 @@ describe("CheckoutButton", () => {
     const { createCheckoutSession } = await import("@/services/billingService");
     const { supabase } = await import("@/integrations/supabase/client");
 
-    (supabase.auth.getUser as any).mockResolvedValue({
+    (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { user: { email: "test@example.com", id: "user_123" } },
     });
 
-    (createCheckoutSession as any).mockImplementation(
+    (createCheckoutSession as ReturnType<typeof vi.fn>).mockImplementation(
       () =>
         new Promise((resolve) =>
           setTimeout(
@@ -109,11 +109,11 @@ describe("CheckoutButton", () => {
     const { createCheckoutSession } = await import("@/services/billingService");
     const { supabase } = await import("@/integrations/supabase/client");
 
-    (supabase.auth.getUser as any).mockResolvedValue({
+    (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { user: { email: "test@example.com", id: "user_123" } },
     });
 
-    (createCheckoutSession as any).mockResolvedValue({
+    (createCheckoutSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       checkout_url: "https://checkout.stripe.com/test",
       session_id: "cs_test_123",
     });
@@ -132,7 +132,7 @@ describe("CheckoutButton", () => {
     const { supabase } = await import("@/integrations/supabase/client");
     const { toast } = await import("sonner");
 
-    (supabase.auth.getUser as any).mockResolvedValue({
+    (supabase.auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { user: null },
     });
 
@@ -174,4 +174,5 @@ describe("CheckoutButton", () => {
     expect(screen.getByText("Buy Now")).toBeInTheDocument();
   });
 });
+
 

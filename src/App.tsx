@@ -85,6 +85,7 @@ const StudioNew = lazy(() => import("./pages/StudioNew"));
 const ProfessionalPhotographyDemos = lazy(() => import("./pages/ProfessionalPhotographyDemos"));
 const ContentCreation = lazy(() => import("./pages/ContentCreation"));
 const ProAgent = lazy(() => import("./components/ProAgent"));
+const Education = lazy(() => import("./pages/Education"));
 
 // Enhanced loading fallback component with better UX
 const PageLoader: React.FC = React.memo(() => (

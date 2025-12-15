@@ -41,7 +41,7 @@ describe("AuthContext", () => {
   });
 
   it("provides auth context with api instance", async () => {
-    (supabase.auth.getSession as any).mockResolvedValue({
+    (supabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: null },
     });
 
@@ -57,7 +57,7 @@ describe("AuthContext", () => {
   });
 
   it("handles loading state", async () => {
-    (supabase.auth.getSession as any).mockResolvedValue({
+    (supabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: null },
     });
 
@@ -75,4 +75,5 @@ describe("AuthContext", () => {
     });
   });
 });
+
 
