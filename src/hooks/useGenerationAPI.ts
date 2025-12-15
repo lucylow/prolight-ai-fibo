@@ -3,6 +3,7 @@ import { useLightingStore } from '@/stores/lightingStore';
 import { apiClient } from '@/services/apiClient';
 import type { GenerateRequest, LightingAnalysis as APILightingAnalysis } from '@/types/fibo';
 import { toast } from 'sonner';
+import { getErrorMessage, ValidationError } from '@/lib/errors';
 
 /**
  * Hook for generating images using FastAPI backend
@@ -136,7 +137,7 @@ export const useGenerationAPI = () => {
       const lighting_setup = convertLightingToAPI();
       
       if (!lighting_setup.mainLight && !lighting_setup.fillLight && !lighting_setup.rimLight) {
-        throw new Error('Please enable at least one light');
+        throw new ValidationError('Please enable at least one light');
       }
 
       const request: GenerateRequest = {
@@ -173,10 +174,12 @@ export const useGenerationAPI = () => {
       toast.success('Image generated successfully with FIBO!');
       return result;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
-      toast.error(errorMessage);
-      throw new Error(errorMessage);
+      toast.error('Generation failed', {
+        description: errorMessage,
+      });
+      throw err instanceof Error ? err : new Error(errorMessage);
     } finally {
       setIsGenerating(false);
       setLoading(false);
@@ -229,10 +232,12 @@ export const useGenerationAPI = () => {
       toast.success('Image generated from description!');
       return result;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Generation failed';
+      const errorMessage = getErrorMessage(err);
       setError(errorMessage);
-      toast.error(errorMessage);
-      throw new Error(errorMessage);
+      toast.error('Generation failed', {
+        description: errorMessage,
+      });
+      throw err instanceof Error ? err : new Error(errorMessage);
     } finally {
       setIsGenerating(false);
       setLoading(false);
@@ -263,9 +268,11 @@ export const useGenerationAPI = () => {
       console.log('Analysis result:', analysis);
       return analysis;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
-      toast.error(errorMessage);
-      throw new Error(errorMessage);
+      const errorMessage = getErrorMessage(err);
+      toast.error('Analysis failed', {
+        description: errorMessage,
+      });
+      throw err instanceof Error ? err : new Error(errorMessage);
     }
   };
 

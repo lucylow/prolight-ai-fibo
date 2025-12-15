@@ -2,8 +2,18 @@
 Pytest configuration and fixtures for ProLight AI tests
 """
 
+import os
+import sys
+
 import pytest
 from fastapi.testclient import TestClient
+
+# Ensure the backend `app` package is importable when tests are run from the
+# repository root (so that `from app.main import app` works reliably).
+PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
 from app.main import app
 
 

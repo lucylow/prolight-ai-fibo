@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Sparkles, Lightbulb, Camera, Zap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { generateImage } from '@/lib/api';
 
 const AgenticWorkflow = () => {
   const [prompt, setPrompt] = useState('');
@@ -24,26 +25,20 @@ const AgenticWorkflow = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scene_prompt: prompt,
-          lights: [
-            {
-              id: 'key',
-              position: { x: 1, y: 2, z: 3 },
-              intensity: 0.8,
-              color_temperature: 5600,
-              softness: 0.3,
-              enabled: true
-            }
-          ],
-          sync: true
-        })
+      const data = await generateImage({
+        scene_prompt: prompt,
+        lights: [
+          {
+            id: 'key',
+            position: { x: 1, y: 2, z: 3 },
+            intensity: 0.8,
+            color_temperature: 5600,
+            softness: 0.3,
+            enabled: true
+          }
+        ],
+        sync: true
       });
-
-      const data = await response.json();
       
       if (data.ok) {
         setResult(data);
@@ -242,3 +237,4 @@ const AgenticWorkflow = () => {
 };
 
 export default AgenticWorkflow;
+

@@ -15,6 +15,13 @@ import type {
 } from '@/types/fibo';
 
 import { API_BASE_URL, API_PREFIX, API_TIMEOUT_MS } from '@/lib/config';
+import {
+  APIError,
+  NetworkError,
+  TimeoutError,
+  JSONParseError,
+  getErrorMessage,
+} from '@/lib/errors';
 
 class APIClient {
   private baseUrl: string;
@@ -27,14 +34,35 @@ class APIClient {
 
   private async checkHealth(): Promise<void> {
     try {
-      const response = await fetch(`${this.baseUrl}/health`);
-      if (!response.ok) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for health check
+
+      try {
+        const response = await fetch(`${this.baseUrl}/health`, {
+          signal: controller.signal,
+          method: 'GET',
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          this.useMock = true;
+          console.warn(
+            `Backend health check failed (${response.status}), using mock data`
+          );
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+          console.warn('Backend health check timed out, using mock data');
+        } else {
+          console.warn('Backend connection failed, using mock data', fetchError);
+        }
         this.useMock = true;
-        console.warn('Backend not available, using mock data');
       }
     } catch (error) {
       this.useMock = true;
-      console.warn('Backend connection failed, using mock data', error);
+      console.warn('Backend health check failed, using mock data', error);
     }
   }
 
@@ -58,14 +86,113 @@ class APIClient {
         signal: controller.signal,
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      // Handle abort (timeout)
+      if (controller.signal.aborted) {
+        throw new TimeoutError(
+          `Request to ${endpoint} timed out after ${API_TIMEOUT_MS}ms`,
+          API_TIMEOUT_MS
+        );
       }
 
-      return await response.json();
+      // Try to parse error response body if available
+      let errorBody: any = null;
+      if (!response.ok) {
+        try {
+          const contentType = response.headers.get('content-type');
+          if (contentType?.includes('application/json')) {
+            errorBody = await response.json().catch(() => null);
+          } else {
+            errorBody = await response.text().catch(() => null);
+          }
+        } catch (parseError) {
+          // Ignore parsing errors for error response body
+          console.warn('Failed to parse error response body', parseError);
+        }
+      }
+
+      // Handle HTTP error responses
+      if (!response.ok) {
+        const errorMessage =
+          errorBody?.message ||
+          errorBody?.detail ||
+          errorBody ||
+          response.statusText ||
+          `HTTP ${response.status}`;
+
+        throw new APIError(
+          typeof errorMessage === 'string'
+            ? errorMessage
+            : `Request failed: ${endpoint}`,
+          response.status,
+          response.statusText,
+          errorBody
+        );
+      }
+
+      // Parse successful JSON response
+      try {
+        const contentType = response.headers.get('content-type');
+        if (contentType?.includes('application/json')) {
+          const data = await response.json();
+          return data as T;
+        } else {
+          // Handle non-JSON responses
+          const text = await response.text();
+          if (text) {
+            throw new APIError(
+              `Expected JSON response but received ${contentType}`,
+              response.status,
+              response.statusText
+            );
+          }
+          return {} as T;
+        }
+      } catch (parseError) {
+        if (parseError instanceof APIError) {
+          throw parseError;
+        }
+        throw new JSONParseError(
+          `Failed to parse response from ${endpoint}`,
+          parseError instanceof Error ? parseError : undefined
+        );
+      }
     } catch (error) {
-      console.error(`API request failed: ${endpoint}`, error);
-      throw error;
+      // Re-throw custom errors
+      if (
+        error instanceof APIError ||
+        error instanceof NetworkError ||
+        error instanceof TimeoutError ||
+        error instanceof JSONParseError
+      ) {
+        console.error(`API request failed: ${endpoint}`, {
+          error: error.name,
+          message: error.message,
+          ...(error instanceof APIError && { statusCode: error.statusCode }),
+        });
+        throw error;
+      }
+
+      // Handle fetch/network errors
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        throw new NetworkError(
+          `Network error: Unable to connect to ${this.baseUrl}`,
+          error
+        );
+      }
+
+      // Handle abort errors (timeout)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new TimeoutError(
+          `Request to ${endpoint} timed out after ${API_TIMEOUT_MS}ms`,
+          API_TIMEOUT_MS
+        );
+      }
+
+      // Handle unknown errors
+      console.error(`Unexpected error in API request to ${endpoint}:`, error);
+      throw new Error(
+        `Unexpected error: ${error instanceof Error ? error.message : String(error)}`
+      );
     } finally {
       clearTimeout(timeoutId);
     }
@@ -355,7 +482,9 @@ class APIClient {
   async health(): Promise<HealthResponse> {
     try {
       return await this.request<HealthResponse>('/health');
-    } catch {
+    } catch (error) {
+      // Return unhealthy status on any error
+      console.warn('Health check failed:', getErrorMessage(error));
       return {
         status: 'unhealthy',
         version: '0.0.0',

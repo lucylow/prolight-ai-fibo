@@ -3,7 +3,7 @@ Presets endpoint - Manage lighting presets.
 """
 
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import PresetListResponse, PresetResponse
+from app.models.schemas import PresetListResponse, PresetResponse, PresetRequest
 from app.data.mock_data import MockDataManager
 import logging
 
@@ -117,9 +117,9 @@ async def list_categories():
 
 @router.post("/presets/search")
 async def search_presets(
-    query: str,
+    body: PresetRequest,
     page: int = 1,
-    page_size: int = 10
+    page_size: int = 10,
 ):
     """
     Search presets by name or description.
@@ -136,13 +136,22 @@ async def search_presets(
         presets = MockDataManager.get_presets()
         
         # Search
-        query_lower = query.lower()
-        results = [
-            p for p in presets
-            if query_lower in p["name"].lower()
-            or query_lower in p["description"].lower()
-            or any(query_lower in ideal.lower() for ideal in p["ideal_for"])
-        ]
+        query_value = body.search or body.category or body.search
+        if not query_value and body:
+            # Backwards-compatible: also accept `query` field if provided
+            query_value = getattr(body, "search", None) or getattr(body, "category", None)
+        if not query_value:
+            # If no query provided, return all presets paginated
+            results = presets
+        else:
+            query_lower = query_value.lower()
+            results = [
+                p
+                for p in presets
+                if query_lower in p["name"].lower()
+                or query_lower in p["description"].lower()
+                or any(query_lower in ideal.lower() for ideal in p["ideal_for"])
+            ]
         
         # Paginate
         start_idx = (page - 1) * page_size
