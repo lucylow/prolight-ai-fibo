@@ -10,6 +10,7 @@ from app.agents.planner_async import PlannerAgentAsync
 from app.agents.critic_async import CriticAgentAsync
 from app.agents.executor_async import ExecutorAgentAsync
 from app.agents.validation import validate_plan, validate_critique, ValidationError
+from app.services.guardrails import validate_plan_with_exception, GuardrailError
 
 logger = logging.getLogger("runner_async")
 
@@ -49,16 +50,36 @@ class AgentRunnerAsync:
                 if not ctx.plan:
                     raise RuntimeError("Planner did not produce a plan")
                 
-                # Validate plan
-                is_valid, issues = validate_plan(ctx.plan)
-                if not is_valid:
-                    logger.warning("Plan validation failed for run %s: %s", ctx.run_id, issues)
+                # Validate plan with guardrails (strict validation)
+                try:
+                    # Convert plan to dict if it's a Pydantic model
+                    plan_dict = ctx.plan.dict() if hasattr(ctx.plan, 'dict') else ctx.plan
+                    validate_plan_with_exception(plan_dict)
+                    is_valid, issues = True, []
+                    logger.info("Plan passed guardrails validation for run %s", ctx.run_id)
+                except GuardrailError as e:
+                    logger.warning("Plan guardrail validation failed for run %s: %s", ctx.run_id, e.reason)
+                    is_valid, issues = False, [e.reason]
                     await self.emit(ctx, "warning", {
                         "phase": "planning",
-                        "message": "Plan validation found issues",
-                        "issues": issues
+                        "message": "Plan guardrail validation failed",
+                        "reason": e.reason,
+                        "details": e.details
                     })
-                    # For now, continue with warnings (could be made configurable to fail)
+                    # Reject plan if guardrails fail
+                    ctx.state = "FAILED"
+                    await self.emit(ctx, "error", {
+                        "phase": "planning",
+                        "error": e.reason,
+                        "message": f"Plan rejected by guardrails: {e.reason}"
+                    })
+                    return ctx
+                
+                # Also run legacy validation for additional checks
+                legacy_valid, legacy_issues = validate_plan(ctx.plan)
+                if not legacy_valid:
+                    logger.warning("Plan legacy validation found issues for run %s: %s", ctx.run_id, legacy_issues)
+                    issues.extend(legacy_issues)
                 
                 await self.emit(ctx, "plan", {
                     **ctx.plan.dict() if ctx.plan else {},
@@ -186,4 +207,5 @@ class AgentRunnerAsync:
             })
             ctx.state = "FAILED"
             return ctx
+
 

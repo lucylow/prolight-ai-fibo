@@ -95,6 +95,7 @@ const Invoices = () => {
           const items = response.data.items;
           
           // Normalize invoice data
+<<<<<<< Updated upstream
           const normalizedInvoices: Invoice[] = items.map((inv: Record<string, unknown>) => ({
             id: inv.id || inv.stripe_invoice_id || `inv_${Date.now()}`,
             number: inv.number || inv.invoice_number || inv.id?.substring(0, 12),
@@ -108,6 +109,49 @@ const Invoices = () => {
             hosted_invoice_url: inv.hosted_invoice_url,
             invoice_pdf: inv.invoice_pdf,
           }));
+=======
+          const normalizedInvoices: Invoice[] = items.map((inv: Record<string, unknown>) => {
+            const getId = () => {
+              const id = typeof inv.id === 'string' ? inv.id : undefined;
+              const stripeId = typeof inv.stripe_invoice_id === 'string' ? inv.stripe_invoice_id : undefined;
+              return id || stripeId || `inv_${Date.now()}`;
+            };
+            const getNumber = () => {
+              const num = typeof inv.number === 'string' ? inv.number : undefined;
+              const invoiceNum = typeof inv.invoice_number === 'string' ? inv.invoice_number : undefined;
+              const id = typeof inv.id === 'string' ? inv.id : undefined;
+              return num || invoiceNum || id?.substring(0, 12);
+            };
+            const getDate = () => {
+              const date = typeof inv.date === 'string' ? inv.date : undefined;
+              const created = typeof inv.created === 'string' ? inv.created : undefined;
+              const invoiceDate = typeof inv.invoice_date === 'string' ? inv.invoice_date : undefined;
+              return date || created || invoiceDate || new Date().toISOString();
+            };
+            const getAmount = () => {
+              const amountDue = typeof inv.amount_due === 'number' ? inv.amount_due : undefined;
+              const amount = typeof inv.amount === 'number' ? inv.amount : 0;
+              return amountDue ? amountDue / 100 : amount;
+            };
+            const getStatus = () => {
+              const status = typeof inv.status === 'string' ? inv.status : 'Pending';
+              return status as Invoice['status'];
+            };
+            return {
+              id: getId(),
+              number: getNumber(),
+              stripe_invoice_id: typeof inv.stripe_invoice_id === 'string' ? inv.stripe_invoice_id : typeof inv.id === 'string' ? inv.id : undefined,
+              date: getDate(),
+              amount: getAmount(),
+              amount_due: typeof inv.amount_due === 'number' ? inv.amount_due : undefined,
+              currency: typeof inv.currency === 'string' ? inv.currency : 'usd',
+              status: getStatus(),
+              receiptUrl: typeof inv.hosted_invoice_url === 'string' ? inv.hosted_invoice_url : typeof inv.invoice_pdf === 'string' ? inv.invoice_pdf : typeof inv.receiptUrl === 'string' ? inv.receiptUrl : undefined,
+              hosted_invoice_url: typeof inv.hosted_invoice_url === 'string' ? inv.hosted_invoice_url : undefined,
+              invoice_pdf: typeof inv.invoice_pdf === 'string' ? inv.invoice_pdf : undefined,
+            };
+          });
+>>>>>>> Stashed changes
 
           if (resetCursor || page === 1) {
             setInvoices(normalizedInvoices);

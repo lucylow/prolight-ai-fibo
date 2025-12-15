@@ -69,6 +69,7 @@ async def publish_run_event(run_id: str, event: Dict[str, Any]):
 async def subscribe_run_events(run_id: str) -> AsyncGenerator[Dict[str, Any], None]:
     """
     Subscribe to run events (for SSE).
+    Uses redis.asyncio for async pub/sub with proper cleanup.
     
     Args:
         run_id: Run ID
@@ -81,36 +82,56 @@ async def subscribe_run_events(run_id: str) -> AsyncGenerator[Dict[str, Any], No
         logger.warning("Redis not available, cannot subscribe to events")
         return
     
+    pubsub = None
+    channel = f"run:{run_id}"
+    
     try:
-        channel = f"run:{run_id}"
         pubsub = client.pubsub()
         await pubsub.subscribe(channel)
+        logger.debug(f"Subscribed to Redis channel: {channel}")
         
         # Send historical events first
         list_key = f"run:{run_id}:events"
-        historical = await client.lrange(list_key, 0, -1)
-        for event_json in reversed(historical):  # Oldest first
-            try:
-                event = json.loads(event_json)
-                yield event
-            except json.JSONDecodeError:
-                continue
-        
-        # Stream new events
-        async for message in pubsub.listen():
-            if message["type"] == "message":
+        try:
+            historical = await client.lrange(list_key, 0, -1)
+            for event_json in reversed(historical):  # Oldest first
                 try:
-                    event = json.loads(message["data"])
+                    event = json.loads(event_json)
                     yield event
                 except json.JSONDecodeError:
                     continue
+        except Exception as e:
+            logger.warning(f"Failed to load historical events: {e}")
+        
+        # Stream new events
+        while True:
+            try:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message and message.get("type") == "message":
+                    try:
+                        event = json.loads(message["data"])
+                        yield event
+                    except json.JSONDecodeError:
+                        logger.warning(f"Failed to parse event JSON: {message.get('data')[:100]}")
+                        continue
+                elif message is None:
+                    # Timeout - continue loop to check for cancellation
+                    await asyncio.sleep(0.05)
+            except asyncio.CancelledError:
+                logger.info(f"Subscription cancelled for run {run_id}")
+                break
     
     except Exception as e:
-        logger.error(f"Failed to subscribe to events: {e}")
+        logger.error(f"Failed to subscribe to events: {e}", exc_info=True)
     finally:
+        # Ensure proper cleanup
         if pubsub:
-            await pubsub.unsubscribe(channel)
-            await pubsub.close()
+            try:
+                await pubsub.unsubscribe(channel)
+                await pubsub.close()
+                logger.debug(f"Unsubscribed from Redis channel: {channel}")
+            except Exception as e:
+                logger.warning(f"Error during pubsub cleanup: {e}")
 
 
 async def get_run_events(run_id: str, limit: int = 100) -> list[Dict[str, Any]]:
@@ -141,4 +162,5 @@ async def get_run_events(run_id: str, limit: int = 100) -> list[Dict[str, Any]]:
     except Exception as e:
         logger.error(f"Failed to get events: {e}")
         return []
+
 

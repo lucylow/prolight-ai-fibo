@@ -49,6 +49,7 @@ class RunDetailResponse(BaseModel):
 class RunApproveRequest(BaseModel):
     """Request model for approving a run."""
     approved: bool = Field(True, description="Whether to approve the run")
+    plan_override: Optional[Dict[str, Any]] = Field(None, description="Optional plan override (admin only)")
 
 
 # In-memory storage (replace with database/Redis in production)
@@ -171,7 +172,13 @@ async def get_run(run_id: str):
 
 @router.post("/{run_id}/approve")
 async def approve_run(run_id: str, approval: RunApproveRequest):
-    """Approve a run (human-in-the-loop)."""
+    """
+    Approve a run (human-in-the-loop).
+    Supports plan_override for admin edits (must pass guardrails).
+    """
+    from app.services.guardrails import validate_plan_override, GuardrailError
+    from app.auth.dependencies import require_admin
+    
     if run_id not in _runs_store:
         raise HTTPException(status_code=404, detail="Run not found")
     
@@ -183,6 +190,27 @@ async def approve_run(run_id: str, approval: RunApproveRequest):
             detail=f"Run is in state {ctx.state}, cannot approve. Must be in CRITIQUED state."
         )
     
+    # If plan_override is provided, validate it (admin only)
+    if approval.plan_override:
+        try:
+            # TODO: Add admin check here - for now, allow if plan_override is provided
+            # In production: admin = await require_admin()
+            original_plan = ctx.plan if ctx.plan else {}
+            is_valid, reason = validate_plan_override(approval.plan_override, original_plan)
+            if not is_valid:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"plan_override validation failed: {reason}"
+                )
+            # Apply plan override
+            ctx.plan = approval.plan_override
+            logger.info(f"Applied plan_override to run {run_id}")
+        except GuardrailError as e:
+            raise HTTPException(
+                status_code=400,
+                detail=f"plan_override guardrail failed: {e.reason}"
+            )
+    
     # Advance workflow with approval
     ctx = await advance(ctx, human_approved=approval.approved)
     _runs_store[run_id] = ctx
@@ -191,6 +219,7 @@ async def approve_run(run_id: str, approval: RunApproveRequest):
         "run_id": run_id,
         "state": ctx.state.value,
         "approved": approval.approved,
+        "plan_override_applied": approval.plan_override is not None,
     }
 
 
