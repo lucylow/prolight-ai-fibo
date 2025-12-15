@@ -12,11 +12,13 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <div 
       ref={ref} 
       className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200",
-        hoverable && "hover:shadow-lg hover:border-primary/20 hover:-translate-y-0.5",
-        interactive && "cursor-pointer active:scale-[0.98]",
+        "rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-300",
+        hoverable && "hover:shadow-xl hover:shadow-primary/5 hover:border-primary/30 hover:-translate-y-1",
+        interactive && "cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         className
       )} 
+      role={interactive ? "button" : undefined}
+      tabIndex={interactive ? 0 : undefined}
       {...props} 
     />
   )

@@ -203,10 +203,14 @@ export const useGeneration = () => {
     setLoading(true);
 
     try {
+      // Extract subject from scene description if not explicitly provided
+      // Use scene description as subject, or extract the main subject if possible
+      const subject = sceneDescription.trim() || sceneSettings.subjectDescription || 'professional subject';
+      
       const nlRequest: NaturalLanguageLightingRequest = {
         sceneDescription,
         lightingDescription,
-        subject: sceneSettings.subjectDescription,
+        subject,
         styleIntent: sceneSettings.stylePreset,
         environment: sceneSettings.environment,
       };

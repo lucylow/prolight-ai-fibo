@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { DeploymentBanner } from "@/components/DeploymentBanner";
+import DeployCheckBanner from "@/components/DeployCheckBanner";
 import { CookieConsent } from "./components/CookieConsent";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { initializeMockData } from "./services/enhancedMockData";
@@ -18,6 +19,7 @@ import { initializeMockData } from "./services/enhancedMockData";
 import Index from "./pages/Index";
 import SignIn from "./pages/SignIn";
 import SignOut from "./pages/SignOut";
+import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 import Studio from "./pages/Studio";
 import Presets from "./pages/Presets";
@@ -74,12 +76,18 @@ const AgenticWorkflow = lazy(() => import("./pages/AgenticWorkflow"));
 
 // Enhanced loading fallback component with better UX
 const PageLoader: React.FC = () => (
-  <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+  <div 
+    className="flex flex-col items-center justify-center min-h-screen gap-4 animate-fade-in"
+    role="status"
+    aria-label="Loading page"
+  >
     <div className="relative">
       <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/20"></div>
       <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary absolute top-0 left-0"></div>
+      <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse"></div>
     </div>
     <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+    <span className="sr-only">Loading page content</span>
   </div>
 );
 
@@ -103,7 +111,8 @@ const PageWrapper = React.memo(({ children }: { children: React.ReactNode }) => 
         exit={{ opacity: 0, y: -12 }} 
         transition={{ 
           duration: 0.3,
-          ease: [0.4, 0, 0.2, 1] // Custom easing for smoother feel
+          ease: [0.4, 0, 0.2, 1], // Custom easing for smoother feel
+          layout: { duration: 0.2 }
         }}
         className="w-full"
         role="main"
@@ -113,6 +122,9 @@ const PageWrapper = React.memo(({ children }: { children: React.ReactNode }) => 
       </motion.div>
     </Suspense>
   );
+}, (prevProps, nextProps) => {
+  // Only re-render if children actually change
+  return prevProps.children === nextProps.children;
 });
 
 PageWrapper.displayName = 'PageWrapper';
@@ -125,6 +137,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageWrapper><Index /></PageWrapper>} />
         <Route path="/sign-in" element={<PageWrapper><SignIn /></PageWrapper>} />
         <Route path="/signout" element={<PageWrapper><SignOut /></PageWrapper>} />
+        <Route path="/forgot-password" element={<PageWrapper><ForgotPassword /></PageWrapper>} />
         <Route path="/studio" element={<PageWrapper><Studio /></PageWrapper>} />
         <Route path="/presets" element={<PageWrapper><Presets /></PageWrapper>} />
         <Route path="/natural-language" element={<PageWrapper><NaturalLanguage /></PageWrapper>} />
@@ -250,17 +263,20 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>
-              <Sonner />
-              <BrowserRouter>
-                <ScrollToTop />
-                <CookieConsent />
-                <DeploymentBanner />
-                <MainLayout>
-                  <AnimatedRoutes />
-                </MainLayout>
-              </BrowserRouter>
-            </TooltipProvider>
+            <StripeProvider>
+              <TooltipProvider>
+                <Sonner />
+                <BrowserRouter>
+                  <ScrollToTop />
+                  <CookieConsent />
+                  <DeploymentBanner />
+                  <DeployCheckBanner />
+                  <MainLayout>
+                    <AnimatedRoutes />
+                  </MainLayout>
+                </BrowserRouter>
+              </TooltipProvider>
+            </StripeProvider>
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>

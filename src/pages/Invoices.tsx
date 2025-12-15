@@ -13,11 +13,16 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface Invoice {
   id: string;
-  number: string;
+  number?: string;
+  stripe_invoice_id?: string;
   date: string;
   amount: number;
-  status: "Paid" | "Due" | "Overdue" | "Pending";
+  amount_due?: number;
+  currency?: string;
+  status: "Paid" | "Due" | "Overdue" | "Pending" | "paid" | "open" | "draft" | "void" | "uncollectible";
   receiptUrl?: string;
+  hosted_invoice_url?: string;
+  invoice_pdf?: string;
 }
 
 const Invoices = () => {
@@ -29,9 +34,12 @@ const Invoices = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
 
-  const perPage = 10;
+  const perPage = 20;
 
   useEffect(() => {
     fetchInvoices();
@@ -57,24 +65,73 @@ const Invoices = () => {
     };
   }, [searchQuery]);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = async (resetCursor = false) => {
     setLoading(true);
     try {
-      // Try server-side API first
+      // Try server-side API first (supports cursor-based pagination)
       try {
-        const response = await api.get("/billing/invoices", {
-          params: {
-            page,
-            perPage,
-            status: statusFilter || undefined,
-            q: searchQuery || undefined,
-          },
-        });
+        const params: Record<string, any> = {
+          limit: perPage,
+        };
+        
+        // Use cursor if available, otherwise use page
+        if (cursor && !resetCursor) {
+          params.cursor = cursor;
+        } else if (page > 1 && !cursor) {
+          params.page = page;
+        }
+        
+        if (statusFilter) {
+          params.status = statusFilter;
+        }
+        
+        if (searchQuery) {
+          params.q = searchQuery;
+        }
+
+        const response = await api.get("/billing/invoices", { params });
 
         if (response.data?.items) {
-          setInvoices(response.data.items);
-          setTotalPages(response.data.totalPages || Math.ceil((response.data.total || 0) / perPage));
-          setTotal(response.data.total || 0);
+          const items = response.data.items;
+          
+          // Normalize invoice data
+          const normalizedInvoices: Invoice[] = items.map((inv: any) => ({
+            id: inv.id || inv.stripe_invoice_id || `inv_${Date.now()}`,
+            number: inv.number || inv.invoice_number || inv.id?.substring(0, 12),
+            stripe_invoice_id: inv.stripe_invoice_id || inv.id,
+            date: inv.date || inv.created || inv.invoice_date || new Date().toISOString(),
+            amount: inv.amount_due ? inv.amount_due / 100 : inv.amount || 0,
+            amount_due: inv.amount_due,
+            currency: inv.currency || "usd",
+            status: inv.status || "Pending",
+            receiptUrl: inv.hosted_invoice_url || inv.invoice_pdf || inv.receiptUrl,
+            hosted_invoice_url: inv.hosted_invoice_url,
+            invoice_pdf: inv.invoice_pdf,
+          }));
+
+          if (resetCursor || page === 1) {
+            setInvoices(normalizedInvoices);
+          } else {
+            setInvoices((prev) => [...prev, ...normalizedInvoices]);
+          }
+
+          // Handle cursor-based pagination
+          if (response.data.nextCursor) {
+            setNextCursor(response.data.nextCursor);
+            setHasMore(true);
+          } else {
+            setNextCursor(null);
+            setHasMore(false);
+          }
+
+          // Fallback to page-based pagination
+          if (response.data.totalPages) {
+            setTotalPages(response.data.totalPages);
+          } else if (response.data.total) {
+            setTotalPages(Math.ceil(response.data.total / perPage));
+          }
+          
+          setTotal(response.data.total || normalizedInvoices.length);
           return;
         }
       } catch (apiError: any) {
@@ -124,15 +181,31 @@ const Invoices = () => {
     setPage(1); // Reset to first page when filter changes
   };
 
+  const normalizeStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      paid: "Paid",
+      open: "Due",
+      draft: "Pending",
+      void: "Void",
+      uncollectible: "Overdue",
+    };
+    return statusMap[status.toLowerCase()] || status;
+  };
+
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
+    const normalized = normalizeStatus(status);
+    switch (normalized) {
       case "Paid":
         return "default";
       case "Pending":
+      case "Draft":
         return "secondary";
       case "Due":
       case "Overdue":
+      case "Uncollectible":
         return "destructive";
+      case "Void":
+        return "outline";
       default:
         return "outline";
     }
@@ -211,20 +284,47 @@ const Invoices = () => {
                     {filteredInvoices.map((invoice) => (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-medium">{invoice.number}</TableCell>
-                        <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
-                        <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {new Date(invoice.date).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          ${invoice.amount.toFixed(2)} {invoice.currency?.toUpperCase() || 'USD'}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={getStatusBadgeVariant(invoice.status)}>
                             {invoice.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" asChild>
-                            <a href={invoice.receiptUrl || "#"} target="_blank" rel="noopener noreferrer">
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </a>
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            {invoice.hosted_invoice_url && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a 
+                                  href={invoice.hosted_invoice_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  View
+                                </a>
+                              </Button>
+                            )}
+                            {(invoice.invoice_pdf || invoice.receiptUrl) && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a 
+                                  href={invoice.invoice_pdf || invoice.receiptUrl || "#"} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download
+                                </a>
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -234,27 +334,67 @@ const Invoices = () => {
 
               <div className="flex items-center justify-between mt-6">
                 <div className="text-sm text-muted-foreground">
-                  Showing {(page - 1) * perPage + 1} to {Math.min(page * perPage, total)} of {total} invoices
+                  {cursor 
+                    ? `Showing ${invoices.length} invoice${invoices.length !== 1 ? 's' : ''}${hasMore ? ' (more available)' : ''}`
+                    : `Showing {(page - 1) * perPage + 1} to {Math.min(page * perPage, total)} of {total} invoices`
+                  }
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                    disabled={page === 1 || loading}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                    disabled={page === totalPages || loading}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+                  {cursor ? (
+                    // Cursor-based pagination
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCursor(null);
+                          setPage(1);
+                          fetchInvoices(true);
+                        }}
+                        disabled={!cursor || loading}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (nextCursor) {
+                            setCursor(nextCursor);
+                            setPage((p) => p + 1);
+                            fetchInvoices(false);
+                          }
+                        }}
+                        disabled={!hasMore || !nextCursor || loading}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    // Page-based pagination (fallback)
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                        disabled={page === 1 || loading}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                        disabled={page === totalPages || loading}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </>

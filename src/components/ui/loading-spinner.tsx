@@ -16,11 +16,16 @@ const sizeClasses = {
 
 export function LoadingSpinner({ size = 'md', className, text }: LoadingSpinnerProps) {
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-2', className)}>
+    <div 
+      className={cn('flex flex-col items-center justify-center gap-2', className)}
+      role="status"
+      aria-label={text || "Loading"}
+    >
       <Loader2 className={cn('animate-spin text-primary', sizeClasses[size])} />
       {text && (
         <p className="text-sm text-muted-foreground animate-pulse">{text}</p>
       )}
+      <span className="sr-only">{text || "Loading"}</span>
     </div>
   );
 }

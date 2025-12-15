@@ -153,6 +153,8 @@ export const useLightingStore = create<LightingStore>()(
         lightingAnalysis: result.lightingAnalysis || null,
       })),
 
+      setLightingAnalysis: (analysis) => set({ lightingAnalysis: analysis }),
+
       loadPreset: (preset) => set({
         lightingSetup: preset.lightingSetup,
         cameraSettings: preset.cameraSettings,

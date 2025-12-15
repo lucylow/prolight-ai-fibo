@@ -110,18 +110,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithOAuth = async (provider: "google" | "github") => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
       if (error) throw error;
+      // OAuth redirects, so we don't reset loading here
+      // The auth state change listener will handle the rest
     } catch (error: unknown) {
       setLoading(false);
       const errorMessage = error && typeof error === 'object' && 'message' in error 
         ? String(error.message) 
-        : "OAuth login failed";
+        : `Failed to sign in with ${provider}. Please try again.`;
       throw new Error(errorMessage);
     }
   };

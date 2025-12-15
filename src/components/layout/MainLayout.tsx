@@ -1,10 +1,10 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Lightbulb, FlaskConical, MessageSquare, Palette, History, Menu, X, Sun, Moon, 
   User, Settings, LogOut, Shield, LayoutDashboard, CreditCard, Users, FileText,
   Sparkles, Building2, BookOpen, DollarSign, Info, Briefcase, Mail, ChevronDown,
-  Search, Command
+  Search, Command, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,6 +13,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger, NavigationMenuLink } from '@/components/ui/navigation-menu';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -64,6 +74,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Close mobile menu on route change and clear search
   React.useEffect(() => {
@@ -101,13 +113,21 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       .slice(0, 2);
   };
 
+  const handleLogoutClick = useCallback(() => {
+    setShowSignOutDialog(true);
+  }, []);
+
   const handleLogout = useCallback(async () => {
+    setSigningOut(true);
     try {
       await auth.logout();
       toast.success('Signed out successfully');
-      navigate('/');
+      setShowSignOutDialog(false);
+      navigate('/sign-in', { replace: true });
     } catch (error) {
-      toast.error('Failed to sign out');
+      console.error('Logout error:', error);
+      toast.error('Failed to sign out. Please try again.');
+      setSigningOut(false);
     }
   }, [auth, navigate]);
 
@@ -660,7 +680,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               {auth.user ? (
                 <Button 
                   variant="ghost" 
-                  onClick={handleLogout} 
+                  onClick={handleLogoutClick} 
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
@@ -693,6 +713,35 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       >
         {children}
       </main>
+
+      {/* Sign Out Confirmation Dialog */}
+      <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out? You'll need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingOut}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              disabled={signingOut}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {signingOut ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing out...
+                </>
+              ) : (
+                "Sign out"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

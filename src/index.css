@@ -373,6 +373,19 @@
     transition-duration: 150ms;
   }
 
+  /* Optimize animations for performance */
+  @media (prefers-reduced-motion: no-preference) {
+    .animate-smooth {
+      will-change: transform, opacity;
+    }
+  }
+
+  /* Better scroll performance */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+
   /* Better focus styles for all interactive elements */
   input:focus,
   textarea:focus,
@@ -446,7 +459,22 @@
   }
 
   .animate-fade-in-up {
-    animation: fadeInUp 0.8s ease-out forwards;
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+
+  .animate-fade-in-down {
+    animation: fadeInDown 0.6s ease-out forwards;
+  }
+
+  @keyframes fadeInDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .animate-pulse-glow {
@@ -522,6 +550,35 @@
       transform: translateY(-100vh) rotate(720deg);
       opacity: 0;
     }
+  }
+
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-4px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translateX(4px);
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-in-out;
   }
 
   /* Improved skeleton loading animation */

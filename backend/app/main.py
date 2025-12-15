@@ -125,8 +125,9 @@ async def root():
 # ============================================================================
 
 # Import route modules
-from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1, chat, deploy_check
+from app.api import generate, presets, history, batch, analyze, stripe_checkout, billing, admin_refunds, contact, careers, s3, auth, payments, poses, compose, image_onboarding, vehicle_shot, bria_v1, chat, deploy_check, admin, agents
 from app.api import sse
+from app.api import billing_webhook
 
 # Include routers
 app.include_router(generate.router, prefix=settings.API_PREFIX, tags=["Generate"])
@@ -138,6 +139,11 @@ app.include_router(compose.router, prefix=settings.API_PREFIX, tags=["Compositio
 app.include_router(poses.router, prefix=settings.API_PREFIX, tags=["Poses"])
 app.include_router(stripe_checkout.router)
 app.include_router(billing.router)
+app.include_router(billing_webhook.router)
+app.include_router(stripe_customers.router)
+app.include_router(usage.router)
+app.include_router(invoice_proxy.router)
+app.include_router(revenue_dashboard.router)
 app.include_router(admin_refunds.router)
 app.include_router(contact.router, prefix=settings.API_PREFIX, tags=["Contact"])
 app.include_router(careers.router, prefix=settings.API_PREFIX, tags=["Careers"])
@@ -150,6 +156,8 @@ app.include_router(bria_v1.router, tags=["Bria V1"])
 app.include_router(chat.router, tags=["Chat"])
 app.include_router(agents.router, tags=["Agents"])
 app.include_router(sse.router, tags=["SSE"])
+app.include_router(deploy_check.router)
+app.include_router(admin.router)
 
 
 # ============================================================================
