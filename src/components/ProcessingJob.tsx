@@ -38,7 +38,7 @@ const jobHeader: React.CSSProperties = {
   marginBottom: '1rem',
 };
 
-const statusBadge = (status: PostProcessingJob['status']): React.CSSProperties => {
+const statusBadge = (status: PostProcessingJob['status']): { className: string } => {
   const colors: Record<string, string> = {
     complete: 'bg-green-500/20 text-green-600 border-green-500/30',
     error: 'bg-red-500/20 text-red-600 border-red-500/30',
@@ -47,12 +47,7 @@ const statusBadge = (status: PostProcessingJob['status']): React.CSSProperties =
   };
   
   return {
-    padding: '0.25rem 0.75rem',
-    borderRadius: '6px',
-    fontSize: '0.75rem',
-    fontWeight: 600,
-    border: '1px solid',
-    ...(colors[status] && { className: colors[status] }),
+    className: colors[status] || colors.pending,
   };
 };
 

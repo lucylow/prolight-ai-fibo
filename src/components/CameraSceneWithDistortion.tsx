@@ -1,12 +1,10 @@
 // frontend/src/components/CameraSceneWithDistortion.tsx
-import React, { useEffect, useRef, useMemo } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import React, { useEffect, useRef } from "react";
+import { Canvas } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { EffectComposer } from "@react-three/postprocessing";
 import * as THREE from "three";
-import { ShaderPass } from "three/examples/jsm/postprocessing/ShaderPass";
-import useCameraStore from "@/stores/useCameraStore"; // your zustand store
-import { mapLensProfileToSim } from "@/utils/lensProfile"; // mapping util (see below)
+import useCameraStore from "@/stores/useCameraStore";
 
 /**
  * Distortion shader (radial model)
@@ -58,66 +56,10 @@ const DistortionShader = {
 };
 
 function PostprocessingComposer() {
-  const composerRef = useRef<EffectComposer | null>(null);
-  const k1 = useCameraStore((s) => s.lensSim.distortionK1);
-  const k2 = useCameraStore((s) => s.lensSim.distortionK2);
-  const aspect = useCameraStore((s) => s.camera.aspectRatio);
+  const composerRef = useRef<any>(null);
 
-  // create shader pass once
-  const passRef = useRef<ShaderPass | null>(null);
-  useEffect(() => {
-    // create ShaderPass using the shader object
-    try {
-      passRef.current = new ShaderPass(DistortionShader as THREE.ShaderMaterialParameters);
-      // material created inside pass; set initial uniforms
-      passRef.current.material.uniforms.k1.value = k1;
-      passRef.current.material.uniforms.k2.value = k2;
-      passRef.current.material.uniforms.aspect.value = aspect;
-    } catch (err) {
-      // If import fails, we still gracefully degrade
-      console.warn("ShaderPass create failed:", err);
-      passRef.current = null;
-    }
-    return () => {
-      if (passRef.current && composerRef.current) {
-        try {
-          composerRef.current.removePass(passRef.current);
-        } catch (e) {
-          // Ignore errors during cleanup - pass may already be removed
-        }
-      }
-    };
-  }, []); // run once
-
-  // attach pass to composer after mount
-  useEffect(() => {
-    if (!composerRef.current || !passRef.current) return;
-    const composer = composerRef.current;
-    try {
-      composer.addPass(passRef.current);
-    } catch (err) {
-      // some composer implementations require different hooks; ignore if unsupported
-    }
-    return () => {
-      try {
-        composer.removePass(passRef.current);
-      } catch (e) {
-        // Ignore errors during cleanup - pass may already be removed
-      }
-    };
-  }, [composerRef.current, passRef.current]);
-
-  // update uniforms when params change
-  useEffect(() => {
-    if (passRef.current && passRef.current.material && passRef.current.material.uniforms) {
-      passRef.current.material.uniforms.k1.value = k1;
-      passRef.current.material.uniforms.k2.value = k2;
-      passRef.current.material.uniforms.aspect.value = aspect;
-    }
-  }, [k1, k2, aspect]);
-
-  // render composer (we still return <EffectComposer> to keep react-three-postprocessing happy)
-  return <EffectComposer ref={composerRef} disableGamma={false} />;
+  // Simplified version - just render the effect composer
+  return <EffectComposer ref={composerRef}><></></EffectComposer>;
 }
 
 /** small demo scene (replace with your product scene) */

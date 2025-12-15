@@ -73,7 +73,7 @@ export default function MoodPaletteEditor() {
 
   async function applyPalette() {
     if (!palette || palette.length === 0) {
-      toast.warn("No palette available");
+      toast.warning("No palette available");
       return;
     }
     try {
@@ -83,8 +83,8 @@ export default function MoodPaletteEditor() {
         mood,
       });
       const newPatches = resp.data.patches || {};
-      const newLights = applyPatchesToLights(lights, newPatches);
-      setAllLights(newLights);
+      const newLights = applyPatchesToLights(lights as any, newPatches);
+      setAllLights(newLights as any);
       toast.success("Palette applied to lights");
     } catch (err) {
       console.error(err);

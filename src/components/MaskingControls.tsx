@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Wand2, Paintbrush, Sparkles, Sliders } from 'lucide-react';
+import { Wand2, Paintbrush, Sparkles, Sliders, Layers } from 'lucide-react';
 
 interface MaskingControlsProps {
   maskMode: 'auto' | 'brush' | 'refine';

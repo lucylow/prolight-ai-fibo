@@ -56,18 +56,6 @@ const queryClient = new QueryClient({
         return failureCount < 2;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-      onError: (error) => {
-        errorService.logError(error, {
-          component: 'ReactQuery',
-          action: 'query_error',
-        }).catch((err) => {
-          console.error('Failed to log query error:', err);
-        });
-        
-        // Show user-friendly error message
-        const message = getUserErrorMessage(error);
-        toast.error(message);
-      },
       staleTime: 5 * 60 * 1000, // 5 minutes
       gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     },
