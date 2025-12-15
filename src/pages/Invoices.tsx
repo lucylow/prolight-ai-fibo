@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { Download, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { Download, ChevronLeft, ChevronRight, FileText, FileDown } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -221,6 +221,46 @@ const Invoices = () => {
     return true;
   });
 
+  const exportToCSV = () => {
+    if (filteredInvoices.length === 0) {
+      toast.error("No invoices to export");
+      return;
+    }
+
+    // CSV headers
+    const headers = ["Invoice #", "Date", "Amount", "Currency", "Status", "Invoice ID"];
+    
+    // CSV rows
+    const rows = filteredInvoices.map((inv) => [
+      inv.number || "",
+      new Date(inv.date).toLocaleDateString(),
+      inv.amount.toFixed(2),
+      inv.currency?.toUpperCase() || "USD",
+      normalizeStatus(inv.status),
+      inv.id,
+    ]);
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `invoices-${new Date().toISOString().split("T")[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success(`Exported ${filteredInvoices.length} invoice(s) to CSV`);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       <Breadcrumbs />
@@ -256,6 +296,10 @@ const Invoices = () => {
                 <SelectItem value="Pending">Pending</SelectItem>
               </SelectContent>
             </Select>
+            <Button onClick={exportToCSV} variant="outline" className="gap-2">
+              <FileDown className="w-4 h-4" />
+              Export CSV
+            </Button>
           </div>
 
           {loading ? (
@@ -406,4 +450,5 @@ const Invoices = () => {
 };
 
 export default Invoices;
+
 

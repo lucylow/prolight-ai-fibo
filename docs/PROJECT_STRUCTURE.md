@@ -27,6 +27,7 @@ prolight-ai-fibo/
 │   ├── DEPLOYMENT.md        # Deployment guide
 │   ├── LOVABLE_DEPLOYMENT.md # Lovable-specific guide
 │   ├── SETUP.md             # Setup instructions
+│   ├── archive/             # Archived implementation docs
 │   └── ...                  # Other documentation
 │
 ├── public/                  # Static assets

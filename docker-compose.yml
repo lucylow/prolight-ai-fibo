@@ -55,7 +55,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-prolight}
       - POSTGRES_DB=${POSTGRES_DB:-prolight}
       - REDIS_URL=redis://redis:6379/0
-      - CORS_ORIGINS=["http://localhost:5173","http://localhost:3000","http://localhost:8000"]
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8000,http://localhost:8080
       - HOST=0.0.0.0
       - PORT=8000
       - RELOAD=True

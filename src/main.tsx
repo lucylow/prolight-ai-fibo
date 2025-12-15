@@ -5,6 +5,11 @@ import App from "./App.tsx";
 import "./index.css";
 import { validateEnv } from "./utils/env";
 
+// Unregister service workers in development to prevent caching issues
+if (import.meta.env.DEV) {
+  import("./utils/unregisterServiceWorker.dev");
+}
+
 // Validate environment variables on startup
 validateEnv();
 

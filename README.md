@@ -88,7 +88,7 @@ ProLight AI is a production-grade studio lighting simulator that bridges the gap
    - Wait for build (~2-3 minutes)
    - Your app will be live!
 
-**📖 Detailed Lovable Guide**: See [LOVABLE_DEPLOYMENT.md](./LOVABLE_DEPLOYMENT.md) for complete setup instructions.
+**📖 Detailed Lovable Guide**: See [LOVABLE_DEPLOYMENT.md](./docs/LOVABLE_DEPLOYMENT.md) for complete setup instructions.
 
 ### Local Development
 

@@ -1,203 +1,221 @@
-# Lovable Deployment Guide
+# Lovable Deployment Guide - ProLight AI
 
-## 🚀 Quick Deploy to Lovable
+Complete guide for deploying ProLight AI to Lovable with full backend and frontend integration.
 
-### Step 1: Import Project
-1. Go to [Lovable.dev](https://lovable.dev)
-2. Click "New Project" → "Import from ZIP"
-3. Upload `prolight-ai-fibo-final.zip`
-4. Lovable will auto-detect FastAPI backend + React frontend
+## Prerequisites
 
-### Step 2: Configure Environment Variables
+1. **Lovable Account** - Sign up at [lovable.dev](https://lovable.dev)
+2. **Supabase Project** - Create a project at [supabase.com](https://supabase.com)
+3. **Lovable API Key** - Get from your Lovable project settings
+
+## Step 1: Configure Supabase
+
+### 1.1 Create Supabase Project
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Note your project URL and anon key from Settings → API
+
+### 1.2 Deploy Edge Functions
+The edge functions are located in `supabase/functions/`:
+- `natural-language-lighting` - Converts natural language to lighting JSON and generates images
+- `generate-lighting` - Generates images from lighting setups
+- `analyze-lighting` - Analyzes lighting configurations
+
+Deploy them using Supabase CLI:
+```bash
+supabase functions deploy natural-language-lighting
+supabase functions deploy generate-lighting
+supabase functions deploy analyze-lighting
+```
+
+Or use the Supabase dashboard to deploy each function.
+
+## Step 2: Configure Environment Variables in Lovable
+
+### 2.1 Frontend Environment Variables
 
 In Lovable project settings → Environment Variables, add:
 
 ```bash
-# Required
-ENV=production
-BRIA_API_TOKEN_PROD=your_bria_api_token_here
-USE_MOCK_FIBO=false
-
-# Optional (defaults work)
-BRIA_API_URL=https://engine.prod.bria-api.com/v2
+# Required - Supabase Configuration
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key-here
 ```
 
-**Get your Bria API token:**
-1. Visit [bria.ai](https://bria.ai)
-2. Sign up / Log in
-3. Go to API Keys section
-4. Copy your token
+**Where to find these:**
+- Go to your Supabase project dashboard
+- Navigate to Settings → API
+- Copy the "Project URL" for `VITE_SUPABASE_URL`
+- Copy the "anon public" key for `VITE_SUPABASE_PUBLISHABLE_KEY`
 
-### Step 3: Deploy
+### 2.2 Backend Edge Function Secrets
 
-1. Click **"Deploy"** button in Lovable
-2. Wait for build to complete (~2-3 minutes)
-3. Backend starts on port 8000
-4. Frontend connects automatically
+In Supabase project settings → Edge Functions → Secrets, add:
 
-### Step 4: Test
-
-**Test the API:**
 ```bash
-curl https://your-app.lovable.app/api/generate \
+# Required - Lovable AI Gateway
+LOVABLE_API_KEY=your-lovable-api-key-here
+```
+
+**Where to find LOVABLE_API_KEY:**
+- Go to your Lovable project dashboard
+- Navigate to Settings → Secrets
+- Create a new secret named `LOVABLE_API_KEY`
+- Paste your Lovable API key (found in Settings → API Keys)
+
+**Note:** The edge functions will automatically use this key to call the Lovable AI Gateway at `https://ai.gateway.lovable.dev/v1/chat/completions`
+
+## Step 3: Verify Configuration
+
+### 3.1 Test Supabase Connection
+
+The frontend will automatically connect to Supabase using the configured environment variables. Check the browser console for any connection errors.
+
+### 3.2 Test Edge Functions
+
+You can test the edge functions directly:
+
+```bash
+# Test natural language lighting
+curl -X POST https://your-project.supabase.co/functions/v1/natural-language-lighting \
+  -H "Authorization: Bearer your-anon-key" \
   -H "Content-Type: application/json" \
   -d '{
-    "scene_prompt": "a vintage watch on wooden table",
-    "lights": [{
-      "id": "key",
-      "position": {"x": 1, "y": 2, "z": 3},
-      "intensity": 0.8,
-      "color_temperature": 5600,
-      "softness": 0.3
-    }],
-    "sync": true
+    "sceneDescription": "Portrait of a woman",
+    "lightingDescription": "Soft beauty lighting",
+    "subject": "woman"
+  }'
+
+# Test generate lighting
+curl -X POST https://your-project.supabase.co/functions/v1/generate-lighting \
+  -H "Authorization: Bearer your-anon-key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "subjectDescription": "Portrait of a woman",
+    "environment": "studio",
+    "lightingSetup": {
+      "key": {
+        "direction": "45 degrees camera-right",
+        "intensity": 0.8,
+        "colorTemperature": 5600,
+        "softness": 0.5,
+        "distance": 1.5,
+        "enabled": true
+      }
+    },
+    "cameraSettings": {
+      "shotType": "portrait",
+      "cameraAngle": "eye-level",
+      "fov": 50,
+      "lensType": "85mm",
+      "aperture": "f/2.8"
+    },
+    "stylePreset": "professional"
   }'
 ```
 
-**Expected response:**
-```json
-{
-  "ok": true,
-  "status": "completed",
-  "image_url": "https://cdn.bria.ai/...",
-  "structured_prompt": {
-    "lighting": {
-      "main_light": {
-        "direction": "front-right",
-        "intensity": 0.8,
-        "color_temperature": 5600,
-        "softness": 0.3
-      }
-    }
-  }
-}
+## Step 4: Deploy to Lovable
+
+1. **Push your code** to the repository connected to Lovable
+2. **Click Deploy** in the Lovable dashboard
+3. **Wait for build** to complete (~2-3 minutes)
+4. **Test the application** at your Lovable deployment URL
+
+## Step 5: Verify Integration
+
+### 5.1 Test Natural Language Generation
+1. Navigate to `/natural-language` page
+2. Enter a scene description and lighting description
+3. Click "Generate"
+4. Verify an image is generated
+
+### 5.2 Test Studio Generation
+1. Navigate to `/studio` page
+2. Adjust lighting controls
+3. Click "Generate Image"
+4. Verify an image is generated
+
+### 5.3 Check Error Handling
+- If `LOVABLE_API_KEY` is missing, you should see a clear error message
+- If Supabase URL/key is missing, check browser console for warnings
+
+## Troubleshooting
+
+### Issue: "LOVABLE_API_KEY is not configured"
+
+**Solution:**
+1. Go to Supabase project dashboard
+2. Navigate to Edge Functions → Secrets
+3. Add `LOVABLE_API_KEY` secret with your Lovable API key
+4. Redeploy the edge functions
+
+### Issue: "Missing VITE_SUPABASE_URL"
+
+**Solution:**
+1. Go to Lovable project settings → Environment Variables
+2. Add `VITE_SUPABASE_URL` with your Supabase project URL
+3. Add `VITE_SUPABASE_PUBLISHABLE_KEY` with your Supabase anon key
+4. Redeploy the frontend
+
+### Issue: CORS Errors
+
+**Solution:**
+- Edge functions already have CORS headers configured
+- Ensure your Supabase project allows requests from your Lovable deployment URL
+- Check Supabase project settings → API → CORS settings
+
+### Issue: Edge Functions Not Found
+
+**Solution:**
+1. Verify edge functions are deployed in Supabase
+2. Check function names match exactly: `natural-language-lighting`, `generate-lighting`, `analyze-lighting`
+3. Ensure Supabase project URL is correct in frontend environment variables
+
+### Issue: AI Service Errors
+
+**Solution:**
+- Verify `LOVABLE_API_KEY` is valid and has credits
+- Check Lovable project settings → API Keys
+- Ensure the key has permissions for AI Gateway access
+
+## Architecture Overview
+
+```
+Frontend (Lovable)
+  ↓
+Supabase Client (configured via VITE_SUPABASE_URL)
+  ↓
+Supabase Edge Functions
+  ├── natural-language-lighting
+  ├── generate-lighting
+  └── analyze-lighting
+  ↓
+Lovable AI Gateway (ai.gateway.lovable.dev)
+  ↓
+AI Models (Gemini 2.5 Flash)
 ```
 
-## 🔧 Troubleshooting
+## Environment Variables Summary
 
-### Issue: "BRIA_API_TOKEN_PROD required for production"
+### Frontend (Lovable Environment Variables)
+- `VITE_SUPABASE_URL` - Your Supabase project URL
+- `VITE_SUPABASE_PUBLISHABLE_KEY` - Your Supabase anon key
 
-**Solution:** Add `BRIA_API_TOKEN_PROD` to environment variables
+### Backend (Supabase Edge Function Secrets)
+- `LOVABLE_API_KEY` - Your Lovable API key for AI Gateway access
 
-### Issue: "Module not found" errors
+## Support
 
-**Solution:** Lovable auto-installs from `requirements.txt`. If issues persist:
-1. Check `backend/requirements.txt` is present
-2. Rebuild project
+For issues or questions:
+1. Check browser console for frontend errors
+2. Check Supabase Edge Function logs for backend errors
+3. Verify all environment variables are set correctly
+4. Ensure edge functions are deployed and accessible
 
-### Issue: Import path errors
+## Next Steps
 
-**Solution:** All imports use relative paths (no `backend.` prefix):
-```python
-# ✅ Correct
-from settings import settings
-from clients.bria_client import BriaClient
+After successful deployment:
+1. Test all features (natural language, studio, presets)
+2. Monitor edge function logs for any errors
+3. Set up monitoring/alerts for edge function failures
+4. Consider adding rate limiting if needed
 
-# ❌ Wrong
-from backend.settings import settings
-```
-
-## 📁 Project Structure (Lovable-Compatible)
-
-```
-prolight-ai-fibo/
-├── backend/                     # ✅ FastAPI backend (Lovable auto-detects)
-│   ├── settings.py              # ✅ Environment config
-│   ├── app/                     # ✅ FastAPI application
-│   ├── clients/                 # ✅ Bria API client
-│   ├── routes/                  # ✅ API endpoints
-│   ├── utils/                   # ✅ Utilities
-│   ├── tests/                   # ✅ Test suite
-│   ├── requirements.txt         # ✅ Python dependencies
-│   └── .env.example             # ✅ Environment template
-├── src/                         # ✅ React frontend (Lovable auto-detects)
-│   ├── components/              # ✅ React components
-│   ├── pages/                   # ✅ Page components
-│   ├── hooks/                   # ✅ Custom hooks
-│   └── ...
-├── docs/                        # ✅ Documentation
-├── public/                      # ✅ Static assets
-├── package.json                 # ✅ Frontend dependencies (Lovable requirement)
-├── vite.config.ts               # ✅ Vite config (Lovable requirement)
-├── .gitignore                   # ✅ Excludes venv, cache
-└── README.md                    # ✅ Main documentation
-```
-
-## 🧪 Local Development (Optional)
-
-If you want to test locally before deploying:
-
-```bash
-# Extract zip
-unzip prolight-ai-fibo-final.zip
-cd prolight-ai-fibo
-
-# Backend
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# Edit .env and add BRIA_API_TOKEN
-
-# Run backend
-uvicorn app.main:app --reload
-
-# Test
-pytest tests/ -v
-```
-
-## 📊 Features Included
-
-### Production-Ready Backend
-- ✅ Async Bria client with retry logic
-- ✅ Environment-based secrets (dev/staging/prod)
-- ✅ Proper error handling (401, 429, 500)
-- ✅ Exponential backoff for rate limits
-- ✅ Request/response logging
-
-### Lighting Mapper
-- ✅ Deterministic 3D vector → FIBO direction
-- ✅ 10 canonical directions (front, front-right, etc.)
-- ✅ Three-point lighting support
-- ✅ Azimuth/elevation calculation
-
-### Testing
-- ✅ 27 lighting mapper tests
-- ✅ 9 Bria client tests
-- ✅ Integration tests
-- ✅ 100% pass rate
-
-## 🎯 Hackathon Alignment
-
-### Usage of Bria FIBO: ⭐⭐⭐⭐⭐
-- JSON-native generation with VLM bridge
-- All pro parameters (direction, intensity, color_temperature, softness)
-- Deterministic controllability
-- Production-ready implementation
-
-### Potential Impact: ⭐⭐⭐⭐⭐
-- Cost: $500 → $0.04 (12,500x reduction)
-- Time: 2hrs → 30s (240x faster)
-- Enterprise scale ready
-- ROI: $24.998M savings for 10K catalog
-
-### Innovation & Creativity: ⭐⭐⭐⭐⭐
-- First 3D-to-FIBO bridge
-- Novel VLM + lighting override workflow
-- Deterministic algorithm
-- Improvements over existing tools
-
-## 📞 Support
-
-If you encounter issues:
-1. Check environment variables are set correctly
-2. Verify Bria API token is valid
-3. Check Lovable build logs
-4. Review `README_ENHANCED.md` for detailed docs
-
----
-
-**ProLight AI** - *Precision Lighting, Powered by FIBO*
-
-Built for the Bria AI Hackathon 2025

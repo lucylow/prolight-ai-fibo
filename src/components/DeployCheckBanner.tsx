@@ -4,7 +4,7 @@ import { clsx } from "clsx";
 import { X, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const CLIENT_COMMIT = import.meta.env.VITE_CLIENT_COMMIT || "unknown";
+const CLIENT_COMMIT = import.meta.env.VITE_COMMIT_HASH || (typeof __COMMIT_HASH__ !== "undefined" ? __COMMIT_HASH__ : "unknown");
 
 type DeployStatus = {
   server_commit?: string | null;
@@ -34,14 +34,34 @@ export default function DeployCheckBanner() {
     
     const fetchStatus = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/api/deploy-check`);
-        const data: DeployStatus = res.data || {};
-        setStatus(data);
-        const server = data.server_commit || null;
-        const needs = !!data.recommended_rebuild;
-        const mismatch = server && server !== CLIENT_COMMIT;
-        if (needs || mismatch) {
+        // Try new /deploy/hash endpoint first, fallback to /deploy-check
+        let serverHash: string | null = null;
+        try {
+          const hashRes = await axios.get(`${API_BASE_URL}/api/deploy/hash`);
+          serverHash = hashRes.data?.hash || null;
+        } catch {
+          // Fallback to deploy-check endpoint
+          const res = await axios.get(`${API_BASE_URL}/api/deploy-check`);
+          const data: DeployStatus = res.data || {};
+          setStatus(data);
+          serverHash = data.server_commit || null;
+          const needs = !!data.recommended_rebuild;
+          const mismatch = serverHash && serverHash !== CLIENT_COMMIT;
+          if (needs || mismatch) {
+            setStale(true);
+          }
+          setLoading(false);
+          return;
+        }
+        
+        // Compare hashes
+        if (serverHash && serverHash !== CLIENT_COMMIT && serverHash !== "dev") {
           setStale(true);
+          setStatus({
+            server_commit: serverHash,
+            server_build_time: null,
+            recommended_rebuild: true,
+          });
         }
       } catch (err) {
         // If request fails, don't show banner (might be local dev)
@@ -130,4 +150,5 @@ export default function DeployCheckBanner() {
     </div>
   );
 }
+
 

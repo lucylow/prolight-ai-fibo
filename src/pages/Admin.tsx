@@ -41,13 +41,25 @@ interface AdminSummary {
 }
 
 const Admin = () => {
-  const { api } = useAuth();
+  const { api, user } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  // Role guard - additional check in component (ProtectedRoute handles routing)
+  if (!user || (user.role !== "admin" && !user.roles?.includes("admin"))) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="text-center py-12">
+          <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
+          <p className="text-muted-foreground">You do not have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchUsers();
@@ -351,4 +363,5 @@ const Admin = () => {
 };
 
 export default Admin;
+
 

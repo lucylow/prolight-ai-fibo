@@ -17,6 +17,11 @@ class DeployStatus(BaseModel):
     recommended_rebuild: bool = False
 
 
+class DeployHash(BaseModel):
+    """Deploy hash response model."""
+    hash: str
+
+
 @router.get("/deploy-check", response_model=DeployStatus)
 async def deploy_check():
     """
@@ -35,4 +40,15 @@ async def deploy_check():
         server_build_time=server_build_time,
         recommended_rebuild=recommended_rebuild,
     )
+
+
+@router.get("/deploy/hash", response_model=DeployHash)
+async def get_deploy_hash():
+    """
+    Returns the server-side deploy hash for frontend to compare with client build.
+    Expect CI to set DEPLOY_HASH or SERVER_COMMIT environment variable at deploy time.
+    """
+    deploy_hash = os.environ.get("DEPLOY_HASH") or os.environ.get("SERVER_COMMIT") or "dev"
+    return DeployHash(hash=deploy_hash)
+
 
