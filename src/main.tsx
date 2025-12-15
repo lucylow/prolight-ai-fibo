@@ -3,6 +3,10 @@ import { createRoot } from "react-dom/client";
 import { ThemeProvider as NextThemeProvider } from "next-themes";
 import App from "./App.tsx";
 import "./index.css";
+import { validateEnv } from "./utils/env";
+
+// Validate environment variables on startup
+validateEnv();
 
 /**
  * Initialize React application

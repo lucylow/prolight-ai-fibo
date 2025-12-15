@@ -1,6 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
+import { AxiosInstance } from "axios";
 import { signInAPI, signOutAPI, getSessionAPI } from "../services/auth";
 import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 export interface User {
   id: string;
@@ -17,6 +19,7 @@ interface AuthContextProps {
   logout: () => Promise<void>;
   loginWithOAuth: (provider: "google" | "github") => Promise<void>;
   refreshSession: () => Promise<void>;
+  api: AxiosInstance;
 }
 
 export const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -107,18 +110,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const loginWithOAuth = async (provider: "google" | "github") => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
           redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
         },
       });
       if (error) throw error;
+      // OAuth redirects, so we don't reset loading here
+      // The auth state change listener will handle the rest
     } catch (error: unknown) {
       setLoading(false);
       const errorMessage = error && typeof error === 'object' && 'message' in error 
         ? String(error.message) 
-        : "OAuth login failed";
+        : `Failed to sign in with ${provider}. Please try again.`;
       throw new Error(errorMessage);
     }
   };
@@ -128,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, loginWithOAuth, refreshSession }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, loginWithOAuth, refreshSession, api }}>
       {children}
     </AuthContext.Provider>
   );

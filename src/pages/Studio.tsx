@@ -1,4 +1,4 @@
-import React, { useState, Suspense, lazy, useEffect, useCallback } from 'react';
+import React, { useState, Suspense, lazy, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Wand2, Lightbulb, Camera, Settings, Code, Sparkles, Maximize2 } from 'lucide-react';
 import { useLightingStore } from '@/stores/lightingStore';
@@ -25,8 +25,10 @@ const Studio = () => {
   const [activeTab, setActiveTab] = useState('lighting');
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [generationStep, setGenerationStep] = useState(0);
-  const { currentImage, lightingAnalysis, isLoading } = useLightingStore();
-  const { generateFromCurrentSetup } = useGeneration();
+  const { currentImage, lightingAnalysis, isLoading, lightingSetup, sceneSettings, setLightingAnalysis } = useLightingStore();
+  const { generateFromCurrentSetup, analyzeLighting } = useGeneration();
+  const analysisTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const previousLightingRef = useRef<string>('');
 
   // Simulate generation steps
   useEffect(() => {
@@ -40,6 +42,40 @@ const Studio = () => {
       };
     }
   }, [isLoading]);
+
+  // Automatically analyze lighting when it changes
+  useEffect(() => {
+    // Create a serialized version of lighting setup for comparison
+    const currentLightingKey = JSON.stringify(lightingSetup);
+    
+    // Only analyze if lighting actually changed
+    if (currentLightingKey !== previousLightingRef.current && !isLoading) {
+      previousLightingRef.current = currentLightingKey;
+      
+      // Debounce analysis calls (wait 500ms after last change)
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+      
+      analysisTimeoutRef.current = setTimeout(async () => {
+        try {
+          const analysis = await analyzeLighting();
+          if (analysis) {
+            setLightingAnalysis(analysis);
+          }
+        } catch (error) {
+          // Silently fail - analysis is not critical for UI
+          console.warn('Failed to analyze lighting:', error);
+        }
+      }, 500);
+    }
+    
+    return () => {
+      if (analysisTimeoutRef.current) {
+        clearTimeout(analysisTimeoutRef.current);
+      }
+    };
+  }, [lightingSetup, analyzeLighting, isLoading, setLightingAnalysis]);
 
   const tabs = [
     { id: 'lighting', label: 'Lighting', icon: Lightbulb },

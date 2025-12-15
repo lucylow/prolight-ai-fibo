@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Breadcrumbs from "@/components/Breadcrumbs";
-import { Shield, Users, Building2, AlertTriangle } from "lucide-react";
+import { Shield, Users, Building2, AlertTriangle, Activity } from "lucide-react";
 import { toast } from "sonner";
 import axios from "axios";
+import { useAuth } from "@/contexts/AuthContext";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -29,14 +30,29 @@ interface Organization {
   createdAt: string;
 }
 
+interface AdminSummary {
+  status: string;
+  summary: {
+    jobs?: number;
+    active_users?: number;
+    total_revenue?: number;
+    pending_refunds?: number;
+  };
+}
+
 const Admin = () => {
+  const { api } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [summary, setSummary] = useState<AdminSummary | null>(null);
   const [loading, setLoading] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
     fetchOrganizations();
+    fetchSummary();
   }, []);
 
   const fetchUsers = async () => {
@@ -136,6 +152,24 @@ const Admin = () => {
     }
   };
 
+  const fetchSummary = async () => {
+    setSummaryLoading(true);
+    setSummaryError(null);
+    try {
+      const response = await api.get("/admin/summary");
+      setSummary(response.data);
+    } catch (error: any) {
+      console.error("Failed to fetch admin summary:", error);
+      setSummaryError(error.response?.data?.detail || error.message || "Failed to fetch admin summary");
+      // Don't show toast for RBAC errors - they're expected for non-admin users
+      if (error.response?.status !== 403) {
+        toast.error("Failed to fetch admin summary");
+      }
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   const getRoleBadgeVariant = (role: string): "default" | "secondary" | "outline" => {
     switch (role) {
       case "admin":
@@ -159,6 +193,49 @@ const Admin = () => {
         </div>
         <p className="text-muted-foreground">Manage users, organizations, and system settings</p>
       </div>
+
+      {/* Admin Summary Card */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="w-5 h-5" />
+            Admin Summary
+          </CardTitle>
+          <CardDescription>System overview and statistics</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {summaryLoading ? (
+            <div className="text-sm text-muted-foreground">Loading summary...</div>
+          ) : summaryError ? (
+            <div className="text-sm text-destructive">
+              {summaryError.includes("Access denied") || summaryError.includes("403")
+                ? "You do not have permission to view admin summary."
+                : `Error: ${summaryError}`}
+            </div>
+          ) : summary ? (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="text-sm text-muted-foreground mb-1">Total Jobs</div>
+                <div className="text-2xl font-bold">{summary.summary.jobs ?? 0}</div>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="text-sm text-muted-foreground mb-1">Active Users</div>
+                <div className="text-2xl font-bold">{summary.summary.active_users ?? 0}</div>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="text-sm text-muted-foreground mb-1">Total Revenue</div>
+                <div className="text-2xl font-bold">
+                  ${(summary.summary.total_revenue ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg">
+                <div className="text-sm text-muted-foreground mb-1">Pending Refunds</div>
+                <div className="text-2xl font-bold">{summary.summary.pending_refunds ?? 0}</div>
+              </div>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="users" className="space-y-6">
         <TabsList>

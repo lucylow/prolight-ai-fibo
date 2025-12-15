@@ -9,44 +9,139 @@ import { toast } from "sonner";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Download, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import axios from "axios";
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Invoice {
   id: string;
-  number: string;
+  number?: string;
+  stripe_invoice_id?: string;
   date: string;
   amount: number;
-  status: "Paid" | "Due" | "Overdue" | "Pending";
+  amount_due?: number;
+  currency?: string;
+  status: "Paid" | "Due" | "Overdue" | "Pending" | "paid" | "open" | "draft" | "void" | "uncollectible";
   receiptUrl?: string;
+  hosted_invoice_url?: string;
+  invoice_pdf?: string;
 }
 
 const Invoices = () => {
+  const { api } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const searchTimeoutRef = React.useRef<NodeJS.Timeout>();
 
-  const perPage = 10;
+  const perPage = 20;
 
   useEffect(() => {
     fetchInvoices();
   }, [page, statusFilter]);
 
-  const fetchInvoices = async () => {
+  // Debounce search query
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      if (page === 1) {
+        fetchInvoices();
+      } else {
+        setPage(1); // Reset to first page when search changes
+      }
+    }, 500);
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchQuery]);
+
+  const fetchInvoices = async (resetCursor = false) => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API endpoint
-      // const response = await axios.get(`${API_BASE_URL}/api/invoices`, {
-      //   params: { page, per_page: perPage, status: statusFilter || undefined },
-      // });
-      // setInvoices(response.data.items);
-      // setTotalPages(response.data.total_pages);
-      
-      // Mock data
+      // Try server-side API first (supports cursor-based pagination)
+      try {
+        const params: Record<string, any> = {
+          limit: perPage,
+        };
+        
+        // Use cursor if available, otherwise use page
+        if (cursor && !resetCursor) {
+          params.cursor = cursor;
+        } else if (page > 1 && !cursor) {
+          params.page = page;
+        }
+        
+        if (statusFilter) {
+          params.status = statusFilter;
+        }
+        
+        if (searchQuery) {
+          params.q = searchQuery;
+        }
+
+        const response = await api.get("/billing/invoices", { params });
+
+        if (response.data?.items) {
+          const items = response.data.items;
+          
+          // Normalize invoice data
+          const normalizedInvoices: Invoice[] = items.map((inv: any) => ({
+            id: inv.id || inv.stripe_invoice_id || `inv_${Date.now()}`,
+            number: inv.number || inv.invoice_number || inv.id?.substring(0, 12),
+            stripe_invoice_id: inv.stripe_invoice_id || inv.id,
+            date: inv.date || inv.created || inv.invoice_date || new Date().toISOString(),
+            amount: inv.amount_due ? inv.amount_due / 100 : inv.amount || 0,
+            amount_due: inv.amount_due,
+            currency: inv.currency || "usd",
+            status: inv.status || "Pending",
+            receiptUrl: inv.hosted_invoice_url || inv.invoice_pdf || inv.receiptUrl,
+            hosted_invoice_url: inv.hosted_invoice_url,
+            invoice_pdf: inv.invoice_pdf,
+          }));
+
+          if (resetCursor || page === 1) {
+            setInvoices(normalizedInvoices);
+          } else {
+            setInvoices((prev) => [...prev, ...normalizedInvoices]);
+          }
+
+          // Handle cursor-based pagination
+          if (response.data.nextCursor) {
+            setNextCursor(response.data.nextCursor);
+            setHasMore(true);
+          } else {
+            setNextCursor(null);
+            setHasMore(false);
+          }
+
+          // Fallback to page-based pagination
+          if (response.data.totalPages) {
+            setTotalPages(response.data.totalPages);
+          } else if (response.data.total) {
+            setTotalPages(Math.ceil(response.data.total / perPage));
+          }
+          
+          setTotal(response.data.total || normalizedInvoices.length);
+          return;
+        }
+      } catch (apiError: any) {
+        // If API endpoint doesn't exist, fall back to mock data
+        if (apiError.response?.status !== 404) {
+          throw apiError;
+        }
+      }
+
+      // Fallback to mock data for development
       const mockInvoices: Invoice[] = [
         { id: "1", number: "INV-1042", date: "2025-09-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
         { id: "2", number: "INV-1041", date: "2025-08-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
@@ -54,7 +149,8 @@ const Invoices = () => {
         { id: "4", number: "INV-1039", date: "2025-06-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
         { id: "5", number: "INV-1038", date: "2025-05-01", amount: 49.0, status: "Paid", receiptUrl: "#" },
       ];
-      
+
+      // Client-side filtering for mock data
       let filtered = mockInvoices;
       if (statusFilter) {
         filtered = filtered.filter((inv) => inv.status === statusFilter);
@@ -71,6 +167,7 @@ const Invoices = () => {
       const end = start + perPage;
       setInvoices(filtered.slice(start, end));
       setTotalPages(Math.ceil(filtered.length / perPage));
+      setTotal(filtered.length);
     } catch (error: unknown) {
       console.error("Failed to load invoices:", error);
       toast.error("Failed to load invoices");
@@ -84,15 +181,31 @@ const Invoices = () => {
     setPage(1); // Reset to first page when filter changes
   };
 
+  const normalizeStatus = (status: string): string => {
+    const statusMap: Record<string, string> = {
+      paid: "Paid",
+      open: "Due",
+      draft: "Pending",
+      void: "Void",
+      uncollectible: "Overdue",
+    };
+    return statusMap[status.toLowerCase()] || status;
+  };
+
   const getStatusBadgeVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
-    switch (status) {
+    const normalized = normalizeStatus(status);
+    switch (normalized) {
       case "Paid":
         return "default";
       case "Pending":
+      case "Draft":
         return "secondary";
       case "Due":
       case "Overdue":
+      case "Uncollectible":
         return "destructive";
+      case "Void":
+        return "outline";
       default:
         return "outline";
     }
@@ -149,7 +262,7 @@ const Invoices = () => {
             <div className="flex justify-center items-center py-12">
               <LoadingSpinner size="lg" />
             </div>
-          ) : filteredInvoices.length === 0 ? (
+          ) : invoices.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No invoices found</p>
@@ -171,20 +284,47 @@ const Invoices = () => {
                     {filteredInvoices.map((invoice) => (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-medium">{invoice.number}</TableCell>
-                        <TableCell>{new Date(invoice.date).toLocaleDateString()}</TableCell>
-                        <TableCell>${invoice.amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {new Date(invoice.date).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })}
+                        </TableCell>
+                        <TableCell>
+                          ${invoice.amount.toFixed(2)} {invoice.currency?.toUpperCase() || 'USD'}
+                        </TableCell>
                         <TableCell>
                           <Badge variant={getStatusBadgeVariant(invoice.status)}>
                             {invoice.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" asChild>
-                            <a href={invoice.receiptUrl || "#"} target="_blank" rel="noopener noreferrer">
-                              <Download className="w-4 h-4 mr-2" />
-                              Download
-                            </a>
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            {invoice.hosted_invoice_url && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a 
+                                  href={invoice.hosted_invoice_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  View
+                                </a>
+                              </Button>
+                            )}
+                            {(invoice.invoice_pdf || invoice.receiptUrl) && (
+                              <Button variant="ghost" size="sm" asChild>
+                                <a 
+                                  href={invoice.invoice_pdf || invoice.receiptUrl || "#"} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download
+                                </a>
+                              </Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -194,27 +334,67 @@ const Invoices = () => {
 
               <div className="flex items-center justify-between mt-6">
                 <div className="text-sm text-muted-foreground">
-                  Page {page} of {totalPages}
+                  {cursor 
+                    ? `Showing ${invoices.length} invoice${invoices.length !== 1 ? 's' : ''}${hasMore ? ' (more available)' : ''}`
+                    : `Showing {(page - 1) * perPage + 1} to {Math.min(page * perPage, total)} of {total} invoices`
+                  }
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                    disabled={page === 1 || loading}
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                    disabled={page === totalPages || loading}
-                  >
-                    Next
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
+                  {cursor ? (
+                    // Cursor-based pagination
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCursor(null);
+                          setPage(1);
+                          fetchInvoices(true);
+                        }}
+                        disabled={!cursor || loading}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (nextCursor) {
+                            setCursor(nextCursor);
+                            setPage((p) => p + 1);
+                            fetchInvoices(false);
+                          }
+                        }}
+                        disabled={!hasMore || !nextCursor || loading}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </>
+                  ) : (
+                    // Page-based pagination (fallback)
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                        disabled={page === 1 || loading}
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                        disabled={page === totalPages || loading}
+                      >
+                        Next
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             </>

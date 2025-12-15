@@ -304,7 +304,7 @@ export default function AgenticWorkflow() {
         ...logs,
         { t: Date.now(), type: "status", message: `Status: ${data.status}` },
       ]);
-      if (data.status === "completed") {
+      if (data.status === "completed" && runId) {
         safeFetchResult(runId);
       }
     } else if (type === "result") {
@@ -329,17 +329,30 @@ export default function AgenticWorkflow() {
     setPendingProposal(null);
     setRunStatus("running");
 
-    // Log decision to backend
+    // Log decision and approve the run
     try {
-      if (!USE_MOCK) {
+      if (!USE_MOCK && runId) {
+        // Log HITL decision
         await fetchJson("/api/hitl/decisions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(decision),
         });
+
+        // Approve the run to continue execution
+        await fetchJson(`/api/runs/${runId}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ approved: true }),
+        });
       }
     } catch (err) {
-      console.warn("Failed to log HITL decision", err);
+      console.warn("Failed to approve run", err);
+      setRunLogs((logs) => [
+        ...logs,
+        { t: Date.now(), type: "error", message: `Failed to approve: ${err instanceof Error ? err.message : String(err)}` },
+      ]);
+      return;
     }
 
     // Continue execution (backend should resume)
@@ -364,11 +377,19 @@ export default function AgenticWorkflow() {
     setRunStatus("rejected");
 
     try {
-      if (!USE_MOCK) {
+      if (!USE_MOCK && runId) {
+        // Log HITL decision
         await fetchJson("/api/hitl/decisions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(decision),
+        });
+
+        // Reject the run
+        await fetchJson(`/api/runs/${runId}/approve`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ approved: false }),
         });
       }
     } catch (err) {

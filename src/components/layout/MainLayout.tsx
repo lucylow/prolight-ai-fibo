@@ -1,10 +1,11 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Lightbulb, FlaskConical, MessageSquare, Palette, History, Menu, X, Sun, Moon, 
   User, Settings, LogOut, Shield, LayoutDashboard, CreditCard, Users, FileText,
   Sparkles, Building2, BookOpen, DollarSign, Info, Briefcase, Mail, ChevronDown,
-  Search, Command
+  Search, Command, Loader2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,6 +14,16 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuList, NavigationMenuTrigger, NavigationMenuLink } from '@/components/ui/navigation-menu';
 import { Separator } from '@/components/ui/separator';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useThemeContext } from '@/contexts/ThemeContext';
 import { toast } from 'sonner';
@@ -64,6 +75,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Close mobile menu on route change and clear search
   React.useEffect(() => {
@@ -101,13 +114,21 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       .slice(0, 2);
   };
 
+  const handleLogoutClick = useCallback(() => {
+    setShowSignOutDialog(true);
+  }, []);
+
   const handleLogout = useCallback(async () => {
+    setSigningOut(true);
     try {
       await auth.logout();
       toast.success('Signed out successfully');
-      navigate('/');
+      setShowSignOutDialog(false);
+      navigate('/sign-in', { replace: true });
     } catch (error) {
-      toast.error('Failed to sign out');
+      console.error('Logout error:', error);
+      toast.error('Failed to sign out. Please try again.');
+      setSigningOut(false);
     }
   }, [auth, navigate]);
 
@@ -147,8 +168,8 @@ const MainLayout = ({ children }: MainLayoutProps) => {
     return location.pathname.startsWith(path);
   }, [location.pathname]);
 
-  // Navigation item component for desktop
-  const NavItem = ({ item, group }: { item: typeof navigationGroups.create[0], group?: string }) => {
+  // Navigation item component for desktop (memoized for performance)
+  const NavItem = React.memo(({ item, group }: { item: typeof navigationGroups.create[0], group?: string }) => {
     const Icon = item.icon;
     const active = isActive(item.path);
     
@@ -157,9 +178,10 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         to={item.path}
         className={cn(
           "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 relative group",
+          "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background",
           active
             ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted/70 hover:shadow-sm active:scale-[0.98]"
         )}
         aria-current={active ? 'page' : undefined}
         aria-label={`Navigate to ${item.label}`}
@@ -170,38 +192,44 @@ const MainLayout = ({ children }: MainLayoutProps) => {
         )} aria-hidden="true" />
         <span className="relative z-10">{item.label}</span>
         {active && (
-          <span className="absolute inset-0 bg-primary/10 rounded-lg -z-0" aria-hidden="true" />
+          <span className="absolute inset-0 bg-primary/10 rounded-lg -z-0 animate-pulse" aria-hidden="true" />
         )}
       </Link>
     );
-  };
+  });
+  NavItem.displayName = 'NavItem';
 
-  // Mobile menu item component
-  const MobileNavItem = ({ item }: { item: typeof navigationGroups.create[0] }) => {
+  // Mobile menu item component (memoized for performance)
+  const MobileNavItem = React.memo(({ item }: { item: typeof navigationGroups.create[0] }) => {
     const Icon = item.icon;
     const active = isActive(item.path);
+    
+    const handleClick = useCallback(() => {
+      setMobileMenuOpen(false);
+      setSearchQuery('');
+    }, []);
+    
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        setMobileMenuOpen(false);
+        setSearchQuery('');
+      }
+    }, []);
     
     return (
       <Link
         to={item.path}
-        onClick={() => {
-          setMobileMenuOpen(false);
-          setSearchQuery('');
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            setMobileMenuOpen(false);
-            setSearchQuery('');
-          }
-        }}
+        onClick={handleClick}
+        onKeyDown={handleKeyDown}
         className={cn(
-          "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 group",
+          "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background group",
           active
             ? "bg-primary text-primary-foreground shadow-md"
             : "text-foreground hover:bg-muted/70 hover:shadow-sm active:scale-[0.98]"
         )}
         aria-current={active ? 'page' : undefined}
         role="menuitem"
+        tabIndex={0}
       >
         <div className={cn(
           "p-2 rounded-lg transition-all duration-200",
@@ -221,30 +249,39 @@ const MainLayout = ({ children }: MainLayoutProps) => {
           )}
         </div>
         {active && (
-          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground shrink-0" />
+          <div className="w-1.5 h-1.5 rounded-full bg-primary-foreground shrink-0 animate-pulse" />
         )}
       </Link>
     );
-  };
+  });
+  MobileNavItem.displayName = 'MobileNavItem';
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden">
+      {/* Skip to main content link for accessibility */}
+      <a 
+        href="#main-content" 
+        className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      >
+        Skip to main content
+      </a>
+      
       {/* Header */}
-      <header className="sticky top-0 left-0 right-0 w-full z-50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm transition-all duration-200">
+      <header className="sticky top-0 left-0 right-0 w-full z-50 bg-background/95 backdrop-blur-md supports-[backdrop-filter]:bg-background/80 border-b border-border/50 shadow-sm transition-all duration-200 hover:shadow-md">
         <div className="container mx-auto px-3 sm:px-4 md:px-6 lg:px-8">
           <div className="flex h-14 sm:h-16 items-center justify-between gap-2 sm:gap-4">
             {/* Logo */}
             <Link 
               to="/" 
-              className="flex items-center gap-2 sm:gap-2.5 font-bold text-base sm:text-lg hover:opacity-80 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg px-1 sm:px-2 -ml-1 sm:-ml-2 group shrink-0"
+              className="flex items-center gap-2 sm:gap-2.5 font-bold text-base sm:text-lg hover:opacity-90 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg px-1 sm:px-2 -ml-1 sm:-ml-2 group shrink-0 active:scale-95"
               aria-label="ProLighting Home"
             >
               <div className="relative">
-                <Lightbulb className="text-primary w-5 h-5 sm:w-6 sm:h-6 transition-transform duration-200 group-hover:scale-110 group-hover:rotate-12" />
-                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                <Lightbulb className="text-primary w-5 h-5 sm:w-6 sm:h-6 transition-all duration-300 group-hover:scale-110 group-hover:rotate-12 group-hover:text-primary/90" />
+                <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 group-active:opacity-50" />
               </div>
-              <span className="hidden sm:inline bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">ProLighting</span>
-              <span className="sm:hidden bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-sm">ProLight</span>
+              <span className="hidden sm:inline bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text transition-all duration-200 group-hover:from-foreground group-hover:via-primary/90 group-hover:to-foreground/90">ProLighting</span>
+              <span className="sm:hidden bg-gradient-to-r from-foreground via-foreground/90 to-foreground/70 bg-clip-text text-sm transition-all duration-200 group-hover:from-foreground group-hover:via-primary/90 group-hover:to-foreground/90">ProLight</span>
             </Link>
 
             {/* Desktop Navigation */}
@@ -550,42 +587,77 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 
           {/* Search Bar */}
           <div className="mt-6 mb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary" />
               <Input
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search pages..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-9 h-10"
+                className="pl-9 pr-20 h-10 transition-all duration-200 focus:ring-2 focus:ring-primary"
+                aria-label="Search navigation"
+                aria-describedby="search-hint"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground">
-                <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border">⌘</kbd>
-                <kbd className="px-1.5 py-0.5 bg-muted rounded border border-border">K</kbd>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-12 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted transition-colors duration-200"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3 h-3 text-muted-foreground hover:text-foreground" />
+                </button>
+              )}
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-muted-foreground pointer-events-none">
+                <kbd className="px-1.5 py-0.5 bg-muted/50 rounded border border-border/50 font-mono">⌘</kbd>
+                <kbd className="px-1.5 py-0.5 bg-muted/50 rounded border border-border/50 font-mono">K</kbd>
               </div>
+              <p id="search-hint" className="sr-only">Use keyboard shortcut Cmd+K or Ctrl+K to search</p>
             </div>
           </div>
 
           {/* Search Results */}
-          {searchQuery.trim() && (
-            <div className="mb-6 space-y-2">
-              <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Search Results
-              </h3>
-              <div className="space-y-1">
-                {filteredSearchResults.length > 0 ? (
-                  filteredSearchResults.map((item) => (
-                    <MobileNavItem key={item.path} item={item} />
-                  ))
-                ) : (
-                  <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                    No results found for "{searchQuery}"
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          <AnimatePresence>
+            {searchQuery.trim() && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mb-6 space-y-2"
+              >
+                <h3 className="px-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                  Search Results {filteredSearchResults.length > 0 && `(${filteredSearchResults.length})`}
+                </h3>
+                <div className="space-y-1">
+                  {filteredSearchResults.length > 0 ? (
+                    filteredSearchResults.map((item, index) => (
+                      <motion.div
+                        key={item.path}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <MobileNavItem item={item} />
+                      </motion.div>
+                    ))
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="px-4 py-8 text-center"
+                    >
+                      <Search className="w-8 h-8 mx-auto mb-2 text-muted-foreground/50" />
+                      <p className="text-sm text-muted-foreground">
+                        No results found for <span className="font-medium text-foreground">"{searchQuery}"</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">Try a different search term</p>
+                    </motion.div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Regular Navigation (hidden when searching) */}
           {!searchQuery.trim() && (
@@ -660,7 +732,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
               {auth.user ? (
                 <Button 
                   variant="ghost" 
-                  onClick={handleLogout} 
+                  onClick={handleLogoutClick} 
                   className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                 >
                   <LogOut className="w-4 h-4 mr-2" />
@@ -693,6 +765,35 @@ const MainLayout = ({ children }: MainLayoutProps) => {
       >
         {children}
       </main>
+
+      {/* Sign Out Confirmation Dialog */}
+      <AlertDialog open={showSignOutDialog} onOpenChange={setShowSignOutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to sign out? You'll need to sign in again to access your account.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingOut}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              disabled={signingOut}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {signingOut ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing out...
+                </>
+              ) : (
+                "Sign out"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

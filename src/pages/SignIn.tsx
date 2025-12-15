@@ -1,12 +1,16 @@
-import React, { useState, useContext } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState, useContext, useEffect } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Github, Mail } from "lucide-react";
+import { Github, Mail, Eye, EyeOff, Loader2 } from "lucide-react";
+
+const REMEMBER_ME_KEY = "prolight_remember_email";
+const REMEMBER_ME_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const SignIn = () => {
   const auth = useContext(AuthContext);
@@ -14,8 +18,20 @@ const SignIn = () => {
   const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState<"google" | "github" | null>(null);
+
+  // Load remembered email on mount
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem(REMEMBER_ME_KEY);
+    if (rememberedEmail) {
+      setEmail(rememberedEmail);
+      setRememberMe(true);
+    }
+  }, []);
 
   if (!auth) {
     return null;
@@ -27,9 +43,27 @@ const SignIn = () => {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    
+    // Basic validation
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+
     setLoading(true);
     try {
       await auth.login(email, password);
+      
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem(REMEMBER_ME_KEY, email);
+        // Set expiration
+        localStorage.setItem(`${REMEMBER_ME_KEY}_expires`, String(Date.now() + REMEMBER_ME_DURATION));
+      } else {
+        localStorage.removeItem(REMEMBER_ME_KEY);
+        localStorage.removeItem(`${REMEMBER_ME_KEY}_expires`);
+      }
+      
       toast.success("Welcome back!");
       navigate(from, { replace: true });
     } catch (err: unknown) {
@@ -45,15 +79,17 @@ const SignIn = () => {
 
   const handleOAuthLogin = async (provider: "google" | "github") => {
     try {
-      setLoading(true);
+      setOauthLoading(provider);
+      setError("");
       await auth.loginWithOAuth(provider);
       // OAuth will redirect, so we don't need to navigate here
     } catch (err: unknown) {
       const errorMessage = err && typeof err === 'object' && 'message' in err 
         ? String(err.message) 
         : `Failed to sign in with ${provider}`;
+      setError(errorMessage);
       toast.error(errorMessage);
-      setLoading(false);
+      setOauthLoading(null);
     }
   };
 
@@ -83,23 +119,72 @@ const SignIn = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={loading}
+                disabled={loading || oauthLoading !== null}
+                autoComplete="email"
+                autoFocus
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={loading}
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-primary hover:underline"
+                  tabIndex={-1}
+                >
+                  Forgot password?
+                </Link>
+              </div>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading || oauthLoading !== null}
+                  autoComplete="current-password"
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember-me"
+                checked={rememberMe}
+                onCheckedChange={(checked) => setRememberMe(checked === true)}
+                disabled={loading || oauthLoading !== null}
+              />
+              <Label
+                htmlFor="remember-me"
+                className="text-sm font-normal cursor-pointer"
+              >
+                Remember me
+              </Label>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading || oauthLoading !== null}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
 
@@ -117,20 +202,28 @@ const SignIn = () => {
               variant="outline"
               type="button"
               onClick={() => handleOAuthLogin("github")}
-              disabled={loading}
+              disabled={loading || oauthLoading !== null}
               className="w-full"
             >
-              <Github className="mr-2 h-4 w-4" />
+              {oauthLoading === "github" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Github className="mr-2 h-4 w-4" />
+              )}
               GitHub
             </Button>
             <Button
               variant="outline"
               type="button"
               onClick={() => handleOAuthLogin("google")}
-              disabled={loading}
+              disabled={loading || oauthLoading !== null}
               className="w-full"
             >
-              <Mail className="mr-2 h-4 w-4" />
+              {oauthLoading === "google" ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="mr-2 h-4 w-4" />
+              )}
               Google
             </Button>
           </div>

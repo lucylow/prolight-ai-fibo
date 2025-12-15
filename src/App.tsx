@@ -9,7 +9,9 @@ import MainLayout from "@/components/layout/MainLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import StripeProvider from "@/contexts/StripeProvider";
 import { DeploymentBanner } from "@/components/DeploymentBanner";
+import DeployCheckBanner from "@/components/DeployCheckBanner";
 import { CookieConsent } from "./components/CookieConsent";
 import { ScrollToTop } from "./components/ScrollToTop";
 import { initializeMockData } from "./services/enhancedMockData";
@@ -18,6 +20,7 @@ import { initializeMockData } from "./services/enhancedMockData";
 import Index from "./pages/Index";
 import SignIn from "./pages/SignIn";
 import SignOut from "./pages/SignOut";
+import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
 import Studio from "./pages/Studio";
 import Presets from "./pages/Presets";
@@ -71,17 +74,38 @@ const Admin = lazy(() => import("./pages/Admin"));
 const BusinessModelCanvas = lazy(() => import("./pages/BusinessModelCanvas"));
 const FreeApisDemo = lazy(() => import("./components/FreeApisDemo"));
 const AgenticWorkflow = lazy(() => import("./pages/AgenticWorkflow"));
+const AgentOrchestratorPage = lazy(() => import("./pages/AgentOrchestratorPage"));
+const WorkflowBuilderPage = lazy(() => import("./pages/WorkflowBuilderPage"));
+const WorkflowDetailPage = lazy(() => import("./pages/WorkflowDetailPage"));
+const WorkflowLibraryPage = lazy(() => import("./pages/WorkflowLibraryPage"));
 
 // Enhanced loading fallback component with better UX
-const PageLoader: React.FC = () => (
-  <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+const PageLoader: React.FC = React.memo(() => (
+  <div 
+    className="flex flex-col items-center justify-center min-h-screen gap-4 animate-fade-in bg-background"
+    role="status"
+    aria-label="Loading page"
+  >
     <div className="relative">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary/20"></div>
-      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary absolute top-0 left-0"></div>
+      <div className="animate-spin rounded-full h-14 w-14 border-4 border-primary/20"></div>
+      <div className="animate-spin rounded-full h-14 w-14 border-t-4 border-primary absolute top-0 left-0"></div>
+      <div className="absolute inset-0 rounded-full bg-primary/10 animate-pulse"></div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-2 h-2 rounded-full bg-primary animate-ping"></div>
+      </div>
     </div>
-    <p className="text-sm text-muted-foreground animate-pulse">Loading...</p>
+    <div className="flex flex-col items-center gap-2">
+      <p className="text-sm font-medium text-foreground animate-pulse">Loading page...</p>
+      <div className="flex gap-1">
+        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+      </div>
+    </div>
+    <span className="sr-only">Loading page content</span>
   </div>
-);
+));
+PageLoader.displayName = 'PageLoader';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -93,19 +117,20 @@ const queryClient = new QueryClient({
   },
 });
 
-// Memoized PageWrapper for better performance
+// Memoized PageWrapper for better performance with optimized animations
 const PageWrapper = React.memo(({ children }: { children: React.ReactNode }) => {
   return (
     <Suspense fallback={<PageLoader />}>
       <motion.div 
-        initial={{ opacity: 0, y: 12 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        exit={{ opacity: 0, y: -12 }} 
+        initial={{ opacity: 0, y: 8, scale: 0.98 }} 
+        animate={{ opacity: 1, y: 0, scale: 1 }} 
+        exit={{ opacity: 0, y: -8, scale: 0.98 }} 
         transition={{ 
-          duration: 0.3,
-          ease: [0.4, 0, 0.2, 1] // Custom easing for smoother feel
+          duration: 0.25,
+          ease: [0.4, 0, 0.2, 1], // Custom easing for smoother feel
+          layout: { duration: 0.2 }
         }}
-        className="w-full"
+        className="w-full min-h-[calc(100vh-4rem)]"
         role="main"
         aria-live="polite"
       >
@@ -113,6 +138,9 @@ const PageWrapper = React.memo(({ children }: { children: React.ReactNode }) => 
       </motion.div>
     </Suspense>
   );
+}, (prevProps, nextProps) => {
+  // Only re-render if children actually change
+  return prevProps.children === nextProps.children;
 });
 
 PageWrapper.displayName = 'PageWrapper';
@@ -125,6 +153,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<PageWrapper><Index /></PageWrapper>} />
         <Route path="/sign-in" element={<PageWrapper><SignIn /></PageWrapper>} />
         <Route path="/signout" element={<PageWrapper><SignOut /></PageWrapper>} />
+        <Route path="/forgot-password" element={<PageWrapper><ForgotPassword /></PageWrapper>} />
         <Route path="/studio" element={<PageWrapper><Studio /></PageWrapper>} />
         <Route path="/presets" element={<PageWrapper><Presets /></PageWrapper>} />
         <Route path="/natural-language" element={<PageWrapper><NaturalLanguage /></PageWrapper>} />
@@ -232,6 +261,39 @@ function AnimatedRoutes() {
         <Route path="/bria/v1-generator" element={<PageWrapper><BriaV1Generator /></PageWrapper>} />
         <Route path="/demo/free-apis" element={<PageWrapper><FreeApisDemo /></PageWrapper>} />
         <Route path="/agentic-workflows" element={<PageWrapper><AgenticWorkflow /></PageWrapper>} />
+        {/* Agentic Workflow Routes */}
+        <Route 
+          path="/agentic" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><AgentOrchestratorPage /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/agentic/new" 
+          element={
+            <ProtectedRoute roles={["admin", "editor"]}>
+              <PageWrapper><WorkflowBuilderPage /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/agentic/library" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><WorkflowLibraryPage /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/agentic/:workflowId" 
+          element={
+            <ProtectedRoute>
+              <PageWrapper><WorkflowDetailPage /></PageWrapper>
+            </ProtectedRoute>
+          } 
+        />
         <Route path="*" element={<PageWrapper><NotFound /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
@@ -250,17 +312,20 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>
-              <Sonner />
-              <BrowserRouter>
-                <ScrollToTop />
-                <CookieConsent />
-                <DeploymentBanner />
-                <MainLayout>
-                  <AnimatedRoutes />
-                </MainLayout>
-              </BrowserRouter>
-            </TooltipProvider>
+            <StripeProvider>
+              <TooltipProvider>
+                <Sonner />
+                <BrowserRouter>
+                  <ScrollToTop />
+                  <CookieConsent />
+                  <DeploymentBanner />
+                  <DeployCheckBanner />
+                  <MainLayout>
+                    <AnimatedRoutes />
+                  </MainLayout>
+                </BrowserRouter>
+              </TooltipProvider>
+            </StripeProvider>
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
