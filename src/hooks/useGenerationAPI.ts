@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLightingStore } from '@/stores/lightingStore';
-import { generateImage, type Light, type GenerateRequest } from '@/lib/api';
+import { apiClient } from '@/services/apiClient';
+import type { GenerateRequest } from '@/types/fibo';
 import { toast } from 'sonner';
 
 /**
@@ -21,46 +22,51 @@ export const useGenerationAPI = () => {
   /**
    * Convert lighting setup to API format
    */
-  const convertLightingToAPI = (): Light[] => {
-    const lights: Light[] = [];
+  const convertLightingToAPI = (): Record<string, any> => {
+    const lighting: Record<string, any> = {};
 
     if (lightingSetup.key.enabled) {
-      lights.push({
-        id: 'key',
-        type: 'directional',
+      lighting.mainLight = {
+        type: 'area',
+        direction: lightingSetup.key.direction,
         position: parsePosition(lightingSetup.key.direction),
         intensity: lightingSetup.key.intensity,
-        color_temperature: lightingSetup.key.colorTemperature,
+        colorTemperature: lightingSetup.key.colorTemperature,
         softness: lightingSetup.key.softness,
         enabled: true,
-      });
+        distance: 1.5,
+      };
     }
 
     if (lightingSetup.fill.enabled) {
-      lights.push({
-        id: 'fill',
+      lighting.fillLight = {
         type: 'point',
+        direction: lightingSetup.fill.direction,
         position: parsePosition(lightingSetup.fill.direction),
         intensity: lightingSetup.fill.intensity,
-        color_temperature: lightingSetup.fill.colorTemperature,
+        colorTemperature: lightingSetup.fill.colorTemperature,
         softness: lightingSetup.fill.softness,
         enabled: true,
-      });
+        distance: 2.0,
+      };
     }
 
     if (lightingSetup.rim.enabled) {
-      lights.push({
-        id: 'rim',
-        type: 'directional',
+      lighting.rimLight = {
+        type: 'spot',
+        direction: lightingSetup.rim.direction,
         position: parsePosition(lightingSetup.rim.direction),
         intensity: lightingSetup.rim.intensity,
-        color_temperature: lightingSetup.rim.colorTemperature,
+        colorTemperature: lightingSetup.rim.colorTemperature,
         softness: lightingSetup.rim.softness,
         enabled: true,
-      });
+        distance: 2.5,
+      };
     }
 
-    return lights;
+    lighting.lightingStyle = sceneSettings.stylePreset || 'custom';
+
+    return lighting;
   };
 
   /**
@@ -118,39 +124,41 @@ export const useGenerationAPI = () => {
     setLoading(true);
 
     try {
-      const lights = convertLightingToAPI();
+      const lighting_setup = convertLightingToAPI();
       
-      if (lights.length === 0) {
+      if (!lighting_setup.mainLight && !lighting_setup.fillLight && !lighting_setup.rimLight) {
         throw new Error('Please enable at least one light');
       }
 
       const request: GenerateRequest = {
-        scene_prompt: `${sceneSettings.subjectDescription} in ${sceneSettings.environment}`,
-        lights,
-        subject_options: {
-          style_preset: sceneSettings.stylePreset,
-          enhance_hdr: sceneSettings.enhanceHDR,
+        scene_description: `${sceneSettings.subjectDescription} in ${sceneSettings.environment}`,
+        lighting_setup,
+        camera_settings: cameraSettings,
+        render_settings: {
+          resolution: [2048, 2048],
+          colorSpace: 'ACEScg',
+          bitDepth: 16,
+          aov: ['beauty', 'diffuse', 'specular', 'depth'],
+          samples: 40,
         },
-        num_results: 1,
-        sync: true,
+        use_mock: false,
       };
 
-      console.log('Generating from setup:', request);
+      console.log('Generating from setup (FIBO backend):', request);
 
-      const result = await generateImage(request);
-
-      if (!result.ok) {
-        throw new Error(result.error || 'Generation failed');
-      }
+      const result = await apiClient.generate(request);
 
       console.log('Generation result:', result);
 
       setGenerationResult({
         image_url: result.image_url || '',
-        image_id: result.request_id || '',
-        fibo_json: result.structured_prompt || {},
-        lightingAnalysis: result.meta || {},
-        generation_metadata: result.meta || {},
+        image_id: result.generation_id || '',
+        fibo_json: result.fibo_json || {},
+        lightingAnalysis: result.analysis || {},
+        generation_metadata: {
+          duration_seconds: result.duration_seconds,
+          cost_credits: result.cost_credits,
+        },
       });
 
       toast.success('Image generated successfully with FIBO!');

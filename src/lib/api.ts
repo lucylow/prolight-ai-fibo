@@ -1,9 +1,9 @@
 /**
  * API client for ProLight AI backend
- * Connects frontend to FastAPI backend
+ * Connects frontend to FastAPI backend (lightweight, FIBO-focused wrapper)
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import { API_BASE_URL, API_PREFIX, API_TIMEOUT_MS } from './config';
 
 export interface Light {
   id: string;
@@ -15,6 +15,8 @@ export interface Light {
   enabled: boolean;
 }
 
+// NOTE: This request shape is specialized for the FIBO lighting frontend.
+// It will be translated to the backend's canonical GenerateRequest schema.
 export interface GenerateRequest {
   scene_prompt: string;
   lights: Light[];
@@ -46,27 +48,35 @@ export interface StatusResponse {
  * Generate image with lighting setup
  */
 export async function generateImage(request: GenerateRequest): Promise<GenerateResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/generate`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(request),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Network error' }));
-    throw new Error(error.error || `HTTP ${response.status}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}${API_PREFIX}/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Network error' }));
+      throw new Error(error.error || `HTTP ${response.status}`);
+    }
+
+    return response.json();
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 /**
  * Check status of async generation
  */
 export async function checkStatus(requestId: string): Promise<StatusResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/status/${requestId}`);
+  const response = await fetch(`${API_BASE_URL}${API_PREFIX}/status/${requestId}`);
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({ error: 'Network error' }));
@@ -107,7 +117,7 @@ export async function waitForCompletion(
  */
 export async function healthCheck(): Promise<boolean> {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`);
+    const response = await fetch(`${API_BASE_URL}${API_PREFIX}/health`);
     return response.ok;
   } catch {
     return false;

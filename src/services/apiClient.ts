@@ -14,8 +14,7 @@ import type {
   LightingPreset,
 } from '@/types/fibo';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const API_PREFIX = '/api';
+import { API_BASE_URL, API_PREFIX, API_TIMEOUT_MS } from '@/lib/config';
 
 class APIClient {
   private baseUrl: string;
@@ -49,10 +48,14 @@ class APIClient {
       ...options.headers,
     };
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
     try {
       const response = await fetch(url, {
         ...options,
         headers,
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -63,6 +66,8 @@ class APIClient {
     } catch (error) {
       console.error(`API request failed: ${endpoint}`, error);
       throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
