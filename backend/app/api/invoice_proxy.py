@@ -15,8 +15,11 @@ from app.models.billing import Invoice, User
 from app.auth.role_middleware import get_current_user
 from app.core.config import settings
 
-router = APIRouter(prefix="/api/billing", tags=["Invoices"])
-logger = logging.getLogger(__name__)
+stripe.api_key = settings.STRIPE_SECRET_KEY if settings.STRIPE_SECRET_KEY else os.getenv("STRIPE_SECRET_KEY")
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 def get_db():
@@ -35,8 +38,10 @@ def invoice_pdf_proxy(
     authorization: Optional[str] = Header(None)
 ):
     """
-    Proxy invoice PDF with authentication.
-    Ensures only the invoice owner or admin can access the PDF.
+    Streams the invoice PDF back to an authenticated user.
+    - If invoice.invoice_pdf exists, it will fetch and stream it.
+    - Otherwise, attempt to fetch from Stripe (stripe.Invoice.retrieve -> invoice_pdf).
+    - If hosted_invoice_url exists and streaming not possible, returns redirect.
     """
     # Get current user
     current_user = get_current_user(authorization, db)
@@ -45,96 +50,71 @@ def invoice_pdf_proxy(
     if hasattr(current_user, 'email'):
         user_email = current_user.email
         user_role = getattr(current_user, 'role', 'viewer')
+        user_id = getattr(current_user, 'id', None)
         db_user = current_user if isinstance(current_user, User) else None
     elif isinstance(current_user, dict):
         user_email = current_user.get("email")
         user_role = current_user.get("role", current_user.get("roles", ["viewer"])[0] if current_user.get("roles") else "viewer")
+        user_id = current_user.get("id")
         db_user = None
     else:
         raise HTTPException(status_code=401, detail="Invalid user")
     
-    # Get user from DB to check stripe_customer_id
+    # Get user from DB
     if not db_user:
         db_user = db.query(User).filter(User.email == user_email).first()
     
-    # Get invoice from database
     inv = db.query(Invoice).filter(Invoice.stripe_invoice_id == stripe_invoice_id).first()
-    
     if not inv:
-        raise HTTPException(status_code=404, detail="Invoice not found")
-    
-    # Authorization: make sure current_user owns the invoice or is admin
-    is_admin = user_role == "admin"
-    is_owner = db_user and db_user.stripe_customer_id == inv.stripe_customer_id
-    
-    if not (is_admin or is_owner):
-        logger.warning(f"Access denied for invoice {stripe_invoice_id} by user {user_email}")
-        raise HTTPException(status_code=403, detail="Forbidden: You do not have access to this invoice")
-    
-    # Try to get PDF URL from stored invoice
-    pdf_url = None
-    
-    if inv.invoice_pdf:
-        pdf_url = inv.invoice_pdf
-    elif inv.hosted_invoice_url:
-        # For hosted invoice URL, we can redirect or try to fetch
-        # Stripe hosted URLs are typically HTML pages, not direct PDF links
-        # We'll redirect to the hosted URL as a fallback
-        return RedirectResponse(url=inv.hosted_invoice_url)
-    
-    # If we don't have PDF URL stored, fetch from Stripe API
-    if not pdf_url:
+        # try fetching by stripe id from Stripe to be tolerant
         try:
-            stripe_client = get_stripe_client()
-            
-            if not settings.USE_MOCK_STRIPE and hasattr(stripe_client, 'Invoice'):
-                # Real Stripe API
-                stripe_inv = stripe.Invoice.retrieve(
-                    stripe_invoice_id,
-                    expand=['invoice_pdf']
-                )
-                pdf_url = stripe_inv.get("invoice_pdf")
-                
-                # Update database with PDF URL if we got one
-                if pdf_url:
-                    inv.invoice_pdf = pdf_url
-                    db.add(inv)
-                    db.commit()
+            if not settings.USE_MOCK_STRIPE:
+                stripe_inv = stripe.Invoice.retrieve(stripe_invoice_id)
             else:
-                # Mock mode - return a mock PDF URL
-                pdf_url = f"{settings.FRONTEND_URL}/invoice/{stripe_invoice_id}/mock.pdf"
+                raise HTTPException(status_code=404, detail="Invoice not found")
         except Exception as e:
-            logger.error(f"Failed to fetch invoice from Stripe: {e}")
-            raise HTTPException(status_code=502, detail=f"Failed to fetch invoice: {str(e)}")
-    
-    if not pdf_url:
+            raise HTTPException(status_code=404, detail="Invoice not found")
+        # optional: persist minimal invoice data here
+        pdf_url = stripe_inv.get("invoice_pdf")
+        if pdf_url:
+            r = requests.get(pdf_url, stream=True, timeout=30)
+            if r.status_code != 200:
+                raise HTTPException(status_code=502, detail="Failed to fetch PDF from Stripe")
+            return StreamingResponse(r.iter_content(chunk_size=1024), media_type="application/pdf")
+        hosted = stripe_inv.get("hosted_invoice_url")
+        if hosted:
+            return RedirectResponse(hosted)
         raise HTTPException(status_code=404, detail="Invoice PDF not available")
-    
-    # Fetch and stream the PDF
+
+    # Authorization: owner OR admin
+    if inv.user_id:
+        if inv.user_id != (db_user.id if db_user else None) and user_role != "admin":
+            raise HTTPException(status_code=403, detail="Forbidden")
+    else:
+        # if no linked user, disallow unless admin
+        if user_role != "admin":
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+    if inv.invoice_pdf:
+        r = requests.get(inv.invoice_pdf, stream=True, timeout=30)
+        if r.status_code != 200:
+            raise HTTPException(status_code=502, detail="Failed to fetch stored PDF")
+        return StreamingResponse(r.iter_content(chunk_size=1024), media_type="application/pdf")
+
+    if inv.hosted_invoice_url:
+        return RedirectResponse(inv.hosted_invoice_url)
+
+    # fallback: fetch from Stripe API
     try:
-        # For mock mode, return a simple response
-        if settings.USE_MOCK_STRIPE or "mock" in pdf_url:
-            return {
-                "message": "Invoice PDF (mock mode)",
-                "url": pdf_url,
-                "invoice_id": stripe_invoice_id
-            }
-        
-        # Fetch PDF from Stripe
-        response = requests.get(pdf_url, stream=True, timeout=30)
-        
-        if response.status_code != 200:
-            logger.error(f"Failed to fetch PDF from {pdf_url}: {response.status_code}")
-            raise HTTPException(status_code=502, detail="Failed to fetch PDF")
-        
-        return StreamingResponse(
-            response.iter_content(chunk_size=1024),
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": f'inline; filename="invoice_{stripe_invoice_id}.pdf"'
-            }
-        )
-        
-    except requests.RequestException as e:
-        logger.error(f"Error fetching PDF: {e}")
-        raise HTTPException(status_code=502, detail=f"Failed to fetch PDF: {str(e)}")
+        if not settings.USE_MOCK_STRIPE:
+            stripe_inv = stripe.Invoice.retrieve(stripe_invoice_id)
+            pdf_url = stripe_inv.get("invoice_pdf")
+            if pdf_url:
+                r = requests.get(pdf_url, stream=True, timeout=30)
+                if r.status_code != 200:
+                    raise HTTPException(status_code=502, detail="Failed to fetch PDF from Stripe")
+                return StreamingResponse(r.iter_content(chunk_size=1024), media_type="application/pdf")
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=502, detail=f"Stripe error: {str(e)}")
+
+    raise HTTPException(status_code=404, detail="Invoice PDF not available")
