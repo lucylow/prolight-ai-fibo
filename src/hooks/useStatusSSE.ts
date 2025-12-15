@@ -6,7 +6,7 @@ export interface StatusUpdate {
   status: string;
   progress?: number;
   message?: string;
-  data?: any;
+  data?: unknown;
   error?: string;
 }
 
@@ -87,4 +87,5 @@ export function useStatusSSE(requestId: string | null) {
 
   return { status, error };
 }
+
 

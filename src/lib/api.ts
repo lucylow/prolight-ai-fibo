@@ -13,10 +13,10 @@ export const api: AxiosInstance = axios.create({
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: string | null) => void;
-  reject: (error?: any) => void;
+  reject: (error?: unknown) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => (error ? prom.reject(error) : prom.resolve(token)));
   failedQueue = [];
 };
@@ -91,4 +91,5 @@ api.interceptors.response.use(
 );
 
 export default api;
+
 
