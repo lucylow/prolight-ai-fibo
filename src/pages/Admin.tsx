@@ -193,29 +193,6 @@ const Admin = () => {
     }
   };
 
-  const fetchSummary = async () => {
-    setSummaryLoading(true);
-    setSummaryError(null);
-    try {
-      const response = await api.get("/admin/summary");
-      setSummary(response.data);
-    } catch (error: unknown) {
-      console.error("Failed to fetch admin summary:", error);
-      const errorMessage = error && typeof error === 'object' && 'response' in error
-        ? (error as { response?: { data?: { detail?: string }; status?: number } }).response?.data?.detail
-        : error instanceof Error
-        ? error.message
-        : "Failed to fetch admin summary";
-      setSummaryError(errorMessage || "Failed to fetch admin summary");
-      // Don't show toast for RBAC errors - they're expected for non-admin users
-      if (error.response?.status !== 403) {
-        toast.error("Failed to fetch admin summary");
-      }
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
-
   const getRoleBadgeVariant = (role: string): "default" | "secondary" | "outline" => {
     switch (role) {
       case "admin":
